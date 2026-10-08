@@ -1,0 +1,7 @@
+{
+  "name": "pam-assistant-sidecar",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Bridge local Node.js vers le moteur Cactus Needle / Whistle, sans dépendance npm",
+  "main": "main.cjs"
+}

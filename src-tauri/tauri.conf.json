@@ -1,0 +1,52 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "PAM",
+  "version": "0.1.0",
+  "identifier": "com.enkis.pam",
+  "build": {
+    "beforeDevCommand": "npm run dev:desktop",
+    "devUrl": "http://localhost:1420",
+    "beforeBuildCommand": "npm run prepare:runtime && npm run build",
+    "frontendDist": "../dist"
+  },
+  "app": {
+    "windows": [
+      {
+        "title": "PAM — Assistant vocal local",
+        "width": 1180,
+        "height": 820,
+        "minWidth": 780,
+        "minHeight": 620,
+        "useHttpsScheme": true
+      }
+    ],
+    "security": {
+      "csp": "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; connect-src ipc: http://ipc.localhost https://ipc.localhost; img-src 'self' data:; media-src 'self' blob:; worker-src 'self' blob:",
+      "devCsp": "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; connect-src ipc: http://ipc.localhost https://ipc.localhost ws://localhost:1420 http://localhost:1420; img-src 'self' data:; media-src 'self' blob:; worker-src 'self' blob:"
+    }
+  },
+  "bundle": {
+    "active": true,
+    "targets": ["nsis"],
+    "externalBin": ["binaries/pam-node"],
+    "resources": {
+      "runtime/": "runtime/",
+      "../sidecar/main.cjs": "sidecar/main.cjs",
+      "../sidecar/assistant.cjs": "sidecar/assistant.cjs",
+      "../sidecar/engine.cjs": "sidecar/engine.cjs",
+      "../sidecar/engine-worker.cjs": "sidecar/engine-worker.cjs",
+      "../sidecar/package.json": "sidecar/package.json"
+    },
+    "windows": {
+      "webviewInstallMode": { "type": "offlineInstaller", "silent": true },
+      "nsis": { "installMode": "currentUser", "languages": ["French"], "displayLanguageSelector": false }
+    },
+    "icon": [
+      "icons/32x32.png",
+      "icons/128x128.png",
+      "icons/128x128@2x.png",
+      "icons/icon.icns",
+      "icons/icon.ico"
+    ]
+  }
+}

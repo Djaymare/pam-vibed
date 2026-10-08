@@ -1,0 +1,33 @@
+name: Prototype Windows x64
+on:
+  workflow_dispatch:
+  push:
+    branches: [main, master]
+  pull_request:
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24.21.0'
+          cache: npm
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: x86_64-pc-windows-msvc
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri
+      - run: npm ci
+      - run: npm run prepare:runtime
+      - run: npm test
+      - run: npm run test:integration
+      - run: npm run package:windows
+      - run: npm run package:portable
+      - uses: actions/upload-artifact@v4
+        with:
+          name: PAM-windows-x64
+          path: |
+            src-tauri/target/x86_64-pc-windows-msvc/release/bundle/nsis/*setup.exe
+            artifacts/PAM-windows-x64/
