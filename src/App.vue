@@ -4,8 +4,9 @@ import { invoke, isTauri } from '@tauri-apps/api/core';
 import { listen, type UnlistenFn } from '@tauri-apps/api/event';
 import { open } from '@tauri-apps/plugin-dialog';
 import Icon from './components/Icon.vue';
+import ApplicationPicker from './components/ApplicationPicker.vue';
 import { VoiceRecorder } from './audio/recorder';
-import type { Application, Config, RuntimeStatus, Turn } from './types';
+import type { Application, Config, InstalledApplication, RuntimeStatus, Turn, WindowsApplication } from './types';
 
 const page = ref<'assistant' | 'applications' | 'settings'>('assistant');
 const status = ref<RuntimeStatus>();
@@ -21,8 +22,16 @@ const text = ref('');
 const turns = ref<Turn[]>([]);
 const editorOpen = ref(false);
 const editingId = ref<string>();
-const form = reactive({ name: '', description: '', executable: '', aliases: '', arguments: '[]', enabled: true });
+const form = reactive({ name: '', description: '', executable: '', aliases: '', arguments: '[]', enabled: true, windowsApp: undefined as WindowsApplication | undefined });
 const formError = ref('');
+const pickerOpen = ref(false);
+const discoveryLoading = ref(false);
+const discoveryError = ref('');
+const installedApplications = ref<InstalledApplication[]>([]);
+const testResult = ref<{ success: boolean; message: string }>();
+const testInput = ref('');
+const testing = ref(false);
+const testNeedsInput = computed(() => !form.windowsApp && form.arguments.includes('{input}'));
 const correction = ref<Turn>();
 const correctionError = ref('');
 const correctionForm = reactive({ text: '', applicationId: '', input: '', saveAlias: false, alias: '' });
@@ -62,7 +71,7 @@ onMounted(async () => {
   if (isTauri()) {
     for (const [event, callback] of [
       ['pam-toggle-voice', () => {
-        if (editorOpen.value || correction.value) return;
+        if (editorOpen.value || pickerOpen.value || correction.value) return;
         page.value = 'assistant';
         if (recording.value) void finishRecording();
         else if (canRequest.value) void startRecording();
@@ -151,10 +160,43 @@ async function resolveTurn(turn: Turn, accept: boolean) {
 }
 function editApplication(application?: Application) {
   editingId.value = application?.id;
+  form.windowsApp = application?.windowsApp;
   Object.assign(form, application ? { ...application, aliases: application.aliases.join(', '), arguments: JSON.stringify(application.arguments, null, 2) }
     : { name: '', description: '', executable: '', aliases: '', arguments: '[]', enabled: true });
-  formError.value = ''; editorOpen.value = true;
+  formError.value = ''; testResult.value = undefined; testInput.value = ''; editorOpen.value = true;
 }
+async function addApplication() {
+  pickerOpen.value = true;
+  if (!installedApplications.value.length) await discoverApplications();
+}
+async function discoverApplications() {
+  if (discoveryLoading.value) return;
+  discoveryLoading.value = true; discoveryError.value = '';
+  try { installedApplications.value = await invoke<InstalledApplication[]>('discover_applications'); }
+  catch (caught) { discoveryError.value = describeError(caught); }
+  finally { discoveryLoading.value = false; }
+}
+function selectInstalled(application: InstalledApplication) {
+  pickerOpen.value = false; editApplication();
+  form.name = application.name.slice(0, 60);
+  form.description = `Ouvrir ${form.name}.`;
+  form.windowsApp = { appId: application.appId, kind: application.kind, icon: application.icon, launchArgument: application.launchArgument };
+  // The native bridge supplies the trusted launch target when saving or testing.
+}
+function manualApplication() { pickerOpen.value = false; editApplication(); }
+function useExecutable() { form.windowsApp = undefined; form.executable = ''; form.arguments = '[]'; testResult.value = undefined; }
+function applicationPayload() {
+  let args: unknown;
+  try { args = JSON.parse(form.arguments); } catch { throw new Error('Les arguments doivent être un tableau JSON, par exemple ["--new-window", "{input}"].'); }
+  return { ...form, id: editingId.value, aliases: form.aliases.split(',').map(alias => alias.trim()).filter(Boolean), arguments: args };
+}
+async function testLaunch() {
+  busy.value = true; testing.value = true; formError.value = ''; testResult.value = undefined;
+  try { testResult.value = await request('test_application', { ...applicationPayload(), input: testNeedsInput.value ? testInput.value : undefined }); }
+  catch (caught) { formError.value = describeError(caught); }
+  finally { busy.value = false; testing.value = false; }
+}
+watch(() => [form.executable, form.arguments, form.windowsApp?.appId, testInput.value], () => { testResult.value = undefined; });
 async function browse() {
   try {
     const selected = await open({ title: 'Choisir une application Windows', multiple: false, directory: false,
@@ -165,10 +207,7 @@ async function browse() {
 async function saveApplication() {
   busy.value = true; formError.value = '';
   try {
-    let args: unknown;
-    try { args = JSON.parse(form.arguments); } catch { throw new Error('Les arguments doivent être un tableau JSON, par exemple ["--new-window", "{input}"].'); }
-    config.value = await request<Config>('save_application', { ...form, id: editingId.value,
-      aliases: form.aliases.split(',').map(alias => alias.trim()).filter(Boolean), arguments: args });
+    config.value = await request<Config>('save_application', applicationPayload());
     editorOpen.value = false;
   } catch (caught) { formError.value = describeError(caught); }
   finally { busy.value = false; }
@@ -222,7 +261,7 @@ const labels: Record<Turn['status'], string> = { executed: 'Terminé', pending: 
               <h2>{{ requestingMic ? 'Autorisez votre microphone' : recording ? 'Je vous écoute…' : busy ? 'Je traite votre demande…' : 'Appuyez pour parler' }}</h2>
               <p>{{ recording ? 'Appuyez à nouveau pour lancer votre demande.' : activeApps.length ? 'Dites, par exemple : « Ouvre ' + activeApps[0]?.name + ' »' : 'Ajoutez une application pour commencer.' }}</p>
               <button v-if="recording" class="text-button" @click="cancelRecording">Annuler l’enregistrement</button>
-              <button v-else-if="!activeApps.length" class="text-button" @click="page = 'applications'; editApplication()">Ajouter ma première application <Icon name="arrow" :size="15" /></button>
+              <button v-else-if="!activeApps.length" class="text-button" @click="page = 'applications'; addApplication()">Ajouter ma première application <Icon name="arrow" :size="15" /></button>
             </div>
             <div class="pipeline"><span><Icon name="mic" :size="15" />Voix</span><Icon name="chevron" :size="12" /><span>Whistle<small>transcrit</small></span><Icon name="chevron" :size="12" /><span>Needle<small>comprend</small></span><Icon name="chevron" :size="12" /><span><Icon name="apps" :size="15" />Application</span></div>
           </section>
@@ -234,9 +273,9 @@ const labels: Record<Turn['status'], string> = { executed: 'Terminé', pending: 
           </section>
         </template>
         <template v-else-if="page === 'applications'">
-          <div class="page-intro inline"><div><div class="eyebrow">VOTRE BOÎTE À OUTILS</div><h1>Applications</h1><p>Choisissez les applications que PAM peut lancer.</p></div><button class="primary" :disabled="locked || !status?.ready" @click="editApplication()"><Icon name="plus" :size="18" />Ajouter une application</button></div>
-          <div v-if="!config.applications.length" class="large-empty"><span class="empty-icon"><Icon name="apps" :size="30" /></span><h2>Faites une place à vos applications</h2><p>Ajoutez un exécutable Windows, donnez-lui un nom<br />et décrivez à quoi il sert. Needle s’occupe de l’orientation.</p><button class="primary" :disabled="locked || !status?.ready" @click="editApplication()"><Icon name="plus" :size="17" />Ajouter une application</button></div>
-          <div class="application-list"><article v-for="app in config.applications" :key="app.id" class="application-card" :class="{ disabled: !app.enabled }"><span class="application-avatar">{{ app.name.slice(0, 1).toUpperCase() }}</span><div class="application-body"><h3>{{ app.name }}</h3><p>{{ app.description }}</p><code>{{ app.executable }}</code><div class="alias-list"><span v-for="alias in app.aliases" :key="alias">{{ alias }}</span><span v-if="app.arguments.length">{{ app.arguments.length }} argument(s)</span></div></div><div class="application-actions"><button class="toggle" :class="{ on: app.enabled }" :disabled="locked" role="switch" :aria-checked="app.enabled" :aria-label="`Activer ${app.name}`" @click="toggleApplication(app)"><span /></button><button class="icon-button" :disabled="locked" :aria-label="`Modifier ${app.name}`" @click="editApplication(app)"><Icon name="edit" :size="17" /></button><button class="icon-button danger" :disabled="locked" :aria-label="`Supprimer ${app.name}`" @click="deleteApplication(app)"><Icon name="trash" :size="17" /></button></div></article></div>
+          <div class="page-intro inline"><div><div class="eyebrow">VOTRE BOÎTE À OUTILS</div><h1>Applications</h1><p>Choisissez les applications que PAM peut lancer.</p></div><button class="primary" :disabled="locked" @click="addApplication()"><Icon name="plus" :size="18" />Ajouter une application</button></div>
+          <div v-if="!config.applications.length" class="large-empty"><span class="empty-icon"><Icon name="apps" :size="30" /></span><h2>Faites une place à vos applications</h2><p>Choisissez une application installée ou un exécutable,<br />puis décrivez à quoi elle sert.</p><button class="primary" :disabled="locked" @click="addApplication()"><Icon name="plus" :size="17" />Ajouter une application</button></div>
+          <div class="application-list"><article v-for="app in config.applications" :key="app.id" class="application-card" :class="{ disabled: !app.enabled }"><span class="application-avatar"><img v-if="app.windowsApp?.icon" :src="app.windowsApp.icon" alt="" /> <template v-else>{{ app.name.slice(0, 1).toUpperCase() }}</template></span><div class="application-body"><h3>{{ app.name }}</h3><p>{{ app.description }}</p><code>{{ app.windowsApp ? (app.windowsApp.kind === 'store' ? 'Microsoft Store' : 'Application de bureau') : app.executable }}</code><div class="alias-list"><span v-for="alias in app.aliases" :key="alias">{{ alias }}</span><span v-if="!app.windowsApp && app.arguments.length">{{ app.arguments.length }} argument(s)</span></div></div><div class="application-actions"><button class="toggle" :class="{ on: app.enabled }" :disabled="locked" role="switch" :aria-checked="app.enabled" :aria-label="`Activer ${app.name}`" @click="toggleApplication(app)"><span /></button><button class="icon-button" :disabled="locked" :aria-label="`Modifier ${app.name}`" @click="editApplication(app)"><Icon name="edit" :size="17" /></button><button class="icon-button danger" :disabled="locked" :aria-label="`Supprimer ${app.name}`" @click="deleteApplication(app)"><Icon name="trash" :size="17" /></button></div></article></div>
           <div class="notice info"><Icon name="info" /><span>PAM lance les applications enregistrées et peut leur transmettre un texte, un fichier ou une URL via leurs arguments. Les actions internes dépendent de ce que chaque application accepte en ligne de commande.</span></div>
         </template>
         <template v-else>
@@ -265,7 +304,24 @@ const labels: Record<Turn['status'], string> = { executed: 'Terminé', pending: 
         </form>
       </section>
     </div>
-    <div v-if="editorOpen" class="modal-backdrop" @click.self="!busy && (editorOpen = false)"><section class="modal" role="dialog" aria-modal="true" aria-labelledby="editor-title"><div class="modal-heading"><div><div class="eyebrow">CONNECTER UNE APPLICATION</div><h2 id="editor-title">{{ editingId ? 'Modifier l’application' : 'Nouvelle application' }}</h2></div><button class="icon-button" :disabled="busy" aria-label="Fermer" @click="editorOpen = false"><Icon name="close" /></button></div><form @submit.prevent="saveApplication"><label>Nom de l’application<input v-model="form.name" required maxlength="60" placeholder="Ex. : Visual Studio Code" :disabled="busy" /></label><label>À quoi sert-elle ?<textarea v-model="form.description" required maxlength="240" rows="2" placeholder="Ex. : Ouvrir l’éditeur de code et travailler sur un projet." :disabled="busy" /><small>Cette description aide Needle à choisir la bonne application.</small></label><label>Exécutable Windows<div class="path-field"><input v-model="form.executable" required placeholder="C:\…\application.exe" :disabled="busy" /><button type="button" class="secondary" :disabled="busy" @click="browse"><Icon name="folder" :size="18" />Parcourir</button></div></label><label>Autres noms <span class="optional">facultatif</span><input v-model="form.aliases" placeholder="Ex. : VS Code, éditeur de code" :disabled="busy" /><small>Séparez les noms par des virgules.</small></label><details class="advanced"><summary>Arguments de lancement</summary><label>Tableau JSON<textarea v-model="form.arguments" class="code-input" rows="3" :disabled="busy" /></label><p>Utilisez <code>[]</code> pour un lancement simple, ou <code>["{input}"]</code> pour transmettre le texte, le fichier ou l’URL demandé. Chaque élément reste un argument distinct.</p></details><div v-if="formError" class="notice error" role="alert">{{ formError }}</div><div class="modal-footer"><button type="button" class="secondary" :disabled="busy" @click="editorOpen = false">Annuler</button><button class="primary" :disabled="busy"><Icon name="check" :size="17" />{{ busy ? 'Enregistrement…' : 'Enregistrer' }}</button></div></form></section></div>
+    <ApplicationPicker v-if="pickerOpen" :applications="installedApplications" :registered="config.applications" :loading="discoveryLoading" :error="discoveryError" @close="pickerOpen = false" @refresh="discoverApplications" @manual="manualApplication" @select="selectInstalled" />
+    <div v-if="editorOpen" class="modal-backdrop" @click.self="!busy && (editorOpen = false)" @keydown.esc="!busy && (editorOpen = false)">
+      <section class="modal" role="dialog" aria-modal="true" aria-labelledby="editor-title">
+        <div class="modal-heading"><div><div class="eyebrow">CONNECTER UNE APPLICATION</div><h2 id="editor-title">{{ editingId ? 'Modifier l’application' : 'Nouvelle application' }}</h2></div><button class="icon-button" :disabled="busy" aria-label="Fermer" @click="editorOpen = false"><Icon name="close" /></button></div>
+        <form @submit.prevent="saveApplication">
+          <div v-if="form.windowsApp" class="detected-target"><span class="application-avatar"><img v-if="form.windowsApp.icon" :src="form.windowsApp.icon" alt="" /><Icon v-else name="apps" /></span><div><strong>Application détectée</strong><small>{{ form.windowsApp.kind === 'store' ? 'Microsoft Store' : 'Application de bureau' }} · lancement géré par Windows</small></div><button type="button" class="text-button" :disabled="busy" @click="useExecutable">Choisir un .exe</button></div>
+          <label>Nom de l’application<input v-model="form.name" required maxlength="60" placeholder="Ex. : Visual Studio Code" :disabled="busy" /></label>
+          <label>À quoi sert-elle ?<textarea v-model="form.description" required maxlength="240" rows="2" placeholder="Ex. : Ouvrir l’éditeur de code et travailler sur un projet." :disabled="busy" /><small>Cette description aide Needle à choisir la bonne application.</small></label>
+          <label v-if="!form.windowsApp">Exécutable Windows<div class="path-field"><input v-model="form.executable" required placeholder="C:\…\application.exe" :disabled="busy" /><button type="button" class="secondary" :disabled="busy" @click="browse"><Icon name="folder" :size="18" />Parcourir</button></div></label>
+          <label>Autres noms <span class="optional">facultatif</span><input v-model="form.aliases" placeholder="Ex. : VS Code, éditeur de code" :disabled="busy" /><small>Séparez les noms par des virgules.</small></label>
+          <details v-if="!form.windowsApp" class="advanced"><summary>Arguments de lancement</summary><label>Tableau JSON<textarea v-model="form.arguments" class="code-input" rows="3" :disabled="busy" /></label><p>Utilisez <code>[]</code> pour un lancement simple, ou <code>["{input}"]</code> pour transmettre le texte, le fichier ou l’URL demandé. Chaque élément reste un argument distinct.</p></details>
+          <div class="launch-test"><label v-if="testNeedsInput">Texte, fichier ou URL pour le test<input v-model="testInput" maxlength="2048" :disabled="busy" placeholder="Ex. : C:\projets\mon-projet" /></label><button type="button" class="secondary" :disabled="busy || !form.name.trim() || (!form.windowsApp && !form.executable.trim())" @click="testLaunch"><Icon name="arrow" :size="17" />{{ testing ? 'Lancement…' : 'Tester le lancement' }}</button><small>Ce bouton ouvre l’application sans enregistrer le formulaire.</small></div>
+          <div v-if="testResult" class="notice" :class="testResult.success ? 'success' : 'error'" role="status">{{ testResult.message }}</div>
+          <div v-if="formError" class="notice error" role="alert">{{ formError }}</div>
+          <div class="modal-footer"><button type="button" class="secondary" :disabled="busy" @click="editorOpen = false">Annuler</button><button class="primary" :disabled="busy"><Icon name="check" :size="17" />{{ busy ? (testing ? 'Test en cours…' : 'Enregistrement…') : 'Enregistrer' }}</button></div>
+        </form>
+      </section>
+    </div>
   </div>
 </template>
 <style src="./style.css"></style>

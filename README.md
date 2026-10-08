@@ -6,7 +6,7 @@ Le paquet embarque Node.js **24.21.0**, npm **11.19.0**, le moteur Cactus Window
 ## Utilisation
 
 1. Installer PAM avec l’installeur Windows, puis ouvrir l’application.
-2. Dans **Applications**, ajouter un fichier `.exe`, son nom et une description de son action. Ajouter des alias si utile, par exemple « VS Code » et « éditeur de code ».
+2. Dans **Applications → Ajouter une application**, choisir une application Windows dans la liste, puis décrire son action. Les applications de bureau et du Microsoft Store sont proposées avec leur icône ; la recherche ignore les accents. **Choisir un .exe** permet d’ajouter une application portable ou absente du catalogue. Ajouter des alias si utile, par exemple « VS Code » et « éditeur de code ».
 3. Dans **Assistant**, cliquer sur le microphone, parler et cliquer à nouveau pour traiter la demande. L’enregistrement s’arrête automatiquement après environ 30 secondes. Une demande écrite est aussi disponible.
 4. PAM affiche la transcription, les applications proposées, le score de confiance et le résultat des lancements. Par défaut, les appels dont la confiance atteint 70 % sont exécutés ; les autres demandent une validation. L’exécution automatique peut être désactivée dans **Préférences**.
 
@@ -19,6 +19,12 @@ Windows doit autoriser l’accès au microphone pour les applications de bureau.
 **Ctrl + Maj + Espace** démarre ou arrête l’enregistrement depuis les autres applications et réaffiche PAM. Fermer la fenêtre ou choisir **Réduire PAM** masque PAM dans la zone de notification et coupe le microphone. Un clic gauche sur l’icône réaffiche PAM ; le menu propose parler/arrêter et **Quitter PAM**, qui libère les modèles. **Quitter PAM** est également disponible dans les préférences. Un raccourci déjà utilisé par un autre programme est signalé dans l’interface ; le bouton microphone et le menu restent utilisables. Une seule instance de PAM peut fonctionner.
 
 ### Applications et arguments
+
+La liste des applications provient du catalogue natif Windows **AppsFolder**, complété par les raccourcis du menu Démarrer utilisateur et commun. **Actualiser** relit ces sources après une installation. Les doublons détectés sont marqués **Déjà ajoutée**. Les noms, la source et les icônes PNG (64 pixels maximum) sont récupérés localement, sans scanner les fichiers personnels et sans installer PowerShell, un module npm ou un service supplémentaire. Les liens de documentation, de désinstallation et les scripts ouverts par des terminaux sont filtrés ; certaines applications absentes du menu Démarrer devront être ajoutées manuellement.
+
+Pour une application détectée, PAM conserve son identifiant Windows et utilise `explorer.exe` avec un unique argument `shell:AppsFolder\<identifiant>`, ou le chemin du raccourci `.lnk` si Windows ne l’a pas encore intégré dans AppsFolder. Windows gère ainsi le lancement et les paramètres du raccourci, y compris pour les applications du Store dont les exécutables sont protégés. Le formulaire masque ces détails. **Choisir un .exe** revient au mode manuel si vous avez besoin d’arguments personnalisés, notamment `{input}`. Les anciennes configurations restent compatibles et ne sont pas modifiées automatiquement.
+
+**Tester le lancement**, dans le formulaire d’ajout ou de modification, ouvre explicitement l’application choisie sans enregistrer le brouillon et sans appeler Needle. Pour les arguments contenant `{input}`, renseigner le texte, le fichier ou l’URL du test. Le résultat confirme l’envoi de la commande ; vérifiez ensuite que la fenêtre attendue s’est ouverte. Le test ne certifie pas qu’une application déjà ouverte a créé une nouvelle fenêtre.
 
 Chaque application active devient un outil Needle distinct. L’exécutable est choisi par l’utilisateur et le modèle ne peut pas le remplacer. Les arguments sont un **tableau JSON**, sans passage par un shell :
 
@@ -91,6 +97,14 @@ npm run test:integration
 npm run build
 npm run verify:bundle
 ```
+
+Pour vérifier la découverte native et les nouveaux raccourcis après compilation :
+
+```sh
+docker exec -w /usr/projets/pam/src-tauri practical_ganguly sh -lc "cargo xwin build --release --target x86_64-pc-windows-msvc --example discovery"
+```
+
+Puis, sur Windows, `npm run test:applications` vérifie les cibles et les icônes du catalogue réel. Il crée un raccourci temporaire dans le menu Démarrer vers le Node embarqué, teste son lancement et ses arguments, puis supprime ce raccourci et son profil de test. Aucune application personnelle n’est lancée. `npm test` comprend aussi sept tests supplémentaires pour les applications détectées, les GUID Windows, la persistance, les doublons, la validation des icônes et le test de lancement sans enregistrement.
 
 Les 43 tests Windows couvrent la validation des appels, les applications désactivées, la confirmation non rejouable, l’invalidation après modification, les scores manquants, les appels supprimés par Needle, le silence, le format/durée audio, le nettoyage après erreur, le mélange des canaux, la limite de capture à 30 secondes et les alias (casse, accents, caractères spéciaux, ambiguïtés, négations, demandes composées et transmission à Whistle). Ils vérifient aussi la résolution vocale avant Needle, la conservation de la transcription et du score réel, la langue détectée, le transport des textes Unicode et le budget partagé entre les deux étapes. Ils couvrent également les corrections, la validation obligatoire, l’enregistrement explicite des alias, les collisions, la réutilisation et la reprise du worker, le renouvellement des sessions et l’arrêt du sidecar à la fermeture de son pipe. Le test d’intégration Windows utilise le **vrai moteur et les vrais modèles**, vérifie npm embarqué, le routage texte, les alias avec plusieurs applications concurrentes, le silence Whistle et un lancement réel avec un exécutable de test isolé. Il n’ouvre pas les applications personnelles. Pour tester un fichier de parole PCM 16 bits mono 16 kHz :
 

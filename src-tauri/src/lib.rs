@@ -11,6 +11,20 @@ use std::{
 };
 use tauri::{Emitter, Manager};
 use tauri_plugin_global_shortcut::{Code, GlobalShortcutExt, Modifiers, Shortcut, ShortcutState};
+mod applications;
+
+#[tauri::command]
+async fn discover_applications(
+    window: tauri::WebviewWindow,
+) -> Result<Vec<applications::InstalledApplication>, String> {
+    if window.label() != "main" {
+        return Err("Fenêtre non autorisée.".into());
+    }
+    let app = window.app_handle().clone();
+    tauri::async_runtime::spawn_blocking(move || app.state::<applications::Catalogue>().scan())
+        .await
+        .map_err(|error| error.to_string())?
+}
 
 #[cfg(windows)]
 struct ProcessJob(windows_sys::Win32::Foundation::HANDLE);
@@ -229,13 +243,18 @@ async fn assistant_request(
             | "discard"
             | "correct_request"
             | "restart_engine"
+            | "test_application"
     ) {
         return Err("Méthode inconnue.".into());
     }
     let app = window.app_handle().clone();
     tauri::async_runtime::spawn_blocking(move || {
         let state = app.state::<AssistantBridge>();
-        let mut result = state.request(&method, payload.unwrap_or(json!({})))?;
+        let mut payload = payload.unwrap_or(json!({}));
+        if matches!(method.as_str(), "save_application" | "test_application") {
+            app.state::<applications::Catalogue>().prepare(&mut payload)?;
+        }
+        let mut result = state.request(&method, payload)?;
         if method == "status" { result["desktop"] = json!({ "shortcut": "Ctrl + Maj + Espace", "shortcutAvailable": state.shortcut_error.is_empty(), "shortcutError": state.shortcut_error, "closeToTray": true }); }
         Ok(result)
     }).await.map_err(|e| e.to_string())?
@@ -274,6 +293,7 @@ fn desktop_action(window: tauri::WebviewWindow, action: String) -> Result<(), St
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
+        .manage(applications::Catalogue::default())
         .plugin(tauri_plugin_single_instance::init(|app, _, _| show(app)))
         .plugin(tauri_plugin_dialog::init())
         .plugin(
@@ -398,7 +418,11 @@ pub fn run() {
                 let _ = window.hide();
             }
         })
-        .invoke_handler(tauri::generate_handler![assistant_request, desktop_action])
+        .invoke_handler(tauri::generate_handler![
+            assistant_request,
+            desktop_action,
+            discover_applications
+        ])
         .build(tauri::generate_context!())
         .expect("error while building tauri application")
         .run(|app, event| {

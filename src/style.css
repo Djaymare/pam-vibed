@@ -16,3 +16,33 @@ main{margin-left:234px;width:calc(100% - 234px)}.topbar{height:72px;border-botto
 .modal .alias-choice { flex-direction: row; align-items: flex-start; gap: 10px; }
 .alias-choice input { width: auto; flex: none; margin-top: 1px; accent-color: #8063d9; }
 .correction-help { font-size: 11px; color: #7c879b; line-height: 1.6; margin-bottom: 16px; }
+
+/* Installed Windows apps, including packaged Store apps. */
+.application-avatar img { display: block; width: 36px; height: 36px; object-fit: contain; }
+.discovery-modal { width: min(680px, 100%); }
+.discovery-intro { color: #7c879b; font-size: 13px; line-height: 1.6; margin: -8px 0 20px; }
+.discovery-search { display: flex; flex-direction: column; gap: 8px; font-size: 12px; color: #65738c; }
+.discovery-search input { width: 100%; padding: 12px 14px; border: 1px solid #dbe0eb; border-radius: 9px; background: #fff; color: #26354b; }
+.discovery-search input:focus { outline: 2px solid #d9cff5; outline-offset: 1px; }
+.discovery-summary { display: flex; justify-content: space-between; align-items: center; font-size: 11px; color: #8a96ab; margin: 14px 0 8px; }
+.discovery-list { height: min(390px, 43vh); overflow-y: auto; border: 1px solid #e4e8f0; border-radius: 12px; }
+.discovery-item { width: 100%; display: flex; align-items: center; text-align: left; gap: 12px; padding: 12px 15px; border: none; border-bottom: 1px solid #edf0f5; background: #fff; color: #8063d9; cursor: pointer; }
+.discovery-item:last-child { border-bottom: none; }
+.discovery-item:hover:not(:disabled), .discovery-item:focus-visible { background: #f6f3fc; }
+.discovery-item:disabled { opacity: .6; cursor: default; }
+.discovery-item .application-avatar { width: 44px; height: 44px; flex: 0 0 44px; }
+.discovery-name { flex: 1; min-width: 0; color: #26354b; }
+.discovery-name strong { display: block; font-size: 13px; font-weight: 550; overflow-wrap: anywhere; }
+.discovery-name small { display: block; font-size: 10px; color: #8a96ab; margin-top: 4px; }
+.discovery-added { display: flex; align-items: center; gap: 5px; font-size: 10px; white-space: nowrap; color: #639a8d; }
+.discovery-empty { padding: 36px 22px; text-align: center; color: #8a96ab; font-size: 12px; line-height: 1.7; }
+.discovery-footer { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; padding-top: 20px; color: #8a96ab; font-size: 11px; }
+.detected-target { display: flex; align-items: center; gap: 12px; background: #f7f5fc; border-radius: 10px; padding: 13px; margin-bottom: 20px; }
+.detected-target > div { flex: 1; }
+.detected-target strong { display: block; font-size: 12px; }
+.detected-target small { display: block; font-size: 10px; line-height: 1.6; color: #8a96ab; margin-top: 4px; }
+.detected-target .text-button { font-size: 10px; }
+.launch-test { margin: 20px 0; }
+.launch-test > small { display: block; font-size: 10px; color: #8a96ab; margin-top: 8px; line-height: 1.6; }
+.notice.success { background: #eef8f4; color: #39846e; }
+@media (max-width: 560px) { .detected-target { flex-wrap: wrap; } .discovery-added { font-size: 0; } }

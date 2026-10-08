@@ -1,3 +1,12 @@
+export interface WindowsApplication {
+  appId: string;
+  kind: 'desktop' | 'store';
+  icon: string | null;
+  launchArgument?: string;
+}
+export interface InstalledApplication extends WindowsApplication {
+  name: string;
+}
 export interface Application {
   id: string;
   name: string;
@@ -6,6 +15,7 @@ export interface Application {
   arguments: string[];
   aliases: string[];
   enabled: boolean;
+  windowsApp?: WindowsApplication;
 }
 export interface Config {
   version: number;

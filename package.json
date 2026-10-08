@@ -12,6 +12,7 @@
     "tauri": "tauri",
     "test": "node --test sidecar/*.test.cjs tests/*.test.mjs",
     "test:integration": "node scripts/smoke-runtime.mjs",
+    "test:applications": "node scripts/smoke-applications.mjs",
     "package:windows": "tauri build --target x86_64-pc-windows-msvc",
     "package:portable": "node scripts/package-portable.mjs",
     "verify:bundle": "node scripts/verify-bundle.mjs",

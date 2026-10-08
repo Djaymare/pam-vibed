@@ -49,8 +49,29 @@ async function validateApplication(value, existingId) {
   const aliases = Array.isArray(value.aliases) ? value.aliases.map(alias => cleanText(alias, 'Alias', 40)) : [];
   ensure(aliases.length <= 6, 'Six alias maximum par application.');
   ensure(typeof value.enabled === 'boolean', 'État de l’application invalide.');
+  let windowsApp;
+  if (value.windowsApp != null) {
+    const target = value.windowsApp;
+    const appId = cleanText(target.appId, 'Application Windows', 1024);
+    ensure(!/[\x00-\x1f]/.test(appId) && !appId.includes('{input}') && ['desktop', 'store'].includes(target.kind), 'Application Windows invalide.');
+    const launchArgument = target.launchArgument ?? `shell:AppsFolder\\${appId}`;
+    ensure(typeof launchArgument === 'string' && !/[\x00-\x1f]/.test(launchArgument) && !launchArgument.includes('{input}') &&
+      (launchArgument === `shell:AppsFolder\\${appId}` || (target.kind === 'desktop' && appId === `shortcut:${launchArgument}` &&
+        path.win32.isAbsolute(launchArgument) && launchArgument.toLowerCase().endsWith('.lnk'))), 'Raccourci Windows invalide.');
+    ensure(path.win32.basename(executable).toLowerCase() === 'explorer.exe' && value.arguments.length === 1 &&
+      value.arguments[0] === launchArgument, 'Le lancement doit correspondre à l’application Windows choisie.');
+    const icon = target.icon ?? null;
+    if (icon !== null) {
+      ensure(typeof icon === 'string' && icon.length <= 32768 && /^data:image\/png;base64,[A-Za-z0-9+/]+={0,2}$/.test(icon), 'Icône Windows invalide.');
+      const bytes = Buffer.from(icon.slice('data:image/png;base64,'.length), 'base64');
+      ensure(bytes.length >= 33 && bytes.subarray(0, 8).equals(Buffer.from([137, 80, 78, 71, 13, 10, 26, 10])) &&
+        bytes.toString('ascii', 12, 16) === 'IHDR' && bytes.readUInt32BE(16) > 0 && bytes.readUInt32BE(16) <= 64 &&
+        bytes.readUInt32BE(20) > 0 && bytes.readUInt32BE(20) <= 64, 'Icône Windows invalide.');
+    }
+    windowsApp = { appId, kind: target.kind, icon, ...(target.launchArgument ? { launchArgument } : {}) };
+  }
   return { id: existingId || randomUUID(), name, description, executable,
-    arguments: value.arguments, aliases, enabled: value.enabled };
+    arguments: value.arguments, aliases, enabled: value.enabled, ...(windowsApp ? { windowsApp } : {}) };
 }
 
 function toolName(application) {
@@ -200,10 +221,24 @@ function createAssistant({ runtimeDirectory, configDirectory, runEngine = execut
       ensure(id === undefined || config.applications.some(app => app.id === id), 'Application à modifier introuvable.');
       const application = await validateApplication(payload, id);
       ensure(!config.applications.some(app => app.id !== application.id && app.name.toLowerCase() === application.name.toLowerCase()), 'Ce nom est déjà utilisé.');
+      ensure(!application.windowsApp || !config.applications.some(app => app.id !== application.id &&
+        app.windowsApp?.appId.toLowerCase() === application.windowsApp.appId.toLowerCase()), 'Cette application Windows est déjà ajoutée.');
       ensure(id || config.applications.length < 32, '32 applications maximum pour ce prototype.');
       config.applications = [...config.applications.filter(app => app.id !== application.id), application];
       await atomicJson(configPath, config);
       return config;
+    }
+    if (method === 'test_application') {
+      // Explicit user action on a draft. No inference, registration or approval
+      // creation, and no arbitrary input from Needle is accepted here.
+      const application = await validateApplication({ ...payload, description: payload.description?.trim() || 'Tester le lancement.' });
+      const needsInput = application.arguments.some(argument => argument.includes('{input}'));
+      ensure(payload.input === undefined || (typeof payload.input === 'string' && payload.input.length <= 2048 && !payload.input.includes('\0')), 'Texte du test invalide.');
+      ensure(!needsInput || payload.input?.trim(), 'Renseignez le texte, le fichier ou l’URL à transmettre pour le test.');
+      try {
+        const result = await launchApplication(application, needsInput ? { input: payload.input } : {});
+        return { ...result, message: `Commande de lancement envoyée à ${application.name}. Vérifiez que l’application s’est ouverte.` };
+      } catch (error) { return { applicationName: application.name, success: false, message: error.message }; }
     }
     if (method === 'delete_application') {
       ensure(config.applications.some(app => app.id === payload.id), 'Application introuvable.');
