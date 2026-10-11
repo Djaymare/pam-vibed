@@ -25,4 +25,5 @@ await copyFile(join(root, 'src-tauri/binaries/pam-node-x86_64-pc-windows-msvc.ex
 await cp(join(root, 'src-tauri/runtime'), join(destination, 'runtime'), { recursive: true });
 await cp(join(root, 'sidecar'), join(destination, 'sidecar'), { recursive: true, filter: path => !path.endsWith('.test.cjs') });
 await copyFile(join(root, 'README.md'), join(destination, 'README.md'));
+await cp(join(root, 'docs'), join(destination, 'docs'), {recursive:true});
 console.log(`Application portable : ${destination}. Le runtime WebView2 de Windows doit être présent ; l’installeur NSIS l’embarque.`);

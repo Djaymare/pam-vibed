@@ -1,7 +1,7 @@
 # PAM — assistant vocal local pour Windows x64
 
 Prototype Tauri 2 + Vue 3 : **microphone → Whistle → résolution des noms et alias → Needle 3 → application Windows**.
-Le paquet embarque Node.js **24.21.0**, npm **11.19.0**, le moteur Cactus Windows x64 et les modèles `whistle.cact` et `needle3.cact`. L’utilisateur final n’installe ni Node, ni npm, ni Python, ni les modèles. L’installeur NSIS inclut l’installeur hors ligne de WebView2 et le lance silencieusement si nécessaire. Aucune clé API ni connexion Internet n’est nécessaire à l’utilisation.
+Le paquet embarque Node.js **24.21.0**, npm **11.19.0**, le moteur Cactus Windows x64 et les modèles `whistle.cact` et `needle3.cact`. L’utilisateur final n’installe ni Node, ni npm, ni Python, ni les modèles. L’installeur NSIS inclut l’installeur hors ligne de WebView2 et le lance silencieusement si nécessaire. Les moteurs locaux fonctionnent sans clé API ni connexion Internet ; un service de musique comme Deezer conserve ses propres exigences de connexion et de compte.
 
 ## Utilisation
 
@@ -35,11 +35,19 @@ Chaque application active devient un outil Needle distinct. L’exécutable est 
 | Ouvrir une nouvelle fenêtre avec une entrée | `["--new-window", "{input}"]` |
 | Ouvrir un projet fixe dans un éditeur | `["C:\\projets\\mon-projet"]` |
 
-`{input}` est remplacé dans chaque élément du tableau et reste un argument distinct, même s’il contient des espaces. L’application cible doit accepter ces arguments. Le prototype **lance des exécutables et transmet des arguments** : il ne pilote pas les menus, ne tape pas dans les fenêtres et n’ajoute pas automatiquement une API à une application qui n’en possède pas. Une description doit donc correspondre à ce que son lancement peut réellement accomplir.
+`{input}` est remplacé dans chaque élément du tableau et reste un argument distinct, même s’il contient des espaces. L’application cible doit accepter ces arguments. Le lancement **ouvre des exécutables et transmet des arguments**. Les lecteurs configurés disposent en plus des commandes Windows et du plugin Deezer décrits ci-dessous. PAM ne pilote pas les menus et ne tape pas dans les fenêtres. Une description doit correspondre aux capacités réelles de l’application.
 
 Les demandes écrites et vocales utilisent la même résolution des noms et alias : une invocation simple comme « diseur » ou « Ouvre Diseur » est transmise à Needle sous la forme « Ouvre deezer », avec uniquement l’outil Deezer. La transcription Whistle originale reste affichée. La casse est ignorée. Les déclencheurs ne forcent pas un choix pour un alias partagé par plusieurs applications actives, une négation ou plusieurs actions. Ces demandes restent confiées au modèle. Le score affiché sous « confiance Needle » est exactement celui renvoyé par Needle après cette résolution ; il ne mesure pas la précision de la transcription Whistle et n’est pas augmenté artificiellement. La confiance et les préférences d’exécution continuent de déterminer si une confirmation est nécessaire.
 
 La liste est persistée dans `%APPDATA%\com.enkis.pam\applications.json`. L’activité reste en mémoire pour la session. Les demandes à valider sont temporairement persistées dans le sous-dossier `pending`, avec leur transcription ; elles expirent après dix minutes et deviennent invalides si la liste des applications change. Les plans expirés sont nettoyés au prochain appel. Les fichiers audio temporaires sont supprimés après chaque demande, y compris en cas d’erreur. Limites du prototype : 32 applications, 8 appels par demande, 30 secondes d’audio.
+
+### Lecteurs Windows et Deezer Music
+
+Dans le formulaire d’application, ouvrir un média puis **Actualiser les sessions** et choisir la session Windows du lecteur. PAM propose lecture, pause, suivante, précédente, arrêt et bascule selon les capacités réellement annoncées. Une session absente, fermée ou ambiguë produit un message explicite. Les commandes ciblent uniquement l’identifiant enregistré. Sur la machine testée, Deezer Music publie `Deezer.exe`, Opera publie `opera.exe`, et VLC 3.0.24 ne publie aucune session compatible.
+
+Sélectionner **Deezer Music** du Microsoft Store pour activer son plugin. Il permet la recherche, l’affichage d’une chanson, album, artiste, playlist, podcast, épisode ou profil par identifiant, les pages et réglages établis, Flow, les coups de cœur et les sélections smarttracklist. Les liens de navigation n’annoncent pas une lecture réussie. **Jouer une chanson précise et l’insérer en prochaine position ne disposent pas de protocole vérifié et restent indisponibles.** « Piste suivante » parcourt la file existante.
+
+Les boutons de **Lecteurs multimédias** préparent toujours une action à valider ; les demandes textuelles et vocales suivent les préférences habituelles de confiance. Les alias fonctionnent aussi pour `Pause Diseur` ou `Piste suivante Diseur`. Consultez [l’inventaire, les preuves et les essais Windows](docs/windows-media-deezer.md) pour les routes, les prérequis et les limites propres à chaque lecteur.
 
 ## Développement
 
@@ -63,16 +71,16 @@ Dans cet espace de travail, si npm n’est pas dans le PATH, le runtime déjà p
 
 ### Compilation et distribution
 
-Ce projet est compilé via le bind mount `C:\projets` → `/usr/projets` du conteneur Docker `practical_ganguly`. La commande habituelle reste utilisable :
+Ce projet peut être compilé via le bind mount `C:\projets` → `/usr/projets` d’un conteneur doté de `cargo-xwin`, ici `pam-media-build-active` :
 
 ```powershell
-docker exec -w /usr/projets/pam practical_ganguly sh -lc "npm ci && npm run tauri build -- --runner cargo-xwin --target x86_64-pc-windows-msvc --no-bundle"
+docker exec -w /usr/projets/pam pam-media-build-active sh -lc 'export PATH=/root/.cargo/bin:$PATH; npm ci && npm run tauri build -- --runner cargo-xwin --target x86_64-pc-windows-msvc --no-bundle'
 ```
 
 Le hook Tauri prépare automatiquement les ressources **Windows x64**, même lorsque le build tourne dans Linux. Fermer la version portable de PAM avant de recréer son dossier, car Windows verrouille un exécutable en cours d’utilisation. Pour créer ensuite le dossier exécutable complet :
 
 ```powershell
-docker exec -w /usr/projets/pam practical_ganguly sh -lc "npm run package:portable && npm run verify:bundle"
+docker exec -w /usr/projets/pam pam-media-build-active sh -lc 'npm run package:portable && npm run verify:bundle'
 ```
 
 Ou, en une commande après `npm ci`, utiliser `npm run package:docker`. L’exécutable seul créé par `--no-bundle` doit être accompagné de `pam-node.exe`, `runtime/` et `sidecar/` ; le script portable assemble ces fichiers. L’inspection des imports PE vérifie les exécutables, la DLL Cactus et le module Koffi x64 et l’absence de DLL Visual C++/Python/libgcc à installer séparément. La cible est Windows 10/11 x64, avec les composants système UCRT fournis par Windows.
@@ -94,6 +102,7 @@ Le workflow `.github/workflows/windows.yml` vérifie et compile le projet sur Wi
 ```powershell
 npm test
 npm run test:integration
+npm run test:media
 npm run build
 npm run verify:bundle
 ```
@@ -101,12 +110,12 @@ npm run verify:bundle
 Pour vérifier la découverte native et les nouveaux raccourcis après compilation :
 
 ```sh
-docker exec -w /usr/projets/pam/src-tauri practical_ganguly sh -lc "cargo xwin build --release --target x86_64-pc-windows-msvc --example discovery"
+docker exec -w /usr/projets/pam/src-tauri pam-media-build-active sh -lc 'export PATH=/root/.cargo/bin:$PATH; cargo xwin build --release --target x86_64-pc-windows-msvc --example discovery'
 ```
 
 Puis, sur Windows, `npm run test:applications` vérifie les cibles et les icônes du catalogue réel. Il crée un raccourci temporaire dans le menu Démarrer vers le Node embarqué, teste son lancement et ses arguments, puis supprime ce raccourci et son profil de test. Aucune application personnelle n’est lancée. `npm test` comprend aussi sept tests supplémentaires pour les applications détectées, les GUID Windows, la persistance, les doublons, la validation des icônes et le test de lancement sans enregistrement.
 
-Les 43 tests Windows couvrent la validation des appels, les applications désactivées, la confirmation non rejouable, l’invalidation après modification, les scores manquants, les appels supprimés par Needle, le silence, le format/durée audio, le nettoyage après erreur, le mélange des canaux, la limite de capture à 30 secondes et les alias (casse, accents, caractères spéciaux, ambiguïtés, négations, demandes composées et transmission à Whistle). Ils vérifient aussi la résolution vocale avant Needle, la conservation de la transcription et du score réel, la langue détectée, le transport des textes Unicode et le budget partagé entre les deux étapes. Ils couvrent également les corrections, la validation obligatoire, l’enregistrement explicite des alias, les collisions, la réutilisation et la reprise du worker, le renouvellement des sessions et l’arrêt du sidecar à la fermeture de son pipe. Le test d’intégration Windows utilise le **vrai moteur et les vrais modèles**, vérifie npm embarqué, le routage texte, les alias avec plusieurs applications concurrentes, le silence Whistle et un lancement réel avec un exécutable de test isolé. Il n’ouvre pas les applications personnelles. Pour tester un fichier de parole PCM 16 bits mono 16 kHz :
+Les tests Windows couvrent la validation des appels, les applications désactivées, la confirmation non rejouable, l’invalidation après modification, les scores manquants, les appels supprimés par Needle, le silence, le format/durée audio, le nettoyage après erreur, le mélange des canaux, la limite de capture à 30 secondes et les alias (casse, accents, caractères spéciaux, ambiguïtés, négations, demandes composées et transmission à Whistle). Ils vérifient aussi la résolution vocale avant Needle, la conservation de la transcription et du score réel, la langue détectée, le transport des textes Unicode et le budget partagé entre les deux étapes. Ils couvrent également les corrections, la validation obligatoire, l’enregistrement explicite des alias, les collisions, la réutilisation et la reprise du worker, le renouvellement des sessions et l’arrêt du sidecar à la fermeture de son pipe. Le test d’intégration Windows utilise le **vrai moteur et les vrais modèles**, vérifie npm embarqué, le routage texte, les alias avec plusieurs applications concurrentes, le silence Whistle et un lancement réel avec un exécutable de test isolé. Il n’ouvre pas les applications personnelles. Pour tester un fichier de parole PCM 16 bits mono 16 kHz :
 
 ```powershell
 node scripts/smoke-runtime.mjs chemin\parole.wav
@@ -122,6 +131,8 @@ Le modèle peut refuser ou mal router une demande : le score, les actions et leu
 - `src/App.vue` : assistant, correction, historique de session, applications, préférences et validation des actions.
 - `src-tauri/src/lib.rs` : IPC limité à la fenêtre principale, Node persistant, raccourci global, zone de notification et instance unique. Un Job Object Windows garantit la fermeture du sidecar avec PAM, même si PAM s’arrête brutalement. Aucun serveur HTTP local.
 - `sidecar/assistant.cjs` : configuration, alias, validation des appels et lancement des exécutables sans shell.
+- `src-tauri/src/media.rs` et `sidecar/media.cjs` : sessions GSMTC, capacités, ciblage et commandes Windows avec résultat vérifié.
+- `sidecar/deezer.cjs` et `src/components/MediaControls.vue` : protocoles Deezer validés et préparation des commandes à confirmer.
 - `sidecar/main.cjs` : requêtes et réponses JSON par lignes sur stdin/stdout, sérialisées dans un seul processus.
 - `sidecar/engine.cjs` et `engine-worker.cjs` : bibliothèque native officielle Cactus avec Koffi embarqué. Whistle et Needle restent chargés dans un worker ; chaque demande réinitialise la session et actualise les outils, sans recharger les poids ni réutiliser le contexte précédent. Le transport UTF-8 préserve les accents et les arguments Unicode, en texte comme en vocal.
 

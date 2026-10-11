@@ -35,6 +35,9 @@
       "../sidecar/assistant.cjs": "sidecar/assistant.cjs",
       "../sidecar/engine.cjs": "sidecar/engine.cjs",
       "../sidecar/engine-worker.cjs": "sidecar/engine-worker.cjs",
+      "../sidecar/media.cjs": "sidecar/media.cjs",
+      "../sidecar/deezer.cjs": "sidecar/deezer.cjs",
+      "../sidecar/native.cjs": "sidecar/native.cjs",
       "../sidecar/package.json": "sidecar/package.json"
     },
     "windows": {

@@ -4,6 +4,8 @@ const { randomUUID, createHash } = require('node:crypto');
 const { execFile, spawn } = require('node:child_process');
 const { promisify } = require('node:util');
 const executeFile = promisify(execFile);
+const { createMedia, MEDIA_ACTIONS } = require('./media.cjs');
+const { DEEZER_APP_ID, DEEZER_SOURCE_IDS, CONTENT, PAGES, validateDeezerArgs } = require('./deezer.cjs');
 
 const LANGUAGES = new Set(['auto', 'fr', 'en', 'de', 'es', 'it', 'nl', 'pl']);
 const MAX_AUDIO_BYTES = 44 + 16_000 * 30 * 2;
@@ -70,8 +72,17 @@ async function validateApplication(value, existingId) {
     }
     windowsApp = { appId, kind: target.kind, icon, ...(target.launchArgument ? { launchArgument } : {}) };
   }
+  let media;
+  if (value.media != null) {
+    ensure(typeof value.media === 'object' && !Array.isArray(value.media) &&
+      Object.keys(value.media).every(key => ['sourceAppId','deezer'].includes(key)), 'Configuration multimédia invalide.');
+    const sourceAppId = cleanText(value.media.sourceAppId, 'Identifiant de session Windows', 1024);
+    ensure(!/[\x00-\x1f]/.test(sourceAppId) && typeof value.media.deezer === 'boolean', 'Lecteur multimédia invalide.');
+    if (value.media.deezer) ensure(windowsApp?.appId === DEEZER_APP_ID && DEEZER_SOURCE_IDS.includes(sourceAppId), 'Le plugin Deezer doit cibler la session de Deezer Music.');
+    media = { sourceAppId, deezer:value.media.deezer };
+  }
   return { id: existingId || randomUUID(), name, description, executable,
-    arguments: value.arguments, aliases, enabled: value.enabled, ...(windowsApp ? { windowsApp } : {}) };
+    arguments: value.arguments, aliases, enabled: value.enabled, ...(windowsApp ? { windowsApp } : {}), ...(media ? {media} : {}) };
 }
 
 function toolName(application) {
@@ -79,6 +90,7 @@ function toolName(application) {
     .replace(/[^a-z0-9]+/g, '_').replace(/^_|_$/g, '').slice(0, 30) || 'application';
   return `open_${readable}_${application.id.slice(0, 8)}`;
 }
+function actionToolName(application, action) { return action === 'open' ? toolName(application) : `${action}_${toolName(application).slice(5)}`; }
 function labelVariants(label) {
   const normalized = label.normalize('NFKC').trim().replace(/\s+/g, ' ').toLowerCase();
   return [...new Set([normalized, normalized.normalize('NFKD').replace(/\p{M}/gu, '')])];
@@ -102,9 +114,10 @@ function triggersFor(application, applications) {
     `^\\s*(?:${polite}\\s*,?\\s*)?(?:${prefix}\\s+)?${action}\\s+(?:${article})?(?:${app})?(?:${names})${end}`,
   ];
 }
-function toolsFor(config) {
+function toolsFor(config, sessions) {
   const applications = config.applications.filter(app => app.enabled);
-  return applications.map(app => ({
+  return applications.flatMap(app => {
+    const base = {
     name: toolName(app),
     description: `Ouvrir / lancer ${app.name}. ${app.description}${app.aliases.length ? ` Autres noms de cette même application : ${app.aliases.join(', ')}.` : ''}`,
     triggers: triggersFor(app, applications),
@@ -116,24 +129,79 @@ function toolsFor(config) {
       required: [],
       additionalProperties: false,
     },
-  }));
+    };
+    const extra = [];
+    const add = (action,description,properties = {},required = []) => extra.push({
+      name:actionToolName(app,action), action, applicationId:app.id, actionLabel:description,
+      description:`${description} dans ${app.name}. ${app.aliases.length ? `Autres noms : ${app.aliases.join(', ')}.` : ''}`,
+      triggers:mediaTriggers(app,applications,action), parameters:{type:'object',properties,required,additionalProperties:false},
+    });
+    if (app.media?.sourceAppId) {
+      const matching = sessions?.filter(s => s.sourceAppId?.toLowerCase() === app.media.sourceAppId.toLowerCase());
+      for (const [action,label] of Object.entries(MEDIA_ACTIONS)) {
+        if (sessions !== undefined && (matching.length !== 1 || matching[0].error || matching[0].capabilities?.[action] !== true)) continue;
+        add(`media_${action}`,label + (action === 'next' ? ' déjà présente dans la file' : ''));
+      }
+      if (app.media.deezer && app.windowsApp?.appId === DEEZER_APP_ID) {
+        add('deezer_content','Afficher un contenu Deezer par identifiant, sans démarrer la lecture ni modifier la file',{
+          kind:{type:'string',enum:CONTENT,description:'Type du contenu.'},id:{type:'string',pattern:'^[1-9][0-9]{0,18}$',description:'Identifiant numérique explicitement fourni par l’utilisateur. Ne jamais inventer un identifiant.'}},['kind','id']);
+        add('deezer_search','Rechercher une chanson, un artiste ou un contenu Deezer par son nom ; affiche les résultats, sans lancer de lecture',{
+          query:{type:'string',maxLength:200,description:'Titre, artiste ou recherche explicitement demandé.'}},['query']);
+        add('deezer_page','Afficher une page Deezer', {page:{type:'string',enum:PAGES}},['page']);
+        add('deezer_reload','Recharger Deezer Music');
+        add('deezer_start','Démarrer Flow ou les coups de cœur Deezer, sans sélectionner une chanson précise', {mix:{type:'string',enum:['flow','loved_tracks']}},['mix']);
+        add('deezer_smarttracklist','Afficher ou demander la lecture d’une sélection smarttracklist Deezer, dont l’identifiant doit être fourni explicitement',{
+          id:{type:'string',pattern:'^[A-Za-z0-9_-]{1,80}$',description:'Identifiant de sélection fourni par l’utilisateur, jamais un titre de chanson.'},
+          mode:{type:'string',enum:['display','play']}},['id','mode']);
+      }
+    }
+    return [{...base,action:'open',applicationId:app.id,actionLabel:'Ouvrir'},...extra];
+  });
 }
 function resolveInvocation(transcript, tools, config) {
   // Text and speech share this resolution. Only rewrite a literal, unambiguous
   // application invocation; keep compound requests and their arguments intact.
   const matched = tools.filter(tool => tool.triggers.some(pattern => new RegExp(pattern, 'i').test(transcript)));
   if (matched.length !== 1) return { prompt: transcript, requestTools: tools };
-  const application = config.applications.find(app => toolName(app) === matched[0].name);
+  const application = config.applications.find(app => app.id === matched[0].applicationId);
+  if (matched[0].action.startsWith('deezer_')) return {prompt:transcript,requestTools:matched};
+  if (matched[0].action !== 'open') return {prompt:`${matched[0].actionLabel} ${labelVariants(application.name).at(-1)}`,requestTools:matched};
   return { prompt: `Ouvre ${labelVariants(application.name).at(-1)}`, requestTools: matched };
+}
+function mediaTriggers(application, applications, action) {
+  const phrases = {
+    media_play:'(?:lecture|play|joue|reprends(?:\\s+la\\s+lecture)?)',
+    media_pause:'(?:pause|mets\\s+en\\s+pause|mettre\\s+en\\s+pause)',
+    media_next:'(?:(?:passe\\s+(?:[aà]\\s+)?(?:la\\s+)?)?(?:piste|chanson|morceau)\\s+suivant[e]?)',
+    media_previous:'(?:(?:passe\\s+(?:[aà]\\s+)?(?:la\\s+)?)?(?:piste|chanson|morceau)\\s+pr[eé]c[eé]dent[e]?)',
+    media_stop:'(?:arr[eê]te|stop)',
+    deezer_content:"(?:affiche[r]?|ouvre|ouvrir)\\s+(?:(?:la|le|un|une|l['’])\\s*)?(?:chanson|titre|track|album|artiste|artist|playlist|podcast|show|[ée]pisode|episode|profil|profile)\\s+[1-9][0-9]{0,18}",
+    deezer_search:'(?:cherche[r]?|recherche[r]?)\\s+.+',
+    deezer_start:'(?:d[eé]marre[r]?|lance[r]?|joue|[ée]coute[r]?|lis|lire)\\s+(?:(?:le|les|mes)\\s+)?(?:flow|coups\\s+de\\s+c[œo]eur|coups\\s+de\\s+coeur)',
+    deezer_reload:'(?:recharge[r]?|reload)',
+  };
+  if (!phrases[action]) return [];
+  const labels = [...new Set([application.name,...application.aliases].flatMap(labelVariants))]
+    .filter(label => !applications.some(other => other.id !== application.id && [other.name,...other.aliases].flatMap(labelVariants).includes(label)));
+  if (!labels.length) return [];
+  const names = labels.map(label=>label.replace(/[.*+?^${}()|[\]\\]/g,'\\$&').replace(/ /g,'\\s+')).join('|');
+  return [`^\\s*${phrases[action]}\\s+(?:(?:dans|sur|de)\\s+)?(?:${names})\\s*[.!?]*\\s*$`];
 }
 
 function validateCalls(calls, config) {
   ensure(Array.isArray(calls) && calls.length > 0 && calls.length <= 8, 'Liste d’appels invalide (8 maximum).');
   return calls.map(call => {
-    const application = config.applications.find(app => app.enabled && toolName(app) === call.name);
+    const tool = toolsFor(config).find(tool => tool.name === call.name);
+    const application = config.applications.find(app => app.enabled && app.id === tool?.applicationId);
     ensure(application, `Needle a proposé un outil inconnu ou désactivé : ${call.name}.`);
     const args = call.arguments;
     ensure(args && typeof args === 'object' && !Array.isArray(args), 'Arguments de l’outil invalides.');
+    if (tool.action !== 'open') {
+      let arguments_;
+      if (tool.action.startsWith('media_')) { ensure(Object.keys(args).length === 0, 'La commande multimédia n’accepte aucun argument.'); arguments_ = {}; }
+      else arguments_ = validateDeezerArgs(tool.action,args);
+      return {name:call.name,arguments:arguments_,applicationId:application.id,applicationName:application.name,action:tool.action,actionLabel:tool.actionLabel};
+    }
     const acceptsInput = application.arguments.some(argument => argument.includes('{input}'));
     ensure(Object.keys(args).every(key => acceptsInput && key === 'input'), 'Needle a proposé un argument non autorisé.');
     const input = args.input ?? '';
@@ -175,7 +243,7 @@ async function launch(application, args) {
   return { applicationName: application.name, success: true, message: `${application.name} lancé.` };
 }
 
-function createAssistant({ runtimeDirectory, configDirectory, runEngine = executeFile, launchApplication = launch, engine }) {
+function createAssistant({ runtimeDirectory, configDirectory, runEngine = executeFile, launchApplication = launch, engine, media = createMedia() }) {
   const configPath = path.join(configDirectory, 'applications.json');
   const pendingDirectory = path.join(configDirectory, 'pending');
   async function executeCalls(calls, config) {
@@ -184,7 +252,7 @@ function createAssistant({ runtimeDirectory, configDirectory, runEngine = execut
     const results = [];
     for (const call of validated) {
       const application = config.applications.find(app => app.id === call.applicationId);
-      try { results.push(await launchApplication(application, call.arguments)); }
+      try { results.push(call.action && call.action !== 'open' ? await media.execute(application,call.action,call.arguments) : await launchApplication(application, call.arguments)); }
       catch (error) { results.push({ applicationName: application.name, success: false, message: error.message }); }
     }
     return results;
@@ -215,6 +283,17 @@ function createAssistant({ runtimeDirectory, configDirectory, runEngine = execut
       ensure(engine, 'Le moteur persistant est indisponible.');
       await engine.close(); await engine.warm();
       return engine.status();
+    }
+    if (method === 'media_sessions') return media.sessions();
+    if (method === 'prepare_action') {
+      // A user click creates the same one-shot confirmation as a model proposal.
+      const app = config.applications.find(app => app.id === payload.applicationId && app.enabled);
+      ensure(app, 'Application introuvable ou désactivée.');
+      const calls = validateCalls([{name:actionToolName(app,payload.action),arguments:payload.arguments ?? {}}],config);
+      const turn = {id:randomUUID(),transcript:payload.label === undefined ? (calls[0].actionLabel || `Ouvrir ${app.name}`) : cleanText(payload.label,'Libellé de l’action',2000),language:config.language,
+        confidence:null,reasoning:'Action choisie explicitement.',durationMs:0,calls,results:[],status:'pending'};
+      await atomicJson(path.join(pendingDirectory, `${turn.id}.json`), {createdAt:Date.now(),configDigest:configDigest(config),calls,turn});
+      return turn;
     }
     if (method === 'save_application') {
       const id = payload.id;
@@ -287,7 +366,11 @@ function createAssistant({ runtimeDirectory, configDirectory, runEngine = execut
       catch (error) { if (error.code !== 'ENOENT') throw error; }
     }
     ensure(method === 'process_text' || method === 'process_audio' || method === 'correct_request', 'Méthode inconnue.');
-    const tools = toolsFor(config);
+    let sessions;
+    if (config.applications.some(app => app.enabled && app.media)) {
+      try { sessions = await media.sessions(); } catch { sessions = []; }
+    }
+    const tools = toolsFor(config,sessions);
     ensure(tools.length > 0, 'Ajoutez et activez au moins une application avant de faire une demande.');
     await fs.mkdir(configDirectory, { recursive: true });
     const temporary = await fs.mkdtemp(path.join(configDirectory, 'turn-'));
@@ -325,18 +408,25 @@ function createAssistant({ runtimeDirectory, configDirectory, runEngine = execut
       const turn = { id: randomUUID(), transcript, language, confidence: null, reasoning: '',
         durationMs: Date.now() - startedAt, calls: [], results: [], status: 'unsupported' };
       if (!transcript) return { ...turn, status: 'silence' };
+      const deezerApps = config.applications.filter(app => app.enabled && app.media?.deezer);
+      const namedDeezer = deezerApps.some(app => [app.name,...app.aliases].flatMap(labelVariants).some(label =>
+        new RegExp(`(?:^|[^\\p{L}\\p{N}])${label.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')}(?:$|[^\\p{L}\\p{N}])`,'iu').test(transcript)));
+      if (namedDeezer && /(?:ajout|ins[eè]r|mets|mettre|programme).*?(?:file|queue|en\s+prochain|(?:jouer|lire|[ée]couter)\s+(?:ensuite|apr[eè]s))/iu.test(transcript))
+        return {...turn,message:'Le protocole Deezer vérifié ne permet pas d’insérer une chanson précise en prochaine position. Choisissez cette action dans Deezer. « Piste suivante » lit le prochain élément déjà présent.'};
+      if (namedDeezer && /(?:joue|jouer|lance|lancer|[ée]coute|[ée]couter|lis|lire|play)\s+(?:(?:la|le|une?|the)\s+)?(?:chanson|titre|morceau|piste|song|track)\s+(?!suivant|pr[eé]c[eé]dent|next|previous)/iu.test(transcript))
+        return {...turn,message:'Le protocole Deezer vérifié peut afficher ou rechercher une chanson, mais ne permet pas d’en démarrer la lecture précise. Choisissez la lecture dans Deezer.'};
       let { prompt, requestTools } = resolveInvocation(transcript, tools, config);
       if (method === 'correct_request' && payload.applicationId) {
         const app = config.applications.find(app => app.id === payload.applicationId);
-        requestTools = tools.filter(tool => tool.name === toolName(app));
+        requestTools = tools.filter(tool => tool.applicationId === app.id);
         // The selected application is an explicit user correction. Preserve any
         // free-form input in a separate, user-editable field instead of inferring it.
-        prompt = `Ouvre ${labelVariants(app.name).at(-1)}`;
+        if (!app.media) prompt = `Ouvre ${labelVariants(app.name).at(-1)}`;
       }
       const toolsPath = path.join(temporary, 'tools.json');
       const systemPath = path.join(temporary, 'system.txt');
-      await fs.writeFile(toolsPath, JSON.stringify(requestTools));
-      await fs.writeFile(systemPath, `locale: ${language}\nplatform: Windows\nOnly open registered applications. Input values must come from the user's request.\n`);
+      await fs.writeFile(toolsPath, JSON.stringify(requestTools.map(({name,description,triggers,parameters})=>({name,description,triggers,parameters}))));
+      await fs.writeFile(systemPath, `locale: ${language}\nplatform: Windows\nOnly use registered tools. Input values must come from the user's request. A Deezer content or search link only displays a page, never starts a song or adds it next in the queue. Skip next plays the next item already in the queue, never inserts a requested song. Reject requests to play a specific song or queue it next when no tool offers that behavior.\n`);
       const needleArgs = ['--model', path.join(runtimeDirectory, 'models/needle3.cact'), '--tools', toolsPath,
         '--system', systemPath, '--max', '256', '--fail-input-overflow'];
       // The Windows runner's narrow --prompt argv loses non-ASCII characters.
@@ -364,11 +454,30 @@ function createAssistant({ runtimeDirectory, configDirectory, runEngine = execut
       const calls = suppressed ? response.suppressed_calls : response.function_calls;
       if (calls.length === 0) return turn;
       turn.calls = validateCalls(calls, config);
+      ensure(requestTools.length !== 1 || requestTools[0].action === 'open' || turn.calls.length === 1,
+        'Needle a proposé plusieurs appels pour une seule action. Reformulez la demande ou utilisez le bouton du lecteur.');
       ensure(turn.calls.every(call => requestTools.some(tool => tool.name === call.name)),
         'Needle a proposé une application différente de celle demandée.');
+      if (turn.calls.some(call => ['deezer_content','deezer_search'].includes(call.action)) && /(?:^|\s)(?:joue|jouer|[ée]coute|[ée]couter|play)(?:\s|$)/iu.test(transcript)) {
+        return {...turn,calls:[],message:'Le protocole Deezer vérifié peut afficher ou rechercher une chanson, mais ne permet pas d’en démarrer la lecture précise. Choisissez la lecture dans Deezer.'};
+      }
+      const simpleResume = deezerApps.some(app => mediaTriggers(app,config.applications,'media_play').some(pattern => new RegExp(pattern,'i').test(transcript)));
+      if (namedDeezer && /^\s*(?:joue|jouer|[ée]coute|[ée]couter|play|lis|lire)\s/iu.test(transcript) && !simpleResume &&
+        !/(?:repren|reprise|lecture|\bflow\b|coups?\s+de\s+c(?:œur|oeur)|smarttracklist)/iu.test(transcript) &&
+        turn.calls.some(call => ['media_play','deezer_start'].includes(call.action)))
+        return {...turn,calls:[],message:'Le protocole Deezer vérifié ne permet pas de jouer une chanson précise. Affichez sa page ou recherchez son titre, puis choisissez la lecture dans Deezer.'};
+      for (const call of turn.calls.filter(call => call.action === 'deezer_start')) {
+        const requested = call.arguments.mix === 'flow' ? /\bflow\b/iu : /coups?\s+de\s+c(?:œur|oeur)/iu;
+        ensure(requested.test(transcript),'La sélection Deezer proposée ne figure pas dans votre demande.');
+      }
+      for (const call of turn.calls.filter(call => ['deezer_content','deezer_smarttracklist'].includes(call.action))) {
+        const id = call.arguments.id.replace(/[.*+?^${}()|[\]\\]/g,'\\$&');
+        ensure(new RegExp(`(?:^|[^\\p{L}\\p{N}_-])${id}(?:$|[^\\p{L}\\p{N}_-])`,'u').test(transcript),
+          'L’identifiant Deezer proposé ne figure pas dans votre demande. Fournissez un lien ou un identifiant, ou demandez une recherche par titre.');
+      }
       if (method === 'correct_request') {
         turn.correctedFrom = payload.id;
-        if (payload.applicationId) {
+        if (payload.applicationId && !config.applications.find(app => app.id === payload.applicationId).media) {
           const app = config.applications.find(app => app.id === payload.applicationId);
           const acceptsInput = app.arguments.some(arg => arg.includes('{input}'));
           ensure(payload.input === undefined || (acceptsInput && typeof payload.input === 'string' && payload.input.length <= 2048 && !payload.input.includes('\0')), 'Texte transmis invalide.');
@@ -394,4 +503,4 @@ function createAssistant({ runtimeDirectory, configDirectory, runEngine = execut
   };
 }
 
-module.exports = { createAssistant, validateCalls, validateWav, toolsFor, parseEngineOutput, toolName, DEFAULT_CONFIG };
+module.exports = { createAssistant, validateCalls, validateWav, toolsFor, parseEngineOutput, toolName, actionToolName, DEFAULT_CONFIG };

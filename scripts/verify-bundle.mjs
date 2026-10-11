@@ -6,7 +6,8 @@ import { fileURLToPath } from 'node:url';
 import { spawn } from 'node:child_process';
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const bundle = resolve(process.argv[2] || join(root, 'artifacts/PAM-windows-x64'));
-const required = ['PAM.exe', 'pam-node.exe', 'sidecar/main.cjs', 'sidecar/assistant.cjs',
+const required = ['PAM.exe', 'pam-node.exe', 'docs/windows-media-deezer.md', 'sidecar/main.cjs', 'sidecar/assistant.cjs',
+  'sidecar/media.cjs', 'sidecar/deezer.cjs', 'sidecar/native.cjs',
   'sidecar/engine.cjs', 'sidecar/engine-worker.cjs', 'runtime/libneedle3.dll', 'runtime/ffi/node_modules/koffi/index.cjs',
   'runtime/needle.exe', 'runtime/models/needle3.cact', 'runtime/models/whistle.cact', 'runtime/npm/bin/npm-cli.js'];
 for (const file of required) assert.ok((await stat(join(bundle, file))).isFile(), `${file} absent du paquet`);
@@ -51,6 +52,10 @@ for (const file of ['PAM.exe', 'pam-node.exe', 'runtime/needle.exe', 'runtime/li
   console.log(`${file} : x64, aucune DLL de runtime externe (${dlls.join(', ')})`);
 }
 if (process.platform === 'win32') {
+  const { nativeRequest } = await import('../sidecar/native.cjs');
+  const sessions = await nativeRequest({method:'media_sessions'},join(bundle,'PAM.exe'));
+  assert.ok(Array.isArray(sessions));
+  console.log('Adaptateur GSMTC du paquet exécuté sans lancer l’interface : OK');
   const cache = join(root, '.runtime-cache'); await mkdir(cache, { recursive: true });
   const config = await mkdtemp(join(cache, 'bundle-check-'));
   try {

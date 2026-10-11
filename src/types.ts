@@ -16,6 +16,16 @@ export interface Application {
   aliases: string[];
   enabled: boolean;
   windowsApp?: WindowsApplication;
+  media?: { sourceAppId: string; deezer: boolean };
+}
+export interface MediaSession {
+  sourceAppId: string;
+  title?: string;
+  artist?: string;
+  album?: string;
+  playbackStatus?: string;
+  capabilities?: Record<'play' | 'pause' | 'next' | 'previous' | 'stop' | 'toggle', boolean>;
+  error?: string;
 }
 export interface Config {
   version: number;
@@ -34,13 +44,14 @@ export interface RuntimeStatus {
   desktop?: { shortcut: string; shortcutAvailable: boolean; shortcutError: string; closeToTray: boolean };
 }
 export interface Turn {
+  message?: string;
   id: string;
   transcript: string;
   language: string;
   confidence: number | null;
   reasoning: string;
   durationMs: number;
-  calls: { name: string; arguments: Record<string, string>; applicationId: string; applicationName: string }[];
+  calls: { name: string; arguments: Record<string, string>; applicationId: string; applicationName: string; action?: string; actionLabel?: string }[];
   correctedFrom?: string;
   results: { applicationName: string; success: boolean; message: string }[];
   status: 'executed' | 'pending' | 'unsupported' | 'silence' | 'failed' | 'cancelled';

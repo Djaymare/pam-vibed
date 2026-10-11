@@ -5,8 +5,9 @@ import { listen, type UnlistenFn } from '@tauri-apps/api/event';
 import { open } from '@tauri-apps/plugin-dialog';
 import Icon from './components/Icon.vue';
 import ApplicationPicker from './components/ApplicationPicker.vue';
+import MediaControls from './components/MediaControls.vue';
 import { VoiceRecorder } from './audio/recorder';
-import type { Application, Config, InstalledApplication, RuntimeStatus, Turn, WindowsApplication } from './types';
+import type { Application, Config, InstalledApplication, MediaSession, RuntimeStatus, Turn, WindowsApplication } from './types';
 
 const page = ref<'assistant' | 'applications' | 'settings'>('assistant');
 const status = ref<RuntimeStatus>();
@@ -23,6 +24,11 @@ const turns = ref<Turn[]>([]);
 const editorOpen = ref(false);
 const editingId = ref<string>();
 const form = reactive({ name: '', description: '', executable: '', aliases: '', arguments: '[]', enabled: true, windowsApp: undefined as WindowsApplication | undefined });
+const mediaSource = ref('');
+const deezerPlugin = ref(false);
+const mediaSessions = ref<MediaSession[]>([]);
+const mediaError = ref('');
+const deezerTarget = computed(() => form.windowsApp?.appId === 'Deezer.62021768415AF_q7m17pa7q8kj0!Deezer.Music');
 const formError = ref('');
 const pickerOpen = ref(false);
 const discoveryLoading = ref(false);
@@ -94,6 +100,14 @@ async function process(method: string, payload: unknown) {
   finally { busy.value = false; void updateHealth(); }
 }
 async function submitText() { if (canRequest.value && text.value.trim()) await process('process_text', { text: text.value.trim() }); }
+async function prepareMediaAction(applicationId:string, action:string, args:Record<string,string>, label:string) {
+  if (!locked.value) await process('prepare_action',{applicationId,action,arguments:args,label});
+}
+async function refreshMediaSessions() {
+  mediaError.value = '';
+  try { mediaSessions.value = await request<MediaSession[]>('media_sessions'); }
+  catch (caught) { mediaError.value = describeError(caught); }
+}
 function clearTimers() { window.clearInterval(interval); window.clearTimeout(limitTimer); }
 async function startRecording() {
   if (!canRequest.value) return;
@@ -161,6 +175,9 @@ async function resolveTurn(turn: Turn, accept: boolean) {
 function editApplication(application?: Application) {
   editingId.value = application?.id;
   form.windowsApp = application?.windowsApp;
+  mediaSource.value = application?.media?.sourceAppId || '';
+  deezerPlugin.value = application?.media?.deezer || false;
+  void refreshMediaSessions();
   Object.assign(form, application ? { ...application, aliases: application.aliases.join(', '), arguments: JSON.stringify(application.arguments, null, 2) }
     : { name: '', description: '', executable: '', aliases: '', arguments: '[]', enabled: true });
   formError.value = ''; testResult.value = undefined; testInput.value = ''; editorOpen.value = true;
@@ -181,14 +198,16 @@ function selectInstalled(application: InstalledApplication) {
   form.name = application.name.slice(0, 60);
   form.description = `Ouvrir ${form.name}.`;
   form.windowsApp = { appId: application.appId, kind: application.kind, icon: application.icon, launchArgument: application.launchArgument };
+  deezerPlugin.value = false; mediaSource.value = '';
+  if (deezerTarget.value) { deezerPlugin.value = true; mediaSource.value = 'Deezer.exe'; }
   // The native bridge supplies the trusted launch target when saving or testing.
 }
 function manualApplication() { pickerOpen.value = false; editApplication(); }
-function useExecutable() { form.windowsApp = undefined; form.executable = ''; form.arguments = '[]'; testResult.value = undefined; }
+function useExecutable() { form.windowsApp = undefined; form.executable = ''; form.arguments = '[]'; testResult.value = undefined; deezerPlugin.value = false; mediaSource.value = ''; }
 function applicationPayload() {
   let args: unknown;
   try { args = JSON.parse(form.arguments); } catch { throw new Error('Les arguments doivent être un tableau JSON, par exemple ["--new-window", "{input}"].'); }
-  return { ...form, id: editingId.value, aliases: form.aliases.split(',').map(alias => alias.trim()).filter(Boolean), arguments: args };
+  return { ...form, media:mediaSource.value ? {sourceAppId:mediaSource.value,deezer:deezerPlugin.value && deezerTarget.value} : undefined, id: editingId.value, aliases: form.aliases.split(',').map(alias => alias.trim()).filter(Boolean), arguments: args };
 }
 async function testLaunch() {
   busy.value = true; testing.value = true; formError.value = ''; testResult.value = undefined;
@@ -231,7 +250,7 @@ async function saveSettings() {
   catch (caught) { const message = describeError(caught); await refresh(); error.value = message; }
   finally { busy.value = false; }
 }
-const labels: Record<Turn['status'], string> = { executed: 'Terminé', pending: 'À valider', unsupported: 'Aucune action disponible', silence: 'Aucune parole détectée', failed: 'Échec de lancement', cancelled: 'Annulé' };
+const labels: Record<Turn['status'], string> = { executed: 'Terminé', pending: 'À valider', unsupported: 'Aucune action disponible', silence: 'Aucune parole détectée', failed: 'Échec de l’action', cancelled: 'Annulé' };
 </script>
 
 <template>
@@ -266,10 +285,11 @@ const labels: Record<Turn['status'], string> = { executed: 'Terminé', pending: 
             <div class="pipeline"><span><Icon name="mic" :size="15" />Voix</span><Icon name="chevron" :size="12" /><span>Whistle<small>transcrit</small></span><Icon name="chevron" :size="12" /><span>Needle<small>comprend</small></span><Icon name="chevron" :size="12" /><span><Icon name="apps" :size="15" />Application</span></div>
           </section>
           <form class="text-request" @submit.prevent="submitText"><input v-model="text" :disabled="locked" maxlength="2000" aria-label="Demande écrite" placeholder="Vous préférez écrire ? Entrez votre demande…" /><button class="send-button" :disabled="!canRequest || !text.trim()" aria-label="Envoyer la demande"><Icon name="arrow" :size="20" /></button></form>
+          <MediaControls :applications="config.applications" :locked="locked" @action="prepareMediaAction" />
           <section class="connected"><div class="section-heading"><h3>Vos applications<span>{{ activeApps.length }}</span></h3><button class="text-button" :disabled="locked" @click="page = 'applications'">Gérer <Icon name="arrow" :size="14" /></button></div><div v-if="activeApps.length" class="app-chips"><span v-for="app in activeApps" :key="app.id"><span class="app-initial">{{ app.name.slice(0, 1).toUpperCase() }}</span>{{ app.name }}<i /></span></div><p v-else class="empty-inline">Aucune application connectée pour le moment.</p></section>
           <section class="history"><div class="section-heading"><h3>Activité récente</h3><span class="muted">Cette session uniquement</span></div>
             <div v-if="!turns.length" class="history-empty"><Icon name="clock" :size="22" /><p>Votre première demande apparaîtra ici.</p></div>
-            <article v-for="turn in turns" :key="turn.id" class="turn-card"><div class="turn-head"><span class="turn-badge" :class="turn.status"><Icon :name="turn.status === 'executed' ? 'check' : 'info'" :size="14" />{{ labels[turn.status] }}</span><span class="turn-metrics">{{ (turn.durationMs / 1000).toFixed(2) }} s<span v-if="turn.confidence !== null"> · confiance Needle {{ Math.round(turn.confidence * 100) }} %</span></span></div><p class="transcript">{{ turn.transcript || 'Le microphone n’a capté aucune parole.' }}</p><div v-if="turn.calls.length" class="call-list"><div v-for="(call, index) in turn.calls" :key="index"><Icon name="arrow" :size="14" /><strong>Ouvrir {{ call.applicationName }}</strong><code v-if="call.arguments.input">{{ call.arguments.input }}</code></div></div><p v-if="turn.status === 'unsupported'" class="muted">Cette demande ne correspond à aucune application active.</p><p v-for="(result, index) in turn.results" :key="index" :class="result.success ? 'result-success' : 'result-error'">{{ result.message }}</p><div v-if="turn.status === 'pending'" class="approval"><p>Vérifiez les actions proposées avant de les lancer.</p><button class="primary small" :disabled="locked" @click="resolveTurn(turn, true)"><Icon name="check" :size="16" />Exécuter</button><button class="secondary small" :disabled="locked" @click="resolveTurn(turn, false)">Annuler</button></div><div class="turn-correction"><span v-if="turn.correctedFrom" class="muted">Demande corrigée · validation requise</span><button class="text-button" :disabled="locked" @click="editTurn(turn)"><Icon name="edit" :size="14" />Corriger la demande</button></div><details v-if="turn.reasoning"><summary>Raisonnement Needle</summary><p>{{ turn.reasoning }}</p></details></article>
+            <article v-for="turn in turns" :key="turn.id" class="turn-card"><div class="turn-head"><span class="turn-badge" :class="turn.status"><Icon :name="turn.status === 'executed' ? 'check' : 'info'" :size="14" />{{ labels[turn.status] }}</span><span class="turn-metrics">{{ (turn.durationMs / 1000).toFixed(2) }} s<span v-if="turn.confidence !== null"> · confiance Needle {{ Math.round(turn.confidence * 100) }} %</span></span></div><p class="transcript">{{ turn.transcript || 'Le microphone n’a capté aucune parole.' }}</p><div v-if="turn.calls.length" class="call-list"><div v-for="(call, index) in turn.calls" :key="index"><Icon name="arrow" :size="14" /><strong>{{ call.actionLabel || 'Ouvrir' }} {{ call.applicationName }}</strong><code v-if="Object.keys(call.arguments).length">{{ Object.entries(call.arguments).map(([key,value]) => `${key} : ${value}`).join(' · ') }}</code></div></div><p v-if="turn.status === 'unsupported'" class="muted">{{ turn.message || 'Cette demande ne correspond à aucune action actuellement disponible. Consultez les sessions et les capacités de votre lecteur.' }}</p><p v-for="(result, index) in turn.results" :key="index" :class="result.success ? 'result-success' : 'result-error'">{{ result.message }}</p><div v-if="turn.status === 'pending'" class="approval"><p>Vérifiez les actions proposées avant de les lancer.</p><button class="primary small" :disabled="locked" @click="resolveTurn(turn, true)"><Icon name="check" :size="16" />Exécuter</button><button class="secondary small" :disabled="locked" @click="resolveTurn(turn, false)">Annuler</button></div><div class="turn-correction"><span v-if="turn.correctedFrom" class="muted">Demande corrigée · validation requise</span><button class="text-button" :disabled="locked" @click="editTurn(turn)"><Icon name="edit" :size="14" />Corriger la demande</button></div><details v-if="turn.reasoning"><summary>Raisonnement Needle</summary><p>{{ turn.reasoning }}</p></details></article>
           </section>
         </template>
         <template v-else-if="page === 'applications'">
@@ -314,6 +334,10 @@ const labels: Record<Turn['status'], string> = { executed: 'Terminé', pending: 
           <label>À quoi sert-elle ?<textarea v-model="form.description" required maxlength="240" rows="2" placeholder="Ex. : Ouvrir l’éditeur de code et travailler sur un projet." :disabled="busy" /><small>Cette description aide Needle à choisir la bonne application.</small></label>
           <label v-if="!form.windowsApp">Exécutable Windows<div class="path-field"><input v-model="form.executable" required placeholder="C:\…\application.exe" :disabled="busy" /><button type="button" class="secondary" :disabled="busy" @click="browse"><Icon name="folder" :size="18" />Parcourir</button></div></label>
           <label>Autres noms <span class="optional">facultatif</span><input v-model="form.aliases" placeholder="Ex. : VS Code, éditeur de code" :disabled="busy" /><small>Séparez les noms par des virgules.</small></label>
+          <label>Session multimédia Windows <span class="optional">facultatif</span><select v-model="mediaSource" :disabled="busy || deezerPlugin"><option value="">Sans commandes multimédias</option><option v-if="mediaSource && !mediaSessions.some(session => session.sourceAppId === mediaSource)" :value="mediaSource">{{ mediaSource }} · session absente</option><option v-for="(session,index) in mediaSessions" :key="index" :value="session.sourceAppId">{{ session.sourceAppId }} · {{ session.title || 'Média sans titre' }}</option></select><small>Choisissez la session de cette application pour activer lecture, pause et piste suivante. Les capacités sont vérifiées à chaque commande.</small></label>
+          <button type="button" class="text-button" :disabled="busy" @click="refreshMediaSessions">Actualiser les sessions</button>
+          <p v-if="mediaError" class="result-error">{{ mediaError }}</p>
+          <label v-if="deezerTarget" class="alias-choice"><input v-model="deezerPlugin" type="checkbox" :disabled="busy" @change="deezerPlugin && (mediaSource = 'Deezer.exe')" /><span>Activer le plugin Deezer Music : contenus, recherche et Flow</span></label>
           <details v-if="!form.windowsApp" class="advanced"><summary>Arguments de lancement</summary><label>Tableau JSON<textarea v-model="form.arguments" class="code-input" rows="3" :disabled="busy" /></label><p>Utilisez <code>[]</code> pour un lancement simple, ou <code>["{input}"]</code> pour transmettre le texte, le fichier ou l’URL demandé. Chaque élément reste un argument distinct.</p></details>
           <div class="launch-test"><label v-if="testNeedsInput">Texte, fichier ou URL pour le test<input v-model="testInput" maxlength="2048" :disabled="busy" placeholder="Ex. : C:\projets\mon-projet" /></label><button type="button" class="secondary" :disabled="busy || !form.name.trim() || (!form.windowsApp && !form.executable.trim())" @click="testLaunch"><Icon name="arrow" :size="17" />{{ testing ? 'Lancement…' : 'Tester le lancement' }}</button><small>Ce bouton ouvre l’application sans enregistrer le formulaire.</small></div>
           <div v-if="testResult" class="notice" :class="testResult.success ? 'success' : 'error'" role="status">{{ testResult.message }}</div>

@@ -12,6 +12,7 @@ use std::{
 use tauri::{Emitter, Manager};
 use tauri_plugin_global_shortcut::{Code, GlobalShortcutExt, Modifiers, Shortcut, ShortcutState};
 mod applications;
+pub mod media;
 
 #[tauri::command]
 async fn discover_applications(
@@ -105,6 +106,10 @@ impl AssistantBridge {
             .env_remove("NODE_PATH")
             .env("NEEDLE_TELEMETRY", "0")
             .env("DO_NOT_TRACK", "1")
+            .env(
+                "PAM_NATIVE_EXE",
+                std::env::current_exe().map_err(|e| e.to_string())?,
+            )
             .stdin(Stdio::piped())
             .stdout(Stdio::piped())
             .stderr(Stdio::null());
@@ -244,6 +249,8 @@ async fn assistant_request(
             | "correct_request"
             | "restart_engine"
             | "test_application"
+            | "media_sessions"
+            | "prepare_action"
     ) {
         return Err("Méthode inconnue.".into());
     }
