@@ -24,16 +24,21 @@ const config={...DEFAULT_CONFIG,applications:[deezer,browser],autoExecute:false}
 const report={date:new Date().toISOString(),runtime,baseline:[],checks:[],realActionsExecuted:0};
 const cases=[
   ['Démarrer Flow dans Diseur.','deezer_start',{mix:'flow'}],['Lance Flow dans Deezer Music','deezer_start',{mix:'flow'}],
+  ...['Démarrer Flow.','Diseur Flow','Deezer Music : Flow!','Diseur, démarre Flow.','Joue Flow'].map(text=>[text,'deezer_start',{mix:'flow'}]),
   ['Lire les coups de cœur dans Diseur','deezer_start',{mix:'loved_tracks'}],['Lire les coups de coeur dans Diseur','deezer_start',{mix:'loved_tracks'}],
   ['Lire les coûts de cœur dans Diseur','deezer_start',{mix:'loved_tracks'}],
+  ['Diseur coups de cœur','deezer_start',{mix:'loved_tracks'}],
   ['Rechercher Dave Pink dans Diseur.','deezer_search',{query:'Dave Pink'}],['Rechercher Daft Punk dans Deezer','deezer_search',{query:'Daft Punk'}],
   ['Rechercher Été / Ça va? dans Diseur','deezer_search',{query:'Été / Ça va?'}],
+  ['Diseur rechercher Été / Ça va?','deezer_search',{query:'Été / Ça va?'}],
   ...Object.entries({chanson:'track',album:'album',artiste:'artist',playlist:'playlist',podcast:'show',épisode:'episode',profil:'profile'})
     .map(([kind,value])=>[`Afficher ${kind} 3135556 dans Diseur`,'deezer_content',{kind:value,id:'3135556'}]),
   ['Afficher la chanson 1234567890123456789 dans Deezer Music','deezer_content',{kind:'track',id:'1234567890123456789'}],
+  ['Diseur afficher la chanson 1234567890123456789.','deezer_content',{kind:'track',id:'1234567890123456789'}],
   ...Object.entries({accueil:'home',podcasts:'podcasts',Explorer:'explore',classements:'charts',ambiances:'moods',radios:'radios','réglages audio':'audio_settings',apparence:'theme'})
     .map(([page,value])=>[`Afficher la page ${page} dans Diseur`,'deezer_page',{page:value}]),
   ['Affiche l’accueil dans Deezer','deezer_page',{page:'home'}],['Affiche les réglages d’apparence dans Deezer','deezer_page',{page:'theme'}],
+  ['Diseur, afficher la page radios','deezer_page',{page:'radios'}],
   ['Recharge Diseur','deezer_reload',{}],
   ['Affiche la sélection smarttracklist Test_123-AbC dans Deezer','deezer_smarttracklist',{id:'Test_123-AbC',mode:'display'}],
   ['Démarre la sélection smarttracklist Test_123-AbC dans Deezer','deezer_smarttracklist',{id:'Test_123-AbC',mode:'play'}],
@@ -43,7 +48,7 @@ try {
   await writeFile(join(profile,'applications.json'),JSON.stringify(config));
   const system=join(profile,'system.txt');
   await writeFile(system,"locale: fr\nplatform: Windows\nOnly use registered tools. Input values must come from the user's request. A Deezer content or search link only displays a page, never starts a song or adds it next in the queue. Skip next plays the next item already in the queue, never inserts a requested song. Reject requests to play a specific song or queue it next when no tool offers that behavior.\n");
-  for(const [text,action] of [cases[0],cases[4],cases[5]]) {
+  for(const [text,action] of [['Démarrer Flow dans Diseur.','deezer_start'],['Lire les coûts de cœur dans Diseur','deezer_start'],['Rechercher Dave Pink dans Diseur.','deezer_search']]) {
     const tools=toolsFor(config).filter(tool=>text.includes('coûts') || tool.applicationId===deezer.id && tool.action===action);
     const file=join(profile,'baseline-tools.json');await writeFile(file,JSON.stringify(needleTools(tools,config)));
     try {
@@ -66,6 +71,7 @@ try {
   assert.deepEqual(learned.calls[0].arguments,{query:'Daft Punk'});await handle('discard',{id:learned.id});
   report.checks.push({text:learned.transcript,action:'deezer_search',args:learned.calls[0].arguments,confidence:learned.confidence,learned:true,correct:true});
   for(const text of ['Ne démarre pas Flow dans Diseur','Elle a dit « Démarrer Flow dans Diseur »','Lire les coûts de cœur dans Opera GX',
+    'Diseur ne démarre pas Flow','Diseur « Démarrer Flow »','Opera GX Flow',
     'Joue la chanson 3135556 dans Diseur','Ajoute la chanson 3135556 dans la file en prochaine position sur Diseur']) {
     const turn=await handle('process_text',{text});assert.equal(turn.status,'unsupported',text);assert.equal(turn.calls.length,0,text);
     report.checks.push({text,action:'unsupported',confidence:turn.confidence,correct:true});

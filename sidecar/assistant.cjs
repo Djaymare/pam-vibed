@@ -8,7 +8,7 @@ const { createMedia, MEDIA_ACTIONS } = require('./media.cjs');
 const { DEEZER_APP_ID, DEEZER_SOURCE_IDS, CONTENT, PAGES, validateDeezerArgs } = require('./deezer.cjs');
 const { needleToolName, needleTools, canonicalPrompt, requestIssue } = require('./needle-tools.cjs');
 const { ACTIONS: ALIAS_ACTIONS, validateStore, findCommandAlias, saveCommandAlias } = require('./command-aliases.cjs');
-const {recognizeDeezerCommand,deezerActionLabel} = require('./deezer-commands.cjs');
+const {recognizeDeezerCommand,deezerCommandIssue,deezerActionLabel} = require('./deezer-commands.cjs');
 
 const LANGUAGES = new Set(['auto', 'fr', 'en', 'de', 'es', 'it', 'nl', 'pl']);
 const MAX_AUDIO_BYTES = 44 + 16_000 * 30 * 2;
@@ -459,6 +459,10 @@ function createAssistant({ runtimeDirectory, configDirectory, runEngine = execut
         if(!tools.some(tool=>tool.applicationId===alias.applicationId && tool.action===alias.action))
           return {...turn,message:'L’action mémorisée n’est pas disponible actuellement pour ce lecteur. Vérifiez sa session et ses capacités.'};
         turn.commandAliasId=alias.id;
+      }
+      if(!alias && !(method==='correct_request' && payload.applicationId)) {
+        const issue=deezerCommandIssue(transcript,config);
+        if(issue)return {...turn,message:issue};
       }
       const explicit = matchedInvocation(transcript,toolsFor(config),config);
       if (!(method === 'correct_request' && payload.applicationId) && explicit.length === 1 && explicit[0].action.startsWith('media_') && !tools.some(tool => tool.name === explicit[0].name))

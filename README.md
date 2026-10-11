@@ -22,6 +22,8 @@ Dans **Préférences → Formulations personnelles**, vous pouvez ajouter, modif
 
 Les formulations personnelles et la correction proposent aussi les actions du plugin Deezer : Flow, coups de cœur, recherche, contenus, huit pages, sélections et rechargement. **Recherche à transmettre** permet de mémoriser un artiste mal transcrit avec son nom corrigé. Les commandes simples Deezer fixent leurs paramètres avant Needle ; « coûts de cœur » est reconnu dans la commande des favoris. Le score de choix d’action ne mesure pas la qualité de transcription. Consultez [les commandes et les mesures Deezer](docs/deezer-routing.md).
 
+Le nom du lecteur peut précéder l’action : « Diseur Flow » ou « Diseur rechercher Daft Punk ». « Démarrer Flow » sans nom de lecteur cible l’unique fiche Deezer active ; plusieurs fiches exigent de préciser son nom ou un alias unique.
+
 **Ctrl + Maj + Espace** démarre ou arrête l’enregistrement depuis les autres applications et réaffiche PAM. Fermer la fenêtre ou choisir **Réduire PAM** masque PAM dans la zone de notification et coupe le microphone. Un clic gauche sur l’icône réaffiche PAM ; le menu propose parler/arrêter et **Quitter PAM**, qui libère les modèles. **Quitter PAM** est également disponible dans les préférences. Un raccourci déjà utilisé par un autre programme est signalé dans l’interface ; le bouton microphone et le menu restent utilisables. Une seule instance de PAM peut fonctionner.
 
 ### Applications et arguments

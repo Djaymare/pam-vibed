@@ -3,11 +3,16 @@ const PAGE_LABELS={home:'l’accueil',podcasts:'les podcasts',explore:'Explorer'
 const CONTENT_LABELS={track:'la chanson',album:'l’album',artist:'l’artiste',playlist:'la playlist',show:'le podcast',episode:'l’épisode',profile:'le profil'};
 const normalize=text=>text.normalize('NFKD').replace(/\p{M}/gu,'').replace(/œ/g,'oe').replace(/’/g,"'").toLowerCase().trim().replace(/\s+/g,' ');
 const escape=text=>text.replace(/[.*+?^${}()|[\]\\]/g,'\\$&').replace(/ /g,'\\s+');
+const PLAYBACK='(?:demarre[r]?|lance[r]?|joue[r]?|ecoute[r]?|lis|lire)';
+const FLOW=new RegExp(`^${PLAYBACK}\\s+(?:(?:le|les|mes)\\s+)?flow$`);
+function parseFlow(command,short=false) {
+  const text=normalize(command).replace(/[.!?]+$/u,'').trim();
+  return FLOW.test(text) || short && text==='flow' ? {action:'deezer_start',arguments:{mix:'flow'}} : null;
+}
 function parseCommand(command) {
   const text=normalize(command);
-  const playback='(?:demarre[r]?|lance[r]?|joue[r]?|ecoute[r]?|lis|lire)';
-  if(new RegExp(`^${playback}\\s+(?:(?:le|les|mes)\\s+)?flow$`).test(text))return {action:'deezer_start',arguments:{mix:'flow'}};
-  if(new RegExp(`^${playback}\\s+(?:(?:le|les|mes)\\s+)?(?:coups?|couts?)\\s+de\\s+coeur$`).test(text))return {action:'deezer_start',arguments:{mix:'loved_tracks'}};
+  if(FLOW.test(text))return {action:'deezer_start',arguments:{mix:'flow'}};
+  if(new RegExp(`^${PLAYBACK}\\s+(?:(?:le|les|mes)\\s+)?(?:coups?|couts?)\\s+de\\s+coeur$`).test(text))return {action:'deezer_start',arguments:{mix:'loved_tracks'}};
   if(/^(?:recharge[r]?|reload)$/.test(text))return {action:'deezer_reload',arguments:{}};
   const search=/^(?:cherche[r]?|recherche[r]?)\s+(.+)$/iu.exec(command);
   if(search && !/\b(?:et|puis|and|then)\s+(?:ne\s+|n['’]|ouvre|lance|demarre|joue|recharge)/u.test(normalize(search[1])))
@@ -27,20 +32,61 @@ function parseCommand(command) {
   }
   return null;
 }
-function recognizeDeezerCommand(transcript,config) {
+function parseNamedCommand(command) {
+  const parsed=parseCommand(command) || parseCommand(command.replace(/[.!?]+\s*$/u,'').trim());
+  if(parsed)return parsed;
+  // A selection name is an order only next to an explicit Deezer name.
+  const text=normalize(command).replace(/[.!?]+$/u,'').trim();
+  if(text==='flow')return parseFlow(command,true);
+  if(/^(?:(?:les|mes)\s+)?(?:coups?|couts?)\s+de\s+coeur$/u.test(text))
+    return {action:'deezer_start',arguments:{mix:'loved_tracks'}};
+  return null;
+}
+function resolveDeezerCommand(transcript,config) {
+  const applications=config.applications.filter(app=>app.enabled && app.media?.deezer && app.windowsApp?.appId===DEEZER_APP_ID);
   const matches=[];
-  for(const app of config.applications.filter(app=>app.enabled && app.media?.deezer && app.windowsApp?.appId===DEEZER_APP_ID)) {
-    const names=[...new Set([app.name,...app.aliases].flatMap(name=>[name,normalize(name)]))].filter(name=>!config.applications.some(other=>other.enabled && other.id!==app.id && [other.name,...other.aliases].some(label=>normalize(label)===normalize(name))));
+  let sharedName=false,unavailableFlow=false;
+  for(const app of config.applications) {
+    const eligible=applications.includes(app);
+    const names=[...new Set([app.name,...app.aliases].flatMap(name=>[name,normalize(name)]))];
     for(const name of names) {
       // Preserve query and ID bytes; normalization is only for control words.
-      const match=new RegExp(`^(.+?)\\s+(?:(?:dans|sur|de)\\s+)?${escape(name)}\\s*[.!?]*\\s*$`,'iu').exec(transcript.trim());
-      if(!match)continue;
-      const parsed=parseCommand(match[1].trim());
-      if(parsed)matches.push({...parsed,applicationId:app.id});
+      const patterns=[
+        `^(.+?)\\s+(?:(?:dans|sur|de)\\s+)?${escape(name)}\\s*[.!?]*\\s*$`,
+        `^(?:(?:dans|sur)\\s+)?${escape(name)}(?:\\s*[:,]\\s*|\\s+)(.+?)\\s*$`,
+      ];
+      for(const pattern of patterns) {
+        const match=new RegExp(pattern,'iu').exec(transcript.trim());
+        if(!match)continue;
+        const parsed=eligible ? parseNamedCommand(match[1].trim()) : parseFlow(match[1].trim(),true);
+        if(!parsed)continue;
+        if(!eligible) {unavailableFlow=true;continue;}
+        sharedName ||= config.applications.some(other=>other.enabled && other.id!==app.id && [other.name,...other.aliases].some(label=>normalize(label)===normalize(name)));
+        matches.push({...parsed,applicationId:app.id});
+      }
     }
   }
   const unique=[...new Map(matches.map(match=>[JSON.stringify(match),match])).values()];
-  return unique.length===1 ? unique[0] : null;
+  if(sharedName || unique.length>1)return {issue:'Ce nom désigne plusieurs applications. Précisez le nom ou un alias unique du lecteur Deezer souhaité.'};
+  if(unique.length===1)return {command:unique[0]};
+  if(unavailableFlow)return {issue:'Le lecteur nommé ne propose pas Flow. Cette fonction nécessite le plugin Deezer Music actif sur le lecteur demandé.'};
+  const command=transcript.trim().replace(/[.!?]+\s*$/u,'').trim();
+  const implicit=parseFlow(command);
+  // Flow belongs to Deezer. Other commands still require an explicit target.
+  // An application actually named Flow keeps its ordinary launch command.
+  const namesApplication=config.applications.some(app=>app.enabled && [app.name,...app.aliases].some(name=>['flow',normalize(command)].includes(normalize(name))));
+  if(implicit?.action==='deezer_start' && implicit.arguments.mix==='flow' && !namesApplication) {
+    if(applications.length===1)return {command:{...implicit,applicationId:applications[0].id}};
+    return {issue:applications.length ? 'Plusieurs applications Deezer peuvent démarrer Flow. Précisez le nom ou un alias du lecteur souhaité.' :
+      'Flow nécessite une application active avec le plugin Deezer Music. Activez le plugin dans sa fiche.'};
+  }
+  return {};
+}
+function recognizeDeezerCommand(transcript,config) {
+  return resolveDeezerCommand(transcript,config).command || null;
+}
+function deezerCommandIssue(transcript,config) {
+  return resolveDeezerCommand(transcript,config).issue || null;
 }
 function boundCommand(tool,label) {
   const args=tool.boundArguments;
@@ -63,4 +109,4 @@ function deezerActionLabel(action,args) {
   if(action==='deezer_reload')return 'Recharger';
   if(action==='deezer_smarttracklist')return `${args.mode==='play'?'Lire':'Afficher'} la sélection ${args.id}`;
 }
-module.exports={recognizeDeezerCommand,boundCommand,deezerActionLabel};
+module.exports={recognizeDeezerCommand,deezerCommandIssue,boundCommand,deezerActionLabel};

@@ -81,10 +81,12 @@ test('négations, citations, alias partagés et demandes composées ne sont pas 
   assert.equal(recognizeDeezerCommand('Démarrer Flow dans Diseur',{applications:[app,{...browser,aliases:['Diseur']}]}),null);
 });
 test('le vocal et le texte utilisent la même commande fixe avec le score brut',async t=>{
-  const text='Lire les coûts de cœur dans Diseur';const f=await fixture(t,{speechText:text});
   const {encodeWav}=await import('../src/audio/wav.ts');
-  const voice=await f.handle('process_audio',{audio:Array.from(encodeWav(new Float32Array(16000)))}),typed=await f.handle('process_text',{text});
-  assert.deepEqual(voice.calls,typed.calls);assert.equal(voice.transcript,text);assert.equal(voice.confidence,0.8357);assert.deepEqual(f.requests[0],f.requests[1]);
+  for(const text of ['Lire les coûts de cœur dans Diseur','Démarrer Flow.','Diseur Flow']) {
+    const f=await fixture(t,{speechText:text});
+    const voice=await f.handle('process_audio',{audio:Array.from(encodeWav(new Float32Array(16000)))}),typed=await f.handle('process_text',{text});
+    assert.deepEqual(voice.calls,typed.calls);assert.equal(voice.transcript,text);assert.equal(voice.confidence,0.8357);assert.deepEqual(f.requests[0],f.requests[1]);
+  }
 });
 test('les préférences d’exécution et les faibles scores continuent à s’appliquer',async t=>{
   const f=await fixture(t,{config:{autoExecute:true,confidenceThreshold:0.7}});
@@ -118,5 +120,62 @@ test('une formulation personnelle peut mémoriser une page et un identifiant exp
   for(const [phrase,action,args] of [['Mon accueil musical','deezer_page',{page:'home'}],['Mon album favori','deezer_content',{kind:'album',id:'3135556'}]]) {
     await f.handle('save_command_alias',{phrase,applicationId:app.id,action,arguments:args});
     const turn=await f.handle('process_text',{text:phrase});assert.equal(turn.calls[0].action,action);assert.deepEqual(turn.calls[0].arguments,args);
+  }
+});
+test('les commandes Flow courtes et le lecteur en premier gardent la même action et le même prompt',async t=>{
+  const f=await fixture(t);
+  for(const text of ['Démarrer Flow.','Lance le Flow','Joue Flow','Diseur Flow','Deezer Music : Flow!','Diseur, démarre Flow.','Dans Diseur, démarre Flow']) {
+    const turn=await f.handle('process_text',{text});
+    assert.equal(turn.transcript,text);assert.equal(turn.status,'pending',text);assert.equal(turn.calls.length,1);
+    assert.equal(turn.calls[0].applicationId,app.id);assert.deepEqual(turn.calls[0].arguments,{mix:'flow'});
+    assert.equal(f.requests.at(-1).prompt,'Start Flow in Deezer Music');assert.equal(f.requests.at(-1).tools[0].name,'flow_deezer_music');
+  }
+  assert.equal(f.executions.length,0);
+});
+test('le lecteur en premier conserve aussi les recherches et les identifiants exacts',async t=>{
+  const f=await fixture(t);
+  for(const [text,action,args] of [
+    ['Diseur rechercher Été / Ça va?','deezer_search',{query:'Été / Ça va?'}],
+    ['Diseur afficher la chanson 1234567890123456789.','deezer_content',{kind:'track',id:'1234567890123456789'}],
+    ['Diseur : coups de cœur','deezer_start',{mix:'loved_tracks'}],
+    ['Diseur, afficher la page radios','deezer_page',{page:'radios'}],
+  ]) {
+    const turn=await f.handle('process_text',{text});assert.equal(turn.calls[0].action,action);assert.deepEqual(turn.calls[0].arguments,args);
+  }
+  for(const text of ['Rechercher un artiste','Lire les coups de cœur','Afficher la page radios','Recharge','Flow'])
+    assert.equal(recognizeDeezerCommand(text,{applications:[app,browser]}),null,text);
+});
+test('Flow sans lecteur refuse une cible absente ou ambiguë avant Needle ; un nom unique la résout',async t=>{
+  const second={...app,id:'33333333-3333-4333-8333-333333333333',name:'Musique secondaire',aliases:[]};
+  for(const applications of [[app,second,browser],[{...app,enabled:false},browser],[{...app,media:{...app.media,deezer:false}},browser]]) {
+    const f=await fixture(t,{config:{applications,autoExecute:true}});
+    const turn=await f.handle('process_text',{text:'Démarrer Flow.'});
+    assert.equal(turn.status,'unsupported');assert.equal(turn.calls.length,0);assert.equal(turn.confidence,null);
+    assert.match(turn.message,/Plusieurs applications Deezer|plugin Deezer Music/);assert.equal(f.requests.length,0);assert.equal(f.executions.length,0);
+  }
+  const f=await fixture(t,{config:{applications:[app,second,browser]}});
+  const turn=await f.handle('process_text',{text:'Musique secondaire Flow'});assert.equal(turn.calls[0].applicationId,second.id);
+  const shared=await fixture(t,{config:{applications:[app,{...browser,aliases:['Diseur']}]}});
+  assert.match((await shared.handle('process_text',{text:'Diseur Flow'})).message,/plusieurs applications/);assert.equal(shared.requests.length,0);
+  for(const text of ['Opera Flow','Démarrer Flow dans Opera']) {
+    const other=await fixture(t,{config:{autoExecute:true},response:{confidence:1,function_calls:[{name:'open_opera',arguments:{}}]}});
+    const rejected=await other.handle('process_text',{text});assert.equal(rejected.status,'unsupported');assert.match(rejected.message,/lecteur nommé ne propose pas Flow/);
+    assert.equal(rejected.calls.length,0);assert.equal(other.requests.length,0);assert.equal(other.executions.length,0);
+  }
+});
+test('une application appelée Flow conserve son lancement et une formulation personnelle conserve sa priorité',async t=>{
+  const flowApp={...browser,name:'Flow',aliases:[]};
+  const f=await fixture(t,{config:{applications:[app,flowApp]}});
+  const turn=await f.handle('process_text',{text:'Démarrer Flow'});assert.equal(turn.calls[0].applicationId,flowApp.id);assert.equal(turn.calls[0].action || 'open','open');
+  const alias={id:'44444444-4444-4444-8444-444444444444',phrase:'Démarrer Flow',applicationId:browser.id,action:'media_play'};
+  const learned=await fixture(t,{config:{commandAliases:[alias]}});
+  const custom=await learned.handle('process_text',{text:'Démarrer Flow'});assert.equal(custom.commandAliasId,alias.id);assert.equal(custom.calls[0].applicationId,browser.id);
+});
+test('les formes courtes ne transforment ni négation, ni citation, ni demande composée en Flow',async t=>{
+  for(const text of ['Ne démarre pas Flow','Diseur ne démarre pas Flow','Diseur démarre pas Flow','Diseur « Démarrer Flow »','Elle a dit « Diseur Flow »','Diseur Flow et ouvre Opera'])
+    assert.equal(recognizeDeezerCommand(text,{applications:[app,browser]}),null,text);
+  for(const text of ['Ne démarre pas Flow','Diseur ne démarre pas Flow','Diseur démarre pas Flow','Diseur « Démarrer Flow »','Elle a dit « Diseur Flow »','Opera Flow']) {
+    const f=await fixture(t,{config:{autoExecute:true},response:{confidence:1,function_calls:[{name:actionToolName(app,'deezer_start'),arguments:{mix:'flow'}}]}});
+    const turn=await f.handle('process_text',{text});assert.equal(turn.status,'unsupported',text);assert.equal(turn.calls.length,0,text);assert.equal(f.executions.length,0,text);
   }
 });

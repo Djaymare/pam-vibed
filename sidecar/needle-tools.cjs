@@ -1,5 +1,5 @@
 const { createHash } = require('node:crypto');
-const {boundCommand} = require('./deezer-commands.cjs');
+const {boundCommand,recognizeDeezerCommand} = require('./deezer-commands.cjs');
 const {DEEZER_APP_ID} = require('./deezer.cjs');
 
 // Model-facing names are independent of persisted action names and approvals.
@@ -60,15 +60,19 @@ function labels(application) {
 }
 function requestIssue(text, config, calls, selectedApplicationId) {
   const normalized = text.normalize('NFKD').replace(/\p{M}/gu, '').toLowerCase().replace(/[’]/g, "'");
+  const names=config.applications.flatMap(labels).map(label=>label.replace(/[.*+?^${}()|[\]\\]/g,'\\$&').replace(/ /g,'\\s+')).sort((a,b)=>b.length-a.length);
+  const targetPrefix=names.length ? new RegExp(`^\\s*(?:(?:dans|sur)\\s+)?(?:${names.join('|')})(?:\\s*[:,]\\s*|\\s+)`,'u') : null;
   // Refuse a leading negation, including one in a compound command clause.
   // Quoted text and explicit input values are data, not command clauses.
   let commandText = normalized.replace(/«[^»]*»|"[^"]*"|“[^”]*”/gu, ' ');
   const transmission = /\b(?:avec\s+(?:le\s+)?texte|with\s+(?:the\s+)?text)\b/u.exec(normalized);
   if (transmission && calls.some(call => typeof call.arguments?.input === 'string' && call.arguments.input.trim()))
     commandText = normalized.slice(0, transmission.index);
-  if (/(?:^\s*|\b(?:et|puis|mais|and|then|but)\s+)(?:(?:surtout|merci de)\s+)?(?:ne\s+|n'|don't\s+|do not\s+|never\s+|(?:joue|ouvre|lance|reprends|mets|arrete)\s+pas\b)/u.test(commandText))
+  const directCommand=targetPrefix ? commandText.replace(targetPrefix,'') : commandText;
+  if (/(?:^\s*|\b(?:et|puis|mais|and|then|but)\s+)(?:(?:surtout|merci de)\s+)?(?:ne\s+|n'|don't\s+|do not\s+|never\s+|(?:joue|ouvre|lance|reprends|mets|arrete|demarre)\s+pas\b)/u.test(directCommand))
     return 'La demande contient une négation. Aucune action ne sera proposée ; formulez séparément l’action souhaitée.';
-  if (/^\s*(?:(?:elle|il|on)\s+(?:a dit|dit|a demande|a ecrit)|(?:she|he|they)\s+(?:said|says|asked|wrote))\b/u.test(normalized) || /^\s*[«"“]/u.test(normalized))
+  const directOriginal=targetPrefix ? normalized.replace(targetPrefix,'') : normalized;
+  if (/^\s*(?:(?:elle|il|on)\s+(?:a dit|dit|a demande|a ecrit)|(?:she|he|they)\s+(?:said|says|asked|wrote))\b/u.test(directOriginal) || /^\s*[«"“]/u.test(directOriginal))
     return 'Cette demande rapporte ou cite une commande. Reformulez directement l’action souhaitée.';
   const mentioned = config.applications.filter(app => labels(app).some(label => {
     const escaped = label.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
@@ -76,7 +80,9 @@ function requestIssue(text, config, calls, selectedApplicationId) {
   }));
   if (!selectedApplicationId && mentioned.length && calls.some(call => !mentioned.some(app => app.id === call.applicationId)))
     return 'L’application proposée ne correspond pas à celle nommée dans votre demande. Précisez son nom ou son alias.';
-  const simpleMedia = !/\b(?:et|puis|mais|and|then|but)\b/u.test(normalized) && /^\s*(?:play|pause|joue|reprends(?:\s+la\s+lecture)?|mets\s+en\s+pause|mettre\s+en\s+pause|stop|arrete|piste\s+suivante|piste\s+precedente)\s+(?:(?:sur|dans|de|in|on)\s+)?([\p{L}\p{N} _-]+)[.!?]*\s*$/u.exec(normalized);
+  const deezer=recognizeDeezerCommand(text,config);
+  const knownDeezer=deezer && calls.length>0 && calls.every(call=>call.applicationId===deezer.applicationId && call.action===deezer.action);
+  const simpleMedia = !knownDeezer && !/\b(?:et|puis|mais|and|then|but)\b/u.test(normalized) && /^\s*(?:play|pause|joue|reprends(?:\s+la\s+lecture)?|mets\s+en\s+pause|mettre\s+en\s+pause|stop|arrete|piste\s+suivante|piste\s+precedente)\s+(?:(?:sur|dans|de|in|on)\s+)?([\p{L}\p{N} _-]+)[.!?]*\s*$/u.exec(normalized);
   if (simpleMedia) {
     if (!selectedApplicationId && !mentioned.length) return 'Le lecteur demandé n’est pas identifié. Précisez le nom ou un alias d’une application configurée.';
     const targets = config.applications.filter(app => app.enabled && labels(app).includes(simpleMedia[1].trim().replace(/\s+/g, ' ')));
