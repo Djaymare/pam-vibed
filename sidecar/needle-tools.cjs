@@ -71,7 +71,7 @@ function requestIssue(text, config, calls, selectedApplicationId) {
   if (simpleMedia) {
     if (!selectedApplicationId && !mentioned.length) return 'Le lecteur demandé n’est pas identifié. Précisez le nom ou un alias d’une application configurée.';
     const targets = config.applications.filter(app => app.enabled && labels(app).includes(simpleMedia[1].trim().replace(/\s+/g, ' ')));
-    if (targets.length > 1) return 'Ce nom désigne plusieurs applications. Précisez le nom du lecteur souhaité.';
+    if (!selectedApplicationId && targets.length > 1) return 'Ce nom désigne plusieurs applications. Précisez le nom du lecteur souhaité.';
     if (calls.some(call => !call.action || call.action === 'open'))
       return 'La demande concerne la lecture d’un média. Aucune commande compatible n’a été reconnue pour ce lecteur.';
   }

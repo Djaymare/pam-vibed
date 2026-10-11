@@ -157,3 +157,10 @@ test('une correction explicite du lecteur conserve l’action et impose une vali
   assert.equal(turn.calls[0].action,'media_pause');assert.equal(f.requests[0].prompt,'Pause audio in Opera GX');
   assert.equal(f.requests[0].tools.length,1);assert.equal(f.executions.length,0);
 });
+
+test('le choix manuel d’un lecteur résout un alias partagé sans exécuter automatiquement',async t=>{
+  const shared={...deezer,aliases:['le navigateur']};
+  const f=await fixture(t,{confidence:0.99,function_calls:[{name:'pause_opera_gx',arguments:{}}]},{config:{applications:[browser,shared]}});
+  const turn=await f.handle('correct_request',{id:browser.id,text:'Pause le navigateur',applicationId:browser.id});
+  assert.equal(turn.status,'pending');assert.equal(turn.calls[0].applicationId,browser.id);assert.equal(f.executions.length,0);
+});
