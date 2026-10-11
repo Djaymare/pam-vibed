@@ -23,6 +23,7 @@ jobs:
       - run: npm run prepare:runtime
       - run: npm test
       - run: npm run test:integration
+      - run: npm run test:confidence
       - run: npm run package:windows
       - run: npm run package:portable
       - uses: actions/upload-artifact@v4

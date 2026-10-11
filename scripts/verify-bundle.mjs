@@ -6,8 +6,8 @@ import { fileURLToPath } from 'node:url';
 import { spawn } from 'node:child_process';
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const bundle = resolve(process.argv[2] || join(root, 'artifacts/PAM-windows-x64'));
-const required = ['PAM.exe', 'pam-node.exe', 'docs/windows-media-deezer.md', 'sidecar/main.cjs', 'sidecar/assistant.cjs',
-  'sidecar/media.cjs', 'sidecar/deezer.cjs', 'sidecar/native.cjs',
+const required = ['PAM.exe', 'pam-node.exe', 'docs/windows-media-deezer.md', 'docs/needle-confidence.md', 'sidecar/main.cjs', 'sidecar/assistant.cjs',
+  'sidecar/media.cjs', 'sidecar/deezer.cjs', 'sidecar/native.cjs', 'sidecar/needle-tools.cjs',
   'sidecar/engine.cjs', 'sidecar/engine-worker.cjs', 'runtime/libneedle3.dll', 'runtime/ffi/node_modules/koffi/index.cjs',
   'runtime/needle.exe', 'runtime/models/needle3.cact', 'runtime/models/whistle.cact', 'runtime/npm/bin/npm-cli.js'];
 for (const file of required) assert.ok((await stat(join(bundle, file))).isFile(), `${file} absent du paquet`);

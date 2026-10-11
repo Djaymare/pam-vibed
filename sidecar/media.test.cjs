@@ -106,7 +106,7 @@ test('le changement de cible média invalide une confirmation',async t=>{
 });
 test('alias média : outil de la bonne action seulement, métadonnées internes exclues du modèle',async t=>{
   const f=await fixture(t);const turn=await f.handle('process_text',{text:'Joue Diseur'});
-  assert.equal(turn.calls[0].action,'media_play');assert.deepEqual(f.prompts[0].tools.map(t=>t.name),[actionToolName(deezer,'media_play')]);
+  assert.equal(turn.calls[0].action,'media_play');assert.deepEqual(f.prompts[0].tools.map(t=>t.name),['play_deezer']);
   assert.equal(f.prompts[0].tools[0].applicationId,undefined);
 });
 test('la correction conserve l’action média et les confirmations existantes',async t=>{
@@ -114,7 +114,7 @@ test('la correction conserve l’action média et les confirmations existantes',
   const old=await f.handle('prepare_action',{applicationId:deezer.id,action:'media_play'});
   const corrected=await f.handle('correct_request',{id:old.id,text:'Piste suivante Diseur',applicationId:deezer.id});
   assert.equal(corrected.status,'pending');assert.equal(corrected.calls[0].action,'media_next');
-  assert.equal(corrected.transcript,'Piste suivante Diseur');assert.match(f.prompts[0].prompt,/Passer à la piste suivante/);await assert.rejects(f.handle('confirm',{id:old.id}));
+  assert.equal(corrected.transcript,'Piste suivante Diseur');assert.equal(f.prompts[0].prompt,'Play the next item in Deezer');await assert.rejects(f.handle('confirm',{id:old.id}));
 });
 test('une insertion précise en prochaine position ne devient pas un simple saut de piste',async t=>{
   const f=await fixture(t,{confidence:1,function_calls:[call('media_next')]});

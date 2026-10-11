@@ -14,6 +14,7 @@
     "test:integration": "node scripts/smoke-runtime.mjs",
     "test:applications": "node scripts/smoke-applications.mjs",
     "test:media": "node scripts/smoke-media.mjs",
+    "test:confidence": "node scripts/smoke-confidence.mjs",
     "test:media:players": "node scripts/smoke-media.mjs --players",
     "test:media:deezer": "node scripts/smoke-media.mjs --deezer",
     "package:windows": "tauri build --target x86_64-pc-windows-msvc",

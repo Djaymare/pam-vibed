@@ -164,8 +164,8 @@ test('le texte conserve la demande originale et résout seulement une invocation
   const text = 'Ouvre l’application DISEUR, s’il te plaît.';
   const turn = await f.handle('process_text', { text });
   assert.equal(turn.transcript, text); assert.equal(turn.calls[0].applicationId, deezer.id);
-  assert.equal(f.requests[0].prompt, 'Ouvre deezer');
-  assert.deepEqual(f.requests[0].tools.map(tool => tool.name), [toolName(deezer)]);
+  assert.equal(f.requests[0].prompt, 'Open Deezer');
+  assert.deepEqual(f.requests[0].tools.map(tool => tool.name), ['open_deezer']);
   assert.equal(turn.status, 'pending'); assert.equal(f.launched.length, 0);
   const complex = 'Ouvre VS Code avec le texte Diseur';
   await f.handle('process_text', { text: complex });
@@ -188,8 +188,8 @@ test('le vocal résout l’alias avant Needle, préserve la transcription et aff
   assert.deepEqual(f.requests.map(request => request.models), [['whistle.cact'], ['needle3.cact']]);
   assert.ok(f.requests[0].keywords.split('\n').includes('Diseur'));
   assert.equal(f.requests[0].prompt, null); assert.deepEqual(f.requests[0].tools, []);
-  assert.equal(f.requests[1].prompt, 'Ouvre deezer');
-  assert.deepEqual(f.requests[1].tools.map(tool => tool.name), [toolName(deezer)]);
+  assert.equal(f.requests[1].prompt, 'Open Deezer');
+  assert.deepEqual(f.requests[1].tools.map(tool => tool.name), ['open_deezer']);
   assert.equal(turn.status, 'pending'); assert.equal(f.launched.length, 0);
 });
 
@@ -218,7 +218,7 @@ test('un alias partagé ou désactivé ne réduit pas les outils dans une demand
     const f = await fixture(t, [{ text: 'diseur', language: 'fr' }, { confidence: 0.2, function_calls: [] }], { ...aliasConfig, applications });
     await f.handle('process_audio', { audio: wav() });
     assert.equal(f.requests[1].prompt, 'diseur');
-    assert.deepEqual(f.requests[1].tools.map(tool => tool.name), applications.filter(app => app.enabled).map(toolName));
+    assert.deepEqual(f.requests[1].tools.map(tool => tool.name), applications.filter(app => app.enabled).map(app => app.id === deezer.id ? 'open_deezer' : 'open_visual_studio_code'));
     assert.equal(f.launched.length, 0);
   }
 });
@@ -314,7 +314,7 @@ test('le choix explicite d’une application limite Needle sans enregistrer auto
   const f = await fixture(t, { confidence: 0.99, function_calls: [{ name: toolName(other), arguments: {} }] }, { applications: [application, other] });
   const corrected = await f.handle('correct_request', { id: application.id, text: 'Dis heure', applicationId: other.id, alias: 'Dis heure' });
   assert.equal(corrected.status, 'pending'); assert.equal(corrected.calls[0].applicationId, other.id);
-  assert.equal(f.requests[0].prompt, 'Ouvre deezer'); assert.equal(f.requests[0].tools.length, 1);
+  assert.equal(f.requests[0].prompt, 'Open Deezer'); assert.equal(f.requests[0].tools.length, 1);
   assert.deepEqual((await f.handle('status')).config.applications[1].aliases, []);
   assert.equal(f.launched.length, 0);
 });
@@ -327,7 +327,7 @@ test('un alias approuvé lors d’une correction devient utilisable dans les dem
   assert.equal((await f.handle('confirm', { id: corrected.id })).status, 'executed');
   const following = await f.handle('process_text', { text: 'bloc note' });
   assert.equal(following.calls[0].applicationId, application.id);
-  assert.equal(f.requests[1].prompt, 'Ouvre bloc-notes');
+  assert.equal(f.requests[1].prompt, 'Open Bloc-notes');
 });
 
 test('une collision d’alias ou une application désactivée laisse le plan initial utilisable', async t => {

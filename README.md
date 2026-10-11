@@ -103,6 +103,7 @@ Le workflow `.github/workflows/windows.yml` vérifie et compile le projet sur Wi
 npm test
 npm run test:integration
 npm run test:media
+npm run test:confidence
 npm run build
 npm run verify:bundle
 ```
@@ -123,7 +124,7 @@ node scripts/smoke-runtime.mjs chemin\parole.wav
 
 Un deuxième fichier WAV facultatif peut contenir « Diseur » ou « Ouvre Diseur » : `node scripts/smoke-runtime.mjs chemin\bloc-notes.wav chemin\diseur.wav`. Le test compare l’action et la confiance obtenues en vocal et en texte pour la même transcription.
 
-Le modèle peut refuser ou mal router une demande : le score, les actions et leur résultat sont visibles. Des noms et descriptions d’outils précis ainsi que des alias adaptés améliorent le routage.
+Le modèle peut refuser ou mal router une demande : le score, les actions et leur résultat sont visibles. PAM utilise des noms d’outils courts et une formulation interne anglaise pour les commandes simples reconnues sans ambiguïté, en conservant la demande française et le score brut Needle. Les contrôles des négations et du lecteur nommé sont décrits avec les mesures et les tests dans [docs/needle-confidence.md](docs/needle-confidence.md).
 
 ## Architecture
 
@@ -131,6 +132,7 @@ Le modèle peut refuser ou mal router une demande : le score, les actions et leu
 - `src/App.vue` : assistant, correction, historique de session, applications, préférences et validation des actions.
 - `src-tauri/src/lib.rs` : IPC limité à la fenêtre principale, Node persistant, raccourci global, zone de notification et instance unique. Un Job Object Windows garantit la fermeture du sidecar avec PAM, même si PAM s’arrête brutalement. Aucun serveur HTTP local.
 - `sidecar/assistant.cjs` : configuration, alias, validation des appels et lancement des exécutables sans shell.
+- `sidecar/needle-tools.cjs` : noms et descriptions présentés à Needle, formulation des commandes reconnues et contrôle de la demande originale.
 - `src-tauri/src/media.rs` et `sidecar/media.cjs` : sessions GSMTC, capacités, ciblage et commandes Windows avec résultat vérifié.
 - `sidecar/deezer.cjs` et `src/components/MediaControls.vue` : protocoles Deezer validés et préparation des commandes à confirmer.
 - `sidecar/main.cjs` : requêtes et réponses JSON par lignes sur stdin/stdout, sérialisées dans un seul processus.

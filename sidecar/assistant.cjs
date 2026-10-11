@@ -6,6 +6,7 @@ const { promisify } = require('node:util');
 const executeFile = promisify(execFile);
 const { createMedia, MEDIA_ACTIONS } = require('./media.cjs');
 const { DEEZER_APP_ID, DEEZER_SOURCE_IDS, CONTENT, PAGES, validateDeezerArgs } = require('./deezer.cjs');
+const { needleToolName, needleTools, canonicalPrompt, requestIssue } = require('./needle-tools.cjs');
 
 const LANGUAGES = new Set(['auto', 'fr', 'en', 'de', 'es', 'it', 'nl', 'pl']);
 const MAX_AUDIO_BYTES = 44 + 16_000 * 30 * 2;
@@ -165,8 +166,7 @@ function resolveInvocation(transcript, tools, config) {
   if (matched.length !== 1) return { prompt: transcript, requestTools: tools };
   const application = config.applications.find(app => app.id === matched[0].applicationId);
   if (matched[0].action.startsWith('deezer_')) return {prompt:transcript,requestTools:matched};
-  if (matched[0].action !== 'open') return {prompt:`${matched[0].actionLabel} ${labelVariants(application.name).at(-1)}`,requestTools:matched};
-  return { prompt: `Ouvre ${labelVariants(application.name).at(-1)}`, requestTools: matched };
+  return { prompt: canonicalPrompt(matched[0], application), requestTools: matched };
 }
 function mediaTriggers(application, applications, action) {
   const phrases = {
@@ -408,6 +408,9 @@ function createAssistant({ runtimeDirectory, configDirectory, runEngine = execut
       const turn = { id: randomUUID(), transcript, language, confidence: null, reasoning: '',
         durationMs: Date.now() - startedAt, calls: [], results: [], status: 'unsupported' };
       if (!transcript) return { ...turn, status: 'silence' };
+      const explicit = toolsFor(config).filter(tool => tool.triggers.some(pattern => new RegExp(pattern, 'i').test(transcript)));
+      if (!(method === 'correct_request' && payload.applicationId) && explicit.length === 1 && explicit[0].action.startsWith('media_') && !tools.some(tool => tool.name === explicit[0].name))
+        return {...turn, message:'Le lecteur demandé ne propose actuellement pas cette commande. Vérifiez sa session et ses capacités dans Applications.'};
       const deezerApps = config.applications.filter(app => app.enabled && app.media?.deezer);
       const namedDeezer = deezerApps.some(app => [app.name,...app.aliases].flatMap(labelVariants).some(label =>
         new RegExp(`(?:^|[^\\p{L}\\p{N}])${label.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')}(?:$|[^\\p{L}\\p{N}])`,'iu').test(transcript)));
@@ -421,11 +424,16 @@ function createAssistant({ runtimeDirectory, configDirectory, runEngine = execut
         requestTools = tools.filter(tool => tool.applicationId === app.id);
         // The selected application is an explicit user correction. Preserve any
         // free-form input in a separate, user-editable field instead of inferring it.
-        if (!app.media) prompt = `Ouvre ${labelVariants(app.name).at(-1)}`;
+        if (explicit.length === 1 && !explicit[0].action.startsWith('deezer_')) {
+          const selected = requestTools.find(tool => tool.action === explicit[0].action);
+          if (!selected) return {...turn, message:'L’application choisie ne propose actuellement pas cette commande.'};
+          prompt = canonicalPrompt(selected, app);
+          requestTools = [selected];
+        } else if (!app.media) prompt = canonicalPrompt(tools.find(tool => tool.applicationId === app.id && tool.action === 'open'), app);
       }
       const toolsPath = path.join(temporary, 'tools.json');
       const systemPath = path.join(temporary, 'system.txt');
-      await fs.writeFile(toolsPath, JSON.stringify(requestTools.map(({name,description,triggers,parameters})=>({name,description,triggers,parameters}))));
+      await fs.writeFile(toolsPath, JSON.stringify(needleTools(requestTools, config)));
       await fs.writeFile(systemPath, `locale: ${language}\nplatform: Windows\nOnly use registered tools. Input values must come from the user's request. A Deezer content or search link only displays a page, never starts a song or adds it next in the queue. Skip next plays the next item already in the queue, never inserts a requested song. Reject requests to play a specific song or queue it next when no tool offers that behavior.\n`);
       const needleArgs = ['--model', path.join(runtimeDirectory, 'models/needle3.cact'), '--tools', toolsPath,
         '--system', systemPath, '--max', '256', '--fail-input-overflow'];
@@ -453,11 +461,14 @@ function createAssistant({ runtimeDirectory, configDirectory, runEngine = execut
       const suppressed = response.function_calls.length === 0 && Array.isArray(response.suppressed_calls) && response.suppressed_calls.length > 0;
       const calls = suppressed ? response.suppressed_calls : response.function_calls;
       if (calls.length === 0) return turn;
-      turn.calls = validateCalls(calls, config);
+      const modelNames = new Map(toolsFor(config).map(tool => [needleToolName(tool, config), tool.name]));
+      turn.calls = validateCalls(calls.map(call => ({...call, name:modelNames.get(call.name) ?? call.name})), config);
       ensure(requestTools.length !== 1 || requestTools[0].action === 'open' || turn.calls.length === 1,
         'Needle a proposé plusieurs appels pour une seule action. Reformulez la demande ou utilisez le bouton du lecteur.');
       ensure(turn.calls.every(call => requestTools.some(tool => tool.name === call.name)),
         'Needle a proposé une application différente de celle demandée.');
+      const issue = requestIssue(transcript, config, turn.calls, method === 'correct_request' ? payload.applicationId : undefined);
+      if (issue) return {...turn, calls:[], message:issue};
       if (turn.calls.some(call => ['deezer_content','deezer_search'].includes(call.action)) && /(?:^|\s)(?:joue|jouer|[ée]coute|[ée]couter|play)(?:\s|$)/iu.test(transcript)) {
         return {...turn,calls:[],message:'Le protocole Deezer vérifié peut afficher ou rechercher une chanson, mais ne permet pas d’en démarrer la lecture précise. Choisissez la lecture dans Deezer.'};
       }
