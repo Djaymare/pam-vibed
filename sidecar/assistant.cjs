@@ -7,10 +7,11 @@ const executeFile = promisify(execFile);
 const { createMedia, MEDIA_ACTIONS } = require('./media.cjs');
 const { DEEZER_APP_ID, DEEZER_SOURCE_IDS, CONTENT, PAGES, validateDeezerArgs } = require('./deezer.cjs');
 const { needleToolName, needleTools, canonicalPrompt, requestIssue } = require('./needle-tools.cjs');
+const { ACTIONS: ALIAS_ACTIONS, validateStore, findCommandAlias, saveCommandAlias } = require('./command-aliases.cjs');
 
 const LANGUAGES = new Set(['auto', 'fr', 'en', 'de', 'es', 'it', 'nl', 'pl']);
 const MAX_AUDIO_BYTES = 44 + 16_000 * 30 * 2;
-const DEFAULT_CONFIG = { version: 1, applications: [], language: 'fr', autoExecute: true, confidenceThreshold: 0.7 };
+const DEFAULT_CONFIG = { version: 1, applications: [], commandAliases: [], language: 'fr', autoExecute: true, confidenceThreshold: 0.7 };
 
 function ensure(condition, message) { if (!condition) throw new Error(message); }
 function cleanText(value, label, max = 200) {
@@ -18,7 +19,9 @@ function cleanText(value, label, max = 200) {
   return value.trim();
 }
 function configDigest(config) {
-  return createHash('sha256').update(JSON.stringify(config.applications)).digest('hex');
+  const hash=createHash('sha256').update(JSON.stringify(config.applications));
+  if(config.commandAliases?.length)hash.update(JSON.stringify(config.commandAliases));
+  return hash.digest('hex');
 }
 async function atomicJson(destination, value) {
   await fs.mkdir(path.dirname(destination), { recursive: true });
@@ -33,6 +36,8 @@ async function readConfig(directory) {
     ensure(LANGUAGES.has(config.language) && typeof config.autoExecute === 'boolean' &&
       Number.isFinite(config.confidenceThreshold) && config.confidenceThreshold >= 0.1 && config.confidenceThreshold <= 1,
       'Préférences invalides.');
+    config.commandAliases ??= [];
+    validateStore(config.commandAliases);
     return config;
   } catch (error) {
     if (error.code === 'ENOENT') return structuredClone(DEFAULT_CONFIG);
@@ -159,12 +164,19 @@ function toolsFor(config, sessions) {
     return [{...base,action:'open',applicationId:app.id,actionLabel:'Ouvrir'},...extra];
   });
 }
+function matchedInvocation(transcript, tools, config) {
+  const alias=findCommandAlias(transcript,config);
+  return alias ? tools.filter(tool=>tool.applicationId===alias.applicationId && tool.action===alias.action)
+    : tools.filter(tool => tool.triggers.some(pattern => new RegExp(pattern, 'i').test(transcript)));
+}
 function resolveInvocation(transcript, tools, config) {
   // Text and speech share this resolution. Only rewrite a literal, unambiguous
   // application invocation; keep compound requests and their arguments intact.
-  const matched = tools.filter(tool => tool.triggers.some(pattern => new RegExp(pattern, 'i').test(transcript)));
+  const matched = matchedInvocation(transcript,tools,config);
   if (matched.length !== 1) return { prompt: transcript, requestTools: tools };
   const application = config.applications.find(app => app.id === matched[0].applicationId);
+  if(findCommandAlias(transcript,config) && matched[0].action==='open' && application.arguments.some(argument=>argument.includes('{input}')))
+    return {prompt:transcript,requestTools:matched};
   if (matched[0].action.startsWith('deezer_')) return {prompt:transcript,requestTools:matched};
   return { prompt: canonicalPrompt(matched[0], application), requestTools: matched };
 }
@@ -322,7 +334,19 @@ function createAssistant({ runtimeDirectory, configDirectory, runEngine = execut
     if (method === 'delete_application') {
       ensure(config.applications.some(app => app.id === payload.id), 'Application introuvable.');
       config.applications = config.applications.filter(app => app.id !== payload.id);
+      config.commandAliases=config.commandAliases.filter(alias=>alias.applicationId!==payload.id);
       await atomicJson(configPath, config);
+      return config;
+    }
+    if (method === 'save_command_alias') {
+      saveCommandAlias(payload,config,toolsFor(config));
+      await atomicJson(configPath,config);
+      return config;
+    }
+    if (method === 'delete_command_alias') {
+      ensure(config.commandAliases.some(alias=>alias.id===payload.id),'Formulation introuvable.');
+      config.commandAliases=config.commandAliases.filter(alias=>alias.id!==payload.id);
+      await atomicJson(configPath,config);
       return config;
     }
     if (method === 'settings') {
@@ -350,6 +374,11 @@ function createAssistant({ runtimeDirectory, configDirectory, runEngine = execut
       cleanText(payload.text, 'Demande corrigée', 2000);
       const app = payload.applicationId ? config.applications.find(app => app.id === payload.applicationId && app.enabled) : null;
       ensure(!payload.applicationId || app, 'Application corrigée introuvable ou désactivée.');
+      let chosenCalls;
+      if(payload.action!==undefined) {
+        ensure(app && ALIAS_ACTIONS.has(payload.action),'Choisissez une application et une action de lancement ou de lecture.');
+        chosenCalls=validateCalls([{name:actionToolName(app,payload.action),arguments:payload.action==='open' && app.arguments.some(arg=>arg.includes('{input}')) ? {input:payload.input ?? ''} : {}}],config);
+      }
       ensure(payload.input === undefined || (app && app.arguments.some(arg => arg.includes('{input}')) && typeof payload.input === 'string' && payload.input.length <= 2048 && !payload.input.includes('\0')), 'Texte transmis invalide.');
       if (payload.saveAlias === true) {
         ensure(app, 'Choisissez une application pour enregistrer un alias.');
@@ -358,12 +387,23 @@ function createAssistant({ runtimeDirectory, configDirectory, runEngine = execut
         ensure(!config.applications.some(other => other.id !== app.id && [other.name, ...other.aliases].flatMap(labelVariants).some(label => variants.includes(label))), 'Cet alias désigne déjà une autre application.');
         if (![app.name, ...app.aliases].flatMap(labelVariants).some(label => variants.includes(label))) {
           ensure(app.aliases.length < 6, 'Six alias maximum par application.');
-          app.aliases.push(alias); await atomicJson(configPath, config);
+          app.aliases.push(alias);
         }
       }
+      if(payload.saveCommandAlias===true) {
+        ensure(chosenCalls,'Choisissez explicitement l’action à mémoriser.');
+        saveCommandAlias({phrase:payload.commandPhrase,applicationId:app.id,action:payload.action},config,toolsFor(config));
+      }
+      if(payload.saveAlias===true || payload.saveCommandAlias===true)await atomicJson(configPath,config);
       // Retire the old approval before preparing a replacement, even if inference fails.
       try { await fs.unlink(path.join(pendingDirectory, `${payload.id}.json`)); }
       catch (error) { if (error.code !== 'ENOENT') throw error; }
+      if(chosenCalls) {
+        const turn={id:randomUUID(),transcript:payload.text.trim(),language:config.language,confidence:null,reasoning:'Action choisie explicitement dans la correction.',
+          durationMs:0,calls:chosenCalls,results:[],status:'pending',correctedFrom:payload.id};
+        await atomicJson(path.join(pendingDirectory,`${turn.id}.json`),{createdAt:Date.now(),configDigest:configDigest(config),calls:chosenCalls,turn});
+        return turn;
+      }
     }
     ensure(method === 'process_text' || method === 'process_audio' || method === 'correct_request', 'Méthode inconnue.');
     let sessions;
@@ -408,7 +448,15 @@ function createAssistant({ runtimeDirectory, configDirectory, runEngine = execut
       const turn = { id: randomUUID(), transcript, language, confidence: null, reasoning: '',
         durationMs: Date.now() - startedAt, calls: [], results: [], status: 'unsupported' };
       if (!transcript) return { ...turn, status: 'silence' };
-      const explicit = toolsFor(config).filter(tool => tool.triggers.some(pattern => new RegExp(pattern, 'i').test(transcript)));
+      const alias=findCommandAlias(transcript,config);
+      if(alias) {
+        const target=config.applications.find(app=>app.id===alias.applicationId && app.enabled);
+        if(!target)return {...turn,message:'L’application de cette formulation mémorisée est désactivée ou supprimée.'};
+        if(!tools.some(tool=>tool.applicationId===alias.applicationId && tool.action===alias.action))
+          return {...turn,message:'L’action mémorisée n’est pas disponible actuellement pour ce lecteur. Vérifiez sa session et ses capacités.'};
+        turn.commandAliasId=alias.id;
+      }
+      const explicit = matchedInvocation(transcript,toolsFor(config),config);
       if (!(method === 'correct_request' && payload.applicationId) && explicit.length === 1 && explicit[0].action.startsWith('media_') && !tools.some(tool => tool.name === explicit[0].name))
         return {...turn, message:'Le lecteur demandé ne propose actuellement pas cette commande. Vérifiez sa session et ses capacités dans Applications.'};
       const deezerApps = config.applications.filter(app => app.enabled && app.media?.deezer);

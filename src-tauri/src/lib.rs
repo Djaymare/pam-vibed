@@ -251,6 +251,8 @@ async fn assistant_request(
             | "test_application"
             | "media_sessions"
             | "prepare_action"
+            | "save_command_alias"
+            | "delete_command_alias"
     ) {
         return Err("Méthode inconnue.".into());
     }

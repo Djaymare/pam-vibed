@@ -72,10 +72,31 @@ try {
   const improved=report.checks.find(check=>check.text===positive[0][0]).confidence;
   assert.ok(improved>baseline.confidence,'Le score doit progresser pour la commande étudiée.');
   assert.ok(improved>=config.confidenceThreshold,'La commande étudiée doit franchir le seuil sans modifier le score.');
+  report.aliasChecks=[];
+  const corrected=await handle('correct_request',{id:browser.id,text:'Pose le navigateur',applicationId:browser.id,
+    action:'media_pause',saveCommandAlias:true,commandPhrase:'Pose le navigateur'});
+  assert.equal(corrected.status,'pending');assert.equal(corrected.confidence,null);assert.equal(corrected.calls[0].action,'media_pause');
+  await handle('discard',{id:corrected.id});
+  let learned=await handle('save_command_alias',{phrase:'Mais le film en pose',applicationId:browser.id,action:'media_pause'});
+  for(const text of ['Pose le navigateur','Mais le film en pose']) {
+    const turn=await handle('process_text',{text});assert.ok(turn.commandAliasId);assert.equal(turn.transcript,text);
+    assert.equal(turn.calls.length,1);assert.equal(turn.calls[0].applicationId,browser.id);assert.equal(turn.calls[0].action,'media_pause');
+    report.aliasChecks.push({text,action:'media_pause',confidence:turn.confidence,correct:true});
+    if(turn.status==='pending')await handle('discard',{id:turn.id});
+  }
+  const held=await handle('process_text',{text:'Ne pose pas le navigateur'});
+  assert.equal(held.status,'unsupported');assert.equal(held.calls.length,0);
+  report.aliasChecks.push({text:held.transcript,action:'unsupported',confidence:held.confidence,correct:true});
+  const alias=learned.commandAliases.find(alias=>alias.phrase==='Pose le navigateur');
+  await handle('save_command_alias',{...alias,action:'media_play'});
+  const changed=await handle('process_text',{text:alias.phrase});assert.equal(changed.calls[0].action,'media_play');
+  report.aliasChecks.push({text:changed.transcript,action:'media_play after edit',confidence:changed.confidence,correct:true});
+  if(changed.status==='pending')await handle('discard',{id:changed.id});
+  learned=await handle('delete_command_alias',{id:alias.id});assert.ok(!learned.commandAliases.some(item=>item.id===alias.id));
   report.passed=true;report.realActionsExecuted=0;
   await mkdir(join(root,'artifacts'),{recursive:true});
   await writeFile(join(root,'artifacts/needle-confidence-results.json'),JSON.stringify(report,null,2));
-  console.log(`Needle réel : ${positive.length+negative.length} cas corrects ; Play ${baseline.confidence} → ${improved}. Aucun lecteur réel contrôlé.`);
+  console.log(`Needle réel : ${positive.length+negative.length} cas corrects et ${report.aliasChecks.length} contrôles de formulations personnelles ; Play ${baseline.confidence} → ${improved}. Aucun lecteur réel contrôlé.`);
 } finally {
   await engine.close();
   assert.equal(dirname(profile),cache);assert.ok(profile.startsWith(join(cache,'smoke-confidence-')));

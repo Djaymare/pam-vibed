@@ -33,7 +33,10 @@ export interface Config {
   language: string;
   autoExecute: boolean;
   confidenceThreshold: number;
+  commandAliases?: CommandAlias[];
 }
+export type CommandAction = 'open' | 'media_play' | 'media_pause' | 'media_next' | 'media_previous' | 'media_stop' | 'media_toggle';
+export interface CommandAlias { id: string; phrase: string; applicationId: string; action: CommandAction }
 export interface RuntimeStatus {
   ready: boolean;
   checks: { file: string; available: boolean }[];
@@ -53,6 +56,7 @@ export interface Turn {
   durationMs: number;
   calls: { name: string; arguments: Record<string, string>; applicationId: string; applicationName: string; action?: string; actionLabel?: string }[];
   correctedFrom?: string;
+  commandAliasId?: string;
   results: { applicationName: string; success: boolean; message: string }[];
   status: 'executed' | 'pending' | 'unsupported' | 'silence' | 'failed' | 'cancelled';
 }

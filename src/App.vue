@@ -6,8 +6,10 @@ import { open } from '@tauri-apps/plugin-dialog';
 import Icon from './components/Icon.vue';
 import ApplicationPicker from './components/ApplicationPicker.vue';
 import MediaControls from './components/MediaControls.vue';
+import CommandAliases from './components/CommandAliases.vue';
+import {commandActions, commandActionLabels} from './actions';
 import { VoiceRecorder } from './audio/recorder';
-import type { Application, Config, InstalledApplication, MediaSession, RuntimeStatus, Turn, WindowsApplication } from './types';
+import type { Application, CommandAlias, Config, InstalledApplication, MediaSession, RuntimeStatus, Turn, WindowsApplication } from './types';
 
 const page = ref<'assistant' | 'applications' | 'settings'>('assistant');
 const status = ref<RuntimeStatus>();
@@ -40,10 +42,12 @@ const testing = ref(false);
 const testNeedsInput = computed(() => !form.windowsApp && form.arguments.includes('{input}'));
 const correction = ref<Turn>();
 const correctionError = ref('');
-const correctionForm = reactive({ text: '', applicationId: '', input: '', saveAlias: false, alias: '' });
-const correctionApp = computed(() => activeApps.value.find(app => app.id === correctionForm.applicationId));
-const correctionInput = computed(() => correctionApp.value?.arguments.some(arg => arg.includes('{input}')));
+const correctionForm = reactive({ text: '', applicationId: '', action: '', input: '', saveAlias: false, alias: '', saveCommandAlias:false, commandPhrase:'' });
 const activeApps = computed(() => config.value.applications.filter(app => app.enabled));
+const correctionApp = computed(() => activeApps.value.find(app => app.id === correctionForm.applicationId));
+const correctionActions = computed(() => commandActions(correctionApp.value));
+const correctionInput = computed(() => (!correctionForm.action || correctionForm.action==='open') && correctionApp.value?.arguments.some(arg => arg.includes('{input}')));
+watch(correctionActions,values=>{if(correctionForm.action && !values.includes(correctionForm.action as keyof typeof commandActionLabels))correctionForm.action='';});
 const locked = computed(() => busy.value || recording.value || requestingMic.value || loading.value);
 const canRequest = computed(() => !!status.value?.ready && activeApps.value.length > 0 && !locked.value);
 let recorder: VoiceRecorder | undefined;
@@ -136,7 +140,8 @@ async function cancelRecording() {
 onBeforeUnmount(() => { disposed = true; clearTimers(); window.clearInterval(healthTimer); unlisten.forEach(stop => stop()); void recorder?.dispose(); });
 function editTurn(turn: Turn) {
   correction.value = turn; correctionError.value = '';
-  Object.assign(correctionForm, { text: turn.transcript, applicationId: '', input: turn.calls[0]?.arguments.input || '', saveAlias: false,
+  Object.assign(correctionForm, { text: turn.transcript, applicationId: turn.calls[0]?.applicationId || '', action:'', input: turn.calls[0]?.arguments.input || '', saveAlias: false,
+    saveCommandAlias:false,commandPhrase:turn.transcript,
     alias: turn.transcript.replace(/^(?:ouvre|ouvrez|lance|lancez|démarre|open|launch|start)\s+(?:l['’]|(?:le|la|the)\s+)?/i, '').replace(/[.!?]+$/, '').trim().slice(0, 40) });
 }
 async function correctTurn() {
@@ -146,7 +151,9 @@ async function correctTurn() {
   try {
     const turn = await request<Turn>('correct_request', { id: original.id, text: correctionForm.text.trim(),
       applicationId: correctionForm.applicationId || undefined, input: correctionInput.value ? correctionForm.input : undefined,
-      saveAlias: correctionForm.saveAlias && !!correctionApp.value, alias: correctionForm.alias });
+      action:correctionForm.action || undefined,
+      saveAlias: correctionForm.saveAlias && !!correctionApp.value && (!correctionForm.action || correctionForm.action==='open'), alias: correctionForm.alias,
+      saveCommandAlias:correctionForm.saveCommandAlias && !!correctionApp.value && !!correctionForm.action,commandPhrase:correctionForm.commandPhrase });
     turns.value = [turn, ...turns.value.map(item => item.id === original.id && item.status === 'pending' ? { ...item, status: 'cancelled' as const } : item)].slice(0, 20);
     correction.value = undefined;
     status.value = await request<RuntimeStatus>('status'); config.value = status.value.config;
@@ -250,6 +257,16 @@ async function saveSettings() {
   catch (caught) { const message = describeError(caught); await refresh(); error.value = message; }
   finally { busy.value = false; }
 }
+async function saveCommandAlias(alias:Omit<CommandAlias,'id'> & {id?:string}) {
+  busy.value=true;
+  try {config.value=await request<Config>('save_command_alias',alias);}
+  finally {busy.value=false;}
+}
+async function deleteCommandAlias(id:string) {
+  busy.value=true;
+  try {config.value=await request<Config>('delete_command_alias',{id});}
+  finally {busy.value=false;}
+}
 const labels: Record<Turn['status'], string> = { executed: 'Terminé', pending: 'À valider', unsupported: 'Aucune action disponible', silence: 'Aucune parole détectée', failed: 'Échec de l’action', cancelled: 'Annulé' };
 </script>
 
@@ -289,7 +306,7 @@ const labels: Record<Turn['status'], string> = { executed: 'Terminé', pending: 
           <section class="connected"><div class="section-heading"><h3>Vos applications<span>{{ activeApps.length }}</span></h3><button class="text-button" :disabled="locked" @click="page = 'applications'">Gérer <Icon name="arrow" :size="14" /></button></div><div v-if="activeApps.length" class="app-chips"><span v-for="app in activeApps" :key="app.id"><span class="app-initial">{{ app.name.slice(0, 1).toUpperCase() }}</span>{{ app.name }}<i /></span></div><p v-else class="empty-inline">Aucune application connectée pour le moment.</p></section>
           <section class="history"><div class="section-heading"><h3>Activité récente</h3><span class="muted">Cette session uniquement</span></div>
             <div v-if="!turns.length" class="history-empty"><Icon name="clock" :size="22" /><p>Votre première demande apparaîtra ici.</p></div>
-            <article v-for="turn in turns" :key="turn.id" class="turn-card"><div class="turn-head"><span class="turn-badge" :class="turn.status"><Icon :name="turn.status === 'executed' ? 'check' : 'info'" :size="14" />{{ labels[turn.status] }}</span><span class="turn-metrics">{{ (turn.durationMs / 1000).toFixed(2) }} s<span v-if="turn.confidence !== null"> · confiance Needle {{ Math.round(turn.confidence * 100) }} %</span></span></div><p class="transcript">{{ turn.transcript || 'Le microphone n’a capté aucune parole.' }}</p><div v-if="turn.calls.length" class="call-list"><div v-for="(call, index) in turn.calls" :key="index"><Icon name="arrow" :size="14" /><strong>{{ call.actionLabel || 'Ouvrir' }} {{ call.applicationName }}</strong><code v-if="Object.keys(call.arguments).length">{{ Object.entries(call.arguments).map(([key,value]) => `${key} : ${value}`).join(' · ') }}</code></div></div><p v-if="turn.status === 'unsupported'" class="muted">{{ turn.message || 'Cette demande ne correspond à aucune action actuellement disponible. Consultez les sessions et les capacités de votre lecteur.' }}</p><p v-for="(result, index) in turn.results" :key="index" :class="result.success ? 'result-success' : 'result-error'">{{ result.message }}</p><div v-if="turn.status === 'pending'" class="approval"><p>Vérifiez les actions proposées avant de les lancer.</p><button class="primary small" :disabled="locked" @click="resolveTurn(turn, true)"><Icon name="check" :size="16" />Exécuter</button><button class="secondary small" :disabled="locked" @click="resolveTurn(turn, false)">Annuler</button></div><div class="turn-correction"><span v-if="turn.correctedFrom" class="muted">Demande corrigée · validation requise</span><button class="text-button" :disabled="locked" @click="editTurn(turn)"><Icon name="edit" :size="14" />Corriger la demande</button></div><details v-if="turn.reasoning"><summary>Raisonnement Needle</summary><p>{{ turn.reasoning }}</p></details></article>
+            <article v-for="turn in turns" :key="turn.id" class="turn-card"><div class="turn-head"><span class="turn-badge" :class="turn.status"><Icon :name="turn.status === 'executed' ? 'check' : 'info'" :size="14" />{{ labels[turn.status] }}</span><span class="turn-metrics">{{ (turn.durationMs / 1000).toFixed(2) }} s<span v-if="turn.confidence !== null"> · confiance Needle {{ Math.round(turn.confidence * 100) }} %</span></span></div><p class="transcript">{{ turn.transcript || 'Le microphone n’a capté aucune parole.' }}</p><div v-if="turn.calls.length" class="call-list"><div v-for="(call, index) in turn.calls" :key="index"><Icon name="arrow" :size="14" /><strong>{{ call.actionLabel || 'Ouvrir' }} {{ call.applicationName }}</strong><code v-if="Object.keys(call.arguments).length">{{ Object.entries(call.arguments).map(([key,value]) => `${key} : ${value}`).join(' · ') }}</code></div></div><p v-if="turn.status === 'unsupported'" class="muted">{{ turn.message || 'Cette demande ne correspond à aucune action actuellement disponible. Consultez les sessions et les capacités de votre lecteur.' }}</p><p v-for="(result, index) in turn.results" :key="index" :class="result.success ? 'result-success' : 'result-error'">{{ result.message }}</p><div v-if="turn.status === 'pending'" class="approval"><p>Vérifiez les actions proposées avant de les lancer.</p><button class="primary small" :disabled="locked" @click="resolveTurn(turn, true)"><Icon name="check" :size="16" />Exécuter</button><button class="secondary small" :disabled="locked" @click="resolveTurn(turn, false)">Annuler</button></div><div class="turn-correction"><span v-if="turn.correctedFrom" class="muted">Demande corrigée · validation requise</span><button class="text-button" :disabled="locked" @click="editTurn(turn)"><Icon name="edit" :size="14" />Corriger la demande</button></div><details v-if="turn.reasoning"><summary>{{ turn.confidence === null ? 'Détail de la correction' : 'Raisonnement Needle' }}</summary><p>{{ turn.reasoning }}</p></details></article>
           </section>
         </template>
         <template v-else-if="page === 'applications'">
@@ -300,6 +317,7 @@ const labels: Record<Turn['status'], string> = { executed: 'Terminé', pending: 
         </template>
         <template v-else>
           <div class="page-intro"><div class="eyebrow">À VOTRE RYTHME</div><h1>Préférences</h1><p>Une voix, vos règles, votre machine.</p></div>
+          <CommandAliases :applications="config.applications" :aliases="config.commandAliases || []" :locked="locked" :save="saveCommandAlias" :remove="deleteCommandAlias" />
           <section class="settings-card"><h2>Écoute et exécution</h2><div class="setting-row"><div><strong>Langue de transcription</strong><p>Whistle comprend sept langues, ou détecte la langue.</p></div><select v-model="config.language" :disabled="locked" aria-label="Langue de transcription" @change="saveSettings"><option value="auto">Détection automatique</option><option value="fr">Français</option><option value="en">English</option><option value="de">Deutsch</option><option value="es">Español</option><option value="it">Italiano</option><option value="nl">Nederlands</option><option value="pl">Polski</option></select></div><div class="setting-row"><div><strong>Exécuter automatiquement</strong><p>Lancer les actions quand Needle atteint le seuil de confiance.<br />Sinon, les actions restent à valider.</p></div><button class="toggle" :class="{ on: config.autoExecute }" :disabled="locked" role="switch" :aria-checked="config.autoExecute" aria-label="Exécuter automatiquement" @click="config.autoExecute = !config.autoExecute; saveSettings()"><span /></button></div><div class="setting-row"><div><strong>Seuil de confiance</strong><p>Les scores inférieurs demandent votre validation.</p></div><div class="range-control"><input v-model="config.confidenceThreshold" type="range" min="0.1" max="1" step="0.05" :disabled="locked" aria-label="Seuil de confiance" @change="saveSettings" /><span>{{ Math.round(config.confidenceThreshold * 100) }} %</span></div></div></section>
           <section class="settings-card"><h2>Accès rapide</h2><div class="setting-row"><div><strong>Raccourci global</strong><p>Ctrl + Maj + Espace démarre ou arrête l’enregistrement, depuis vos autres applications.</p></div><span class="muted">{{ status?.desktop?.shortcutAvailable ? 'Actif' : 'Indisponible' }}</span></div><div class="setting-row"><div><strong>PAM dans la zone de notification</strong><p>Fermer la fenêtre réduit PAM. Un clic sur son icône réaffiche la fenêtre.<br />Le microphone est coupé lorsque vous masquez la fenêtre.</p></div><button class="secondary small" @click="desktop('hide')">Réduire PAM</button></div><div class="setting-row"><div><strong>Quitter l’application</strong><p>Arrête PAM et libère les modèles en mémoire.</p></div><button class="secondary small" @click="desktop('quit')">Quitter PAM</button></div></section>
           <section class="settings-card"><h2>Runtime embarqué</h2><div class="setting-row"><div><strong>{{ status?.engine?.loaded ? 'Whistle et Needle en mémoire' : 'Moteurs disponibles' }}</strong><p>Les modèles sont conservés entre vos demandes et repris après une panne.</p></div><button class="secondary small" :disabled="locked" @click="restartEngine">Recharger les moteurs</button></div><div class="runtime-grid"><div><span>Reconnaissance vocale</span><strong>Whistle</strong><small>16 kHz · jusqu’à 30 secondes</small></div><div><span>Compréhension et outils</span><strong>Needle 3</strong><small>Exécution CPU locale</small></div><div><span>Sidecar</span><strong>Node {{ status?.manifest?.node || '—' }}</strong><small>npm {{ status?.manifest?.npm || '—' }} embarqué</small></div><div><span>Plateforme</span><strong>Windows x64</strong><small>Aucune installation de dépendance</small></div></div><div v-if="status && !status.ready" class="runtime-checks"><p v-for="check in status.checks" :key="check.file">{{ check.available ? '✓' : '✕' }} {{ check.file }}</p></div><p class="config-path">Configuration locale : <code>{{ status?.configDirectory || 'Indisponible' }}</code></p></section>
@@ -313,10 +331,15 @@ const labels: Record<Turn['status'], string> = { executed: 'Terminé', pending: 
         <form @submit.prevent="correctTurn">
           <label>Ce que vous vouliez dire<textarea v-model="correctionForm.text" required maxlength="2000" rows="3" :disabled="busy" /></label>
           <label>Je voulais cette application<select v-model="correctionForm.applicationId" :disabled="busy"><option value="">Laisser Needle choisir</option><option v-for="app in activeApps" :key="app.id" :value="app.id">{{ app.name }}</option></select></label>
+          <label v-if="correctionApp">Je voulais cette action<select v-model="correctionForm.action" :disabled="busy"><option value="">Interpréter la demande corrigée</option><option v-for="action in correctionActions" :key="action" :value="action">{{ commandActionLabels[action] }}</option></select><small>Vous pouvez corriger la lecture, la pause ou le changement de piste, même si la transcription est erronée.</small></label>
           <label v-if="correctionInput">Texte, fichier ou URL à transmettre<input v-model="correctionForm.input" maxlength="2048" :disabled="busy" /><small>Vérifiez cette entrée avant de préparer l’action.</small></label>
-          <template v-if="correctionApp">
+          <template v-if="correctionApp && (!correctionForm.action || correctionForm.action==='open')">
             <label class="alias-choice"><input v-model="correctionForm.saveAlias" type="checkbox" :disabled="busy" /><span>Enregistrer un autre nom pour {{ correctionApp.name }}</span></label>
             <label v-if="correctionForm.saveAlias">Autre nom à retenir<input v-model="correctionForm.alias" required maxlength="40" :disabled="busy" /><small>Ce nom servira pour vos prochaines demandes vocales et écrites.</small></label>
+          </template>
+          <template v-if="correctionApp && correctionForm.action">
+            <label class="alias-choice"><input v-model="correctionForm.saveCommandAlias" type="checkbox" :disabled="busy" /><span>Mémoriser une formulation pour cette action</span></label>
+            <label v-if="correctionForm.saveCommandAlias">Formulation à reconnaître<input v-model="correctionForm.commandPhrase" required maxlength="200" :disabled="busy" /><small>Ex. : « pose le navigateur » ou « mais le film en pose ». Retrouvez ces formulations dans Préférences.</small></label>
           </template>
           <p class="correction-help">L’action proposée sera à valider. {{ correction.status === 'pending' ? 'La proposition initiale sera annulée.' : correction.status === 'executed' ? 'L’action déjà exécutée reste effectuée.' : '' }}</p>
           <div v-if="correctionError" class="notice error" role="alert">{{ correctionError }}</div>

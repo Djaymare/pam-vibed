@@ -34,6 +34,7 @@
       "../sidecar/main.cjs": "sidecar/main.cjs",
       "../sidecar/assistant.cjs": "sidecar/assistant.cjs",
       "../sidecar/needle-tools.cjs": "sidecar/needle-tools.cjs",
+      "../sidecar/command-aliases.cjs": "sidecar/command-aliases.cjs",
       "../sidecar/engine.cjs": "sidecar/engine.cjs",
       "../sidecar/engine-worker.cjs": "sidecar/engine-worker.cjs",
       "../sidecar/media.cjs": "sidecar/media.cjs",

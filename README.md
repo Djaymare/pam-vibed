@@ -16,6 +16,10 @@ Windows doit autoriser l’accès au microphone pour les applications de bureau.
 
 **Corriger la demande**, dans l’activité récente, permet de modifier la transcription ou de choisir explicitement « Je voulais cette application ». Pour une application avec `{input}`, le texte à transmettre est vérifiable dans un champ séparé. La correction annule une ancienne proposition en attente et prépare une nouvelle action qui exige toujours votre validation. Elle n’annule pas une action déjà exécutée. Cochez **Enregistrer un autre nom** uniquement si vous souhaitez conserver l’alias proposé ; il est éditable, limité à 40 caractères, et ne peut pas désigner une autre application.
 
+Pour corriger « pose/pause » ou « mais/mets », choisissez l’application puis **Je voulais cette action → Mettre en pause**. Cochez **Mémoriser une formulation pour cette action** et conservez la transcription erronée, par exemple « pose le navigateur ». **Préparer la correction** enregistre cette association et prépare la pause à valider. Une action choisie explicitement ne reçoit pas de score Needle.
+
+Dans **Préférences → Formulations personnelles**, vous pouvez ajouter, modifier et supprimer ces associations, par exemple « mais le film en pose » → **Mettre en pause · Navigateur Opera GX**. Chaque phrase complète désigne une application et son lancement ou une commande de lecture Windows. Elle est reconnue à l’écrit et après transcription vocale ; la casse, les accents, les espaces répétés et la ponctuation finale sont ignorés. Les mots ne sont pas remplacés dans les autres textes. Les demandes suivantes passent par Needle avec l’action correspondante ; le score réel, les préférences de validation et les capacités du lecteur restent appliqués. Une cible désactivée ou une commande indisponible est signalée. Consultez [les règles et la validation](docs/command-aliases.md).
+
 **Ctrl + Maj + Espace** démarre ou arrête l’enregistrement depuis les autres applications et réaffiche PAM. Fermer la fenêtre ou choisir **Réduire PAM** masque PAM dans la zone de notification et coupe le microphone. Un clic gauche sur l’icône réaffiche PAM ; le menu propose parler/arrêter et **Quitter PAM**, qui libère les modèles. **Quitter PAM** est également disponible dans les préférences. Un raccourci déjà utilisé par un autre programme est signalé dans l’interface ; le bouton microphone et le menu restent utilisables. Une seule instance de PAM peut fonctionner.
 
 ### Applications et arguments
@@ -133,6 +137,7 @@ Le modèle peut refuser ou mal router une demande : le score, les actions et leu
 - `src-tauri/src/lib.rs` : IPC limité à la fenêtre principale, Node persistant, raccourci global, zone de notification et instance unique. Un Job Object Windows garantit la fermeture du sidecar avec PAM, même si PAM s’arrête brutalement. Aucun serveur HTTP local.
 - `sidecar/assistant.cjs` : configuration, alias, validation des appels et lancement des exécutables sans shell.
 - `sidecar/needle-tools.cjs` : noms et descriptions présentés à Needle, formulation des commandes reconnues et contrôle de la demande originale.
+- `sidecar/command-aliases.cjs` et `src/components/CommandAliases.vue` : phrases personnelles associées à un lecteur et une action, correction et gestion dans les préférences.
 - `src-tauri/src/media.rs` et `sidecar/media.cjs` : sessions GSMTC, capacités, ciblage et commandes Windows avec résultat vérifié.
 - `sidecar/deezer.cjs` et `src/components/MediaControls.vue` : protocoles Deezer validés et préparation des commandes à confirmer.
 - `sidecar/main.cjs` : requêtes et réponses JSON par lignes sur stdin/stdout, sérialisées dans un seul processus.
