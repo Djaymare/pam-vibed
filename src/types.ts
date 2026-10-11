@@ -35,8 +35,9 @@ export interface Config {
   confidenceThreshold: number;
   commandAliases?: CommandAlias[];
 }
-export type CommandAction = 'open' | 'media_play' | 'media_pause' | 'media_next' | 'media_previous' | 'media_stop' | 'media_toggle';
-export interface CommandAlias { id: string; phrase: string; applicationId: string; action: CommandAction }
+export type CommandAction = 'open' | 'media_play' | 'media_pause' | 'media_next' | 'media_previous' | 'media_stop' | 'media_toggle' |
+  'deezer_start' | 'deezer_page' | 'deezer_search' | 'deezer_content' | 'deezer_reload' | 'deezer_smarttracklist';
+export interface CommandAlias { id: string; phrase: string; applicationId: string; action: CommandAction; arguments?: Record<string,string> }
 export interface RuntimeStatus {
   ready: boolean;
   checks: { file: string; available: boolean }[];

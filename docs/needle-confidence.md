@@ -4,7 +4,7 @@ PAM conserve la demande et la transcription françaises. Lorsqu’une commande s
 
 Les noms transmis au modèle sont courts (`play_opera_gx`, `pause_opera_gx`, `open_deezer`). Le sidecar les résout vers les identifiants internes existants, sans modifier le catalogue, les libellés français ou les confirmations enregistrées. Les collisions entre noms d’applications reçoivent un suffixe stable. Les métadonnées internes restent exclues du modèle.
 
-Les descriptions de lancement et de contrôle multimédia sont en anglais. Les schémas des protocoles Deezer restent ceux précédemment vérifiés : leur remplacement général a régressé sur la copie d’un identifiant numérique pendant l’intégration réelle. Les limites de lecture d’une chanson précise et d’insertion en prochaine position restent documentées dans [windows-media-deezer.md](windows-media-deezer.md).
+Les descriptions de lancement et de contrôle multimédia sont en anglais. Les commandes Deezer reconnues utilisent désormais une action dont les paramètres sont fixés localement, avec une formulation interne anglaise et un outil sans paramètre à générer. Cela évite les régressions observées lorsque le modèle recopiait des identifiants numériques. Les demandes Deezer libres conservent les schémas précédemment vérifiés. Les mesures et la correction personnelle sont décrites dans [deezer-routing.md](deezer-routing.md). Les limites de lecture d’une chanson précise et d’insertion en prochaine position restent documentées dans [windows-media-deezer.md](windows-media-deezer.md).
 
 ## Résultats mesurés
 

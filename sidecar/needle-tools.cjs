@@ -1,23 +1,30 @@
 const { createHash } = require('node:crypto');
+const {boundCommand} = require('./deezer-commands.cjs');
+const {DEEZER_APP_ID} = require('./deezer.cjs');
 
 // Model-facing names are independent of persisted action names and approvals.
 function modelLabel(application) {
+  if(application.media?.deezer && application.windowsApp?.appId===DEEZER_APP_ID)return 'Deezer Music';
   return application.name.replace(/^(?:navigateur|browser)\s+/i, '').normalize('NFKD')
     .replace(/\p{M}/gu, '').trim() || 'application';
 }
 function needleToolName(tool, config) {
   // Keep the established Deezer schemas: their ID/query grounding was verified
   // with these names and descriptions. This optimization concerns app/media verbs.
-  if (tool.action.startsWith('deezer_')) return tool.name;
+  if (tool.action.startsWith('deezer_') && !tool.boundArguments) return tool.name;
   const application = config.applications.find(app => app.id === tool.applicationId);
   const slug = app => modelLabel(app).toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_|_$/g, '').slice(0, 30) || 'application';
   const target = slug(application);
   const duplicate = config.applications.some(app => app.enabled && app.id !== application.id && slug(app) === target);
   const suffix = duplicate ? `_${createHash('sha256').update(application.id).digest('hex').slice(0, 8)}` : '';
-  return `${tool.action.replace(/^media_/, '')}_${target}${suffix}`;
+  return `${boundCommand(tool,modelLabel(application))?.key || tool.action.replace(/^media_/, '')}_${target}${suffix}`;
 }
 function needleTools(tools, config) {
   return tools.map(tool => {
+    const app = config.applications.find(app => app.id === tool.applicationId);
+    const bound = boundCommand(tool,modelLabel(app));
+    if(bound)return {name:needleToolName(tool,config),description:`${bound.prompt}.`,
+      parameters:{type:'object',properties:{},required:[],additionalProperties:false}};
     if (tool.action.startsWith('deezer_')) {
       const {name, description, triggers, parameters} = tool;
       return {name, description, triggers, parameters};
@@ -41,6 +48,8 @@ function needleTools(tools, config) {
   });
 }
 function canonicalPrompt(tool, application) {
+  const bound=boundCommand(tool,modelLabel(application));
+  if(bound)return bound.prompt;
   const label = modelLabel(application);
   return ({open: `Open ${label}`, media_play: `Play audio in ${label}`, media_pause: `Pause audio in ${label}`,
     media_next: `Play the next item in ${label}`, media_previous: `Play the previous item in ${label}`,

@@ -20,6 +20,8 @@ Pour corriger « pose/pause » ou « mais/mets », choisissez l’application pu
 
 Dans **Préférences → Formulations personnelles**, vous pouvez ajouter, modifier et supprimer ces associations, par exemple « mais le film en pose » → **Mettre en pause · Navigateur Opera GX**. Chaque phrase complète désigne une application et son lancement ou une commande de lecture Windows. Elle est reconnue à l’écrit et après transcription vocale ; la casse, les accents, les espaces répétés et la ponctuation finale sont ignorés. Les mots ne sont pas remplacés dans les autres textes. Les demandes suivantes passent par Needle avec l’action correspondante ; le score réel, les préférences de validation et les capacités du lecteur restent appliqués. Une cible désactivée ou une commande indisponible est signalée. Consultez [les règles et la validation](docs/command-aliases.md).
 
+Les formulations personnelles et la correction proposent aussi les actions du plugin Deezer : Flow, coups de cœur, recherche, contenus, huit pages, sélections et rechargement. **Recherche à transmettre** permet de mémoriser un artiste mal transcrit avec son nom corrigé. Les commandes simples Deezer fixent leurs paramètres avant Needle ; « coûts de cœur » est reconnu dans la commande des favoris. Le score de choix d’action ne mesure pas la qualité de transcription. Consultez [les commandes et les mesures Deezer](docs/deezer-routing.md).
+
 **Ctrl + Maj + Espace** démarre ou arrête l’enregistrement depuis les autres applications et réaffiche PAM. Fermer la fenêtre ou choisir **Réduire PAM** masque PAM dans la zone de notification et coupe le microphone. Un clic gauche sur l’icône réaffiche PAM ; le menu propose parler/arrêter et **Quitter PAM**, qui libère les modèles. **Quitter PAM** est également disponible dans les préférences. Un raccourci déjà utilisé par un autre programme est signalé dans l’interface ; le bouton microphone et le menu restent utilisables. Une seule instance de PAM peut fonctionner.
 
 ### Applications et arguments
@@ -108,6 +110,7 @@ npm test
 npm run test:integration
 npm run test:media
 npm run test:confidence
+npm run test:deezer:routing
 npm run build
 npm run verify:bundle
 ```
@@ -138,6 +141,7 @@ Le modèle peut refuser ou mal router une demande : le score, les actions et leu
 - `sidecar/assistant.cjs` : configuration, alias, validation des appels et lancement des exécutables sans shell.
 - `sidecar/needle-tools.cjs` : noms et descriptions présentés à Needle, formulation des commandes reconnues et contrôle de la demande originale.
 - `sidecar/command-aliases.cjs` et `src/components/CommandAliases.vue` : phrases personnelles associées à un lecteur et une action, correction et gestion dans les préférences.
+- `sidecar/deezer-commands.cjs` : reconnaissance des commandes Deezer et conservation des paramètres explicitement demandés.
 - `src-tauri/src/media.rs` et `sidecar/media.cjs` : sessions GSMTC, capacités, ciblage et commandes Windows avec résultat vérifié.
 - `sidecar/deezer.cjs` et `src/components/MediaControls.vue` : protocoles Deezer validés et préparation des commandes à confirmer.
 - `sidecar/main.cjs` : requêtes et réponses JSON par lignes sur stdin/stdout, sérialisées dans un seul processus.

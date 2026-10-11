@@ -21,6 +21,8 @@ Exemples avec l’alias « Diseur » :
 
 Une demande composée ou formulée différemment reste soumise au routage du modèle. Vérifier l’action proposée avant confirmation. Les exemples d’intégration ont des scores inférieurs à 70 % et sont donc restés en attente ; aucun score n’a été relevé artificiellement. Une première intégration a révélé un mauvais choix entre navigation et Flow : les formulations explicites sont désormais restreintes à l’outil de l’action demandée, avec conservation des arguments de la demande.
 
+Ces scores décrivent la première intégration. Le routage actuel reconnaît aussi les favoris, les huit pages et les sélections et fixe les paramètres avant Needle. Les résultats actualisés et les formulations reconnues sont dans [deezer-routing.md](deezer-routing.md).
+
 Les identifiants de contenus et de sélections doivent venir de l’utilisateur. PAM ne transforme pas un titre en identifiant inventé. Les liens de contenu et de recherche ne garantissent ni une page valide pour le compte courant, ni la disponibilité du média dans son pays.
 
 ## Adaptateur Windows partagé

@@ -1,23 +1,27 @@
 <script setup lang="ts">
 import {computed, reactive, ref, watch} from 'vue';
 import Icon from './Icon.vue';
-import {commandActions, commandActionLabels} from '../actions';
-import type {Application, CommandAction, CommandAlias} from '../types';
+import CommandArguments from './CommandArguments.vue';
+import {commandActions,commandChoiceKey,choiceArguments,commandLabel} from '../actions';
+import type {Application, CommandAlias} from '../types';
 const props=defineProps<{applications:Application[];aliases:CommandAlias[];locked:boolean;
   save:(alias:Omit<CommandAlias,'id'> & {id?:string})=>Promise<void>;remove:(id:string)=>Promise<void>}>();
 const editing=ref(false),editingId=ref<string>(),error=ref('');
-const form=reactive({phrase:'',applicationId:'',action:'open' as CommandAction});
+const form=reactive({phrase:'',applicationId:'',action:'open',arguments:{} as Record<string,string>});
 const active=computed(()=>props.applications.filter(app=>app.enabled));
 const application=computed(()=>props.applications.find(app=>app.id===form.applicationId));
 const actions=computed(()=>commandActions(application.value));
-watch(actions,values=>{if(!values.includes(form.action))form.action='open';});
+const selected=computed(()=>actions.value.find(choice=>choice.key===form.action));
+watch(actions,values=>{if(!values.some(choice=>choice.key===form.action))form.action='open';});
 function edit(alias?:CommandAlias) {
   editingId.value=alias?.id;error.value='';editing.value=true;
-  Object.assign(form,alias || {phrase:'',applicationId:active.value[0]?.id || '',action:'open'});
+  Object.assign(form,alias ? {...alias,action:commandChoiceKey(alias),arguments:{...alias.arguments}} : {phrase:'',applicationId:active.value[0]?.id || '',action:'open',arguments:{}});
 }
 async function save() {
   error.value='';
-  try {await props.save({id:editingId.value,phrase:form.phrase.trim(),applicationId:form.applicationId,action:form.action});editing.value=false;}
+  if(!selected.value)return;
+  try {await props.save({id:editingId.value,phrase:form.phrase.trim(),applicationId:form.applicationId,action:selected.value.action,
+    ...(selected.value.action.startsWith('deezer_')?{arguments:choiceArguments(selected.value,form.arguments)}:{})});editing.value=false;}
   catch(caught) {error.value=caught instanceof Error?caught.message:String(caught);}
 }
 async function remove(alias:CommandAlias) {
@@ -33,12 +37,13 @@ function appName(alias:CommandAlias) {return props.applications.find(app=>app.id
     <p class="alias-intro">Apprenez à PAM vos formulations et les erreurs de transcription habituelles. Par exemple : « pose le navigateur » → mettre Opera GX en pause.</p>
     <p v-if="!aliases.length && !editing" class="muted alias-empty">Aucune formulation mémorisée. Vous pouvez aussi en ajouter en corrigeant une demande.</p>
     <ul v-if="aliases.length" class="command-alias-list">
-      <li v-for="alias in aliases" :key="alias.id"><div><strong>« {{ alias.phrase }} »</strong><p>{{ commandActionLabels[alias.action] }} · {{ appName(alias) }}<span v-if="!applications.find(app=>app.id===alias.applicationId)?.enabled"> · désactivée</span></p></div><div class="alias-buttons"><button class="icon-button" :disabled="locked" :aria-label="'Modifier la formulation ' + alias.phrase" @click="edit(alias)"><Icon name="edit" :size="17" /></button><button class="icon-button danger" :disabled="locked" :aria-label="'Supprimer la formulation ' + alias.phrase" @click="remove(alias)"><Icon name="trash" :size="17" /></button></div></li>
+      <li v-for="alias in aliases" :key="alias.id"><div><strong>« {{ alias.phrase }} »</strong><p>{{ commandLabel(alias) }} · {{ appName(alias) }}<span v-if="!applications.find(app=>app.id===alias.applicationId)?.enabled"> · désactivée</span></p></div><div class="alias-buttons"><button class="icon-button" :disabled="locked" :aria-label="'Modifier la formulation ' + alias.phrase" @click="edit(alias)"><Icon name="edit" :size="17" /></button><button class="icon-button danger" :disabled="locked" :aria-label="'Supprimer la formulation ' + alias.phrase" @click="remove(alias)"><Icon name="trash" :size="17" /></button></div></li>
     </ul>
     <form v-if="editing" class="command-alias-editor" @submit.prevent="save">
       <label class="alias-phrase">Formulation à reconnaître<input v-model="form.phrase" required maxlength="200" :disabled="locked" placeholder="Ex. : mais le film en pose" /><small>La phrase complète sera reconnue à l’écrit et après transcription vocale.</small></label>
       <label>Application<select v-model="form.applicationId" required :disabled="locked"><option v-if="application && !application.enabled" :value="application.id" disabled>{{ application.name }} · désactivée</option><option v-for="app in active" :key="app.id" :value="app.id">{{ app.name }}</option></select></label>
-      <label>Action<select v-model="form.action" required :disabled="locked"><option v-for="action in actions" :key="action" :value="action">{{ commandActionLabels[action] }}</option></select></label>
+      <label>Action<select v-model="form.action" required :disabled="locked"><option v-for="choice in actions" :key="choice.key" :value="choice.key">{{ choice.label }}</option></select></label>
+      <CommandArguments v-model="form.arguments" :action="selected?.action" :disabled="locked" />
       <div class="alias-form-footer"><button type="button" class="secondary small" :disabled="locked" @click="editing=false">Annuler</button><button class="primary small" :disabled="locked || !form.phrase.trim() || !application?.enabled">{{ editingId ? 'Enregistrer les modifications' : 'Enregistrer la formulation' }}</button></div>
     </form>
     <p v-if="error" class="result-error" role="alert">{{ error }}</p>

@@ -8,6 +8,7 @@ const { createMedia, MEDIA_ACTIONS } = require('./media.cjs');
 const { DEEZER_APP_ID, DEEZER_SOURCE_IDS, CONTENT, PAGES, validateDeezerArgs } = require('./deezer.cjs');
 const { needleToolName, needleTools, canonicalPrompt, requestIssue } = require('./needle-tools.cjs');
 const { ACTIONS: ALIAS_ACTIONS, validateStore, findCommandAlias, saveCommandAlias } = require('./command-aliases.cjs');
+const {recognizeDeezerCommand,deezerActionLabel} = require('./deezer-commands.cjs');
 
 const LANGUAGES = new Set(['auto', 'fr', 'en', 'de', 'es', 'it', 'nl', 'pl']);
 const MAX_AUDIO_BYTES = 44 + 16_000 * 30 * 2;
@@ -166,8 +167,10 @@ function toolsFor(config, sessions) {
 }
 function matchedInvocation(transcript, tools, config) {
   const alias=findCommandAlias(transcript,config);
-  return alias ? tools.filter(tool=>tool.applicationId===alias.applicationId && tool.action===alias.action)
-    : tools.filter(tool => tool.triggers.some(pattern => new RegExp(pattern, 'i').test(transcript)));
+  const known=alias || recognizeDeezerCommand(transcript,config);
+  if(known)return tools.filter(tool=>tool.applicationId===known.applicationId && tool.action===known.action)
+    .map(tool=>tool.action.startsWith('deezer_') ? {...tool,boundArguments:known.arguments || {}} : tool);
+  return tools.filter(tool => !tool.action.startsWith('deezer_') && tool.triggers.some(pattern => new RegExp(pattern, 'i').test(transcript)));
 }
 function resolveInvocation(transcript, tools, config) {
   // Text and speech share this resolution. Only rewrite a literal, unambiguous
@@ -177,7 +180,7 @@ function resolveInvocation(transcript, tools, config) {
   const application = config.applications.find(app => app.id === matched[0].applicationId);
   if(findCommandAlias(transcript,config) && matched[0].action==='open' && application.arguments.some(argument=>argument.includes('{input}')))
     return {prompt:transcript,requestTools:matched};
-  if (matched[0].action.startsWith('deezer_')) return {prompt:transcript,requestTools:matched};
+  if (matched[0].action.startsWith('deezer_') && !matched[0].boundArguments) return {prompt:transcript,requestTools:matched};
   return { prompt: canonicalPrompt(matched[0], application), requestTools: matched };
 }
 function mediaTriggers(application, applications, action) {
@@ -187,9 +190,10 @@ function mediaTriggers(application, applications, action) {
     media_next:'(?:(?:passe\\s+(?:[aà]\\s+)?(?:la\\s+)?)?(?:piste|chanson|morceau)\\s+suivant[e]?)',
     media_previous:'(?:(?:passe\\s+(?:[aà]\\s+)?(?:la\\s+)?)?(?:piste|chanson|morceau)\\s+pr[eé]c[eé]dent[e]?)',
     media_stop:'(?:arr[eê]te|stop)',
+    media_toggle:'(?:bascule[r]?(?:\\s+(?:la\\s+)?lecture\\s*[/ ]\\s*pause)?|lecture\\s*/\\s*pause)',
     deezer_content:"(?:affiche[r]?|ouvre|ouvrir)\\s+(?:(?:la|le|un|une|l['’])\\s*)?(?:chanson|titre|track|album|artiste|artist|playlist|podcast|show|[ée]pisode|episode|profil|profile)\\s+[1-9][0-9]{0,18}",
     deezer_search:'(?:cherche[r]?|recherche[r]?)\\s+.+',
-    deezer_start:'(?:d[eé]marre[r]?|lance[r]?|joue|[ée]coute[r]?|lis|lire)\\s+(?:(?:le|les|mes)\\s+)?(?:flow|coups\\s+de\\s+c[œo]eur|coups\\s+de\\s+coeur)',
+    deezer_start:'(?:d[eé]marre[r]?|lance[r]?|joue|[ée]coute[r]?|lis|lire)\\s+(?:(?:le|les|mes)\\s+)?(?:flow|coups\\s+de\\s+c(?:œur|oeur))',
     deezer_reload:'(?:recharge[r]?|reload)',
   };
   if (!phrases[action]) return [];
@@ -212,7 +216,7 @@ function validateCalls(calls, config) {
       let arguments_;
       if (tool.action.startsWith('media_')) { ensure(Object.keys(args).length === 0, 'La commande multimédia n’accepte aucun argument.'); arguments_ = {}; }
       else arguments_ = validateDeezerArgs(tool.action,args);
-      return {name:call.name,arguments:arguments_,applicationId:application.id,applicationName:application.name,action:tool.action,actionLabel:tool.actionLabel};
+      return {name:call.name,arguments:arguments_,applicationId:application.id,applicationName:application.name,action:tool.action,actionLabel:deezerActionLabel(tool.action,arguments_) || tool.actionLabel};
     }
     const acceptsInput = application.arguments.some(argument => argument.includes('{input}'));
     ensure(Object.keys(args).every(key => acceptsInput && key === 'input'), 'Needle a proposé un argument non autorisé.');
@@ -377,7 +381,7 @@ function createAssistant({ runtimeDirectory, configDirectory, runEngine = execut
       let chosenCalls;
       if(payload.action!==undefined) {
         ensure(app && ALIAS_ACTIONS.has(payload.action),'Choisissez une application et une action de lancement ou de lecture.');
-        chosenCalls=validateCalls([{name:actionToolName(app,payload.action),arguments:payload.action==='open' && app.arguments.some(arg=>arg.includes('{input}')) ? {input:payload.input ?? ''} : {}}],config);
+        chosenCalls=validateCalls([{name:actionToolName(app,payload.action),arguments:payload.action==='open' && app.arguments.some(arg=>arg.includes('{input}')) ? {input:payload.input ?? ''} : payload.arguments ?? {}}],config);
       }
       ensure(payload.input === undefined || (app && app.arguments.some(arg => arg.includes('{input}')) && typeof payload.input === 'string' && payload.input.length <= 2048 && !payload.input.includes('\0')), 'Texte transmis invalide.');
       if (payload.saveAlias === true) {
@@ -392,7 +396,7 @@ function createAssistant({ runtimeDirectory, configDirectory, runEngine = execut
       }
       if(payload.saveCommandAlias===true) {
         ensure(chosenCalls,'Choisissez explicitement l’action à mémoriser.');
-        saveCommandAlias({phrase:payload.commandPhrase,applicationId:app.id,action:payload.action},config,toolsFor(config));
+        saveCommandAlias({phrase:payload.commandPhrase,applicationId:app.id,action:payload.action,...(payload.action.startsWith('deezer_')?{arguments:payload.arguments ?? {}}:{})},config,toolsFor(config));
       }
       if(payload.saveAlias===true || payload.saveCommandAlias===true)await atomicJson(configPath,config);
       // Retire the old approval before preparing a replacement, even if inference fails.
@@ -472,17 +476,22 @@ function createAssistant({ runtimeDirectory, configDirectory, runEngine = execut
         requestTools = tools.filter(tool => tool.applicationId === app.id);
         // The selected application is an explicit user correction. Preserve any
         // free-form input in a separate, user-editable field instead of inferring it.
-        if (explicit.length === 1 && !explicit[0].action.startsWith('deezer_')) {
-          const selected = requestTools.find(tool => tool.action === explicit[0].action);
+        if (explicit.length === 1 && (!explicit[0].action.startsWith('deezer_') || explicit[0].boundArguments)) {
+          let selected = requestTools.find(tool => tool.action === explicit[0].action);
           if (!selected) return {...turn, message:'L’application choisie ne propose actuellement pas cette commande.'};
+          if(explicit[0].boundArguments)selected={...selected,boundArguments:explicit[0].boundArguments};
           prompt = canonicalPrompt(selected, app);
           requestTools = [selected];
         } else if (!app.media) prompt = canonicalPrompt(tools.find(tool => tool.applicationId === app.id && tool.action === 'open'), app);
       }
       const toolsPath = path.join(temporary, 'tools.json');
       const systemPath = path.join(temporary, 'system.txt');
+      const resolvedDeezer=requestTools.length===1 && !!requestTools[0].boundArguments;
       await fs.writeFile(toolsPath, JSON.stringify(needleTools(requestTools, config)));
-      await fs.writeFile(systemPath, `locale: ${language}\nplatform: Windows\nOnly use registered tools. Input values must come from the user's request. A Deezer content or search link only displays a page, never starts a song or adds it next in the queue. Skip next plays the next item already in the queue, never inserts a requested song. Reject requests to play a specific song or queue it next when no tool offers that behavior.\n`);
+      // Deezer bindings contain no model-generated parameters. The original
+      // request, protocol limits and exact bound arguments are checked locally.
+      await fs.writeFile(systemPath, resolvedDeezer ? 'locale: en\nOnly use registered tools.' :
+        `locale: ${language}\nplatform: Windows\nOnly use registered tools. Input values must come from the user's request. A Deezer content or search link only displays a page, never starts a song or adds it next in the queue. Skip next plays the next item already in the queue, never inserts a requested song. Reject requests to play a specific song or queue it next when no tool offers that behavior.\n`);
       const needleArgs = ['--model', path.join(runtimeDirectory, 'models/needle3.cact'), '--tools', toolsPath,
         '--system', systemPath, '--max', '256', '--fail-input-overflow'];
       // The Windows runner's narrow --prompt argv loses non-ASCII characters.
@@ -509,8 +518,14 @@ function createAssistant({ runtimeDirectory, configDirectory, runEngine = execut
       const suppressed = response.function_calls.length === 0 && Array.isArray(response.suppressed_calls) && response.suppressed_calls.length > 0;
       const calls = suppressed ? response.suppressed_calls : response.function_calls;
       if (calls.length === 0) return turn;
-      const modelNames = new Map(toolsFor(config).map(tool => [needleToolName(tool, config), tool.name]));
-      turn.calls = validateCalls(calls.map(call => ({...call, name:modelNames.get(call.name) ?? call.name})), config);
+      const modelNames = new Map([...toolsFor(config),...requestTools].map(tool => [needleToolName(tool, config), tool.name]));
+      turn.calls = validateCalls(calls.map(call => {
+        const name=modelNames.get(call.name) ?? call.name;
+        const bound=requestTools.find(tool=>tool.name===name)?.boundArguments;
+        if(bound)ensure(calls.length===1 && call.arguments && typeof call.arguments==='object' && !Array.isArray(call.arguments) && Object.keys(call.arguments).length===0,
+          'Needle a modifié les paramètres d’une commande reconnue. Reformulez la demande.');
+        return {...call,name,arguments:bound || call.arguments};
+      }), config);
       ensure(requestTools.length !== 1 || requestTools[0].action === 'open' || turn.calls.length === 1,
         'Needle a proposé plusieurs appels pour une seule action. Reformulez la demande ou utilisez le bouton du lecteur.');
       ensure(turn.calls.every(call => requestTools.some(tool => tool.name === call.name)),
@@ -521,17 +536,17 @@ function createAssistant({ runtimeDirectory, configDirectory, runEngine = execut
         return {...turn,calls:[],message:'Le protocole Deezer vérifié peut afficher ou rechercher une chanson, mais ne permet pas d’en démarrer la lecture précise. Choisissez la lecture dans Deezer.'};
       }
       const simpleResume = deezerApps.some(app => mediaTriggers(app,config.applications,'media_play').some(pattern => new RegExp(pattern,'i').test(transcript)));
-      if (namedDeezer && /^\s*(?:joue|jouer|[ée]coute|[ée]couter|play|lis|lire)\s/iu.test(transcript) && !simpleResume &&
+      if (namedDeezer && /^\s*(?:joue|jouer|[ée]coute|[ée]couter|play|lis|lire)\s/iu.test(transcript) && !simpleResume && !resolvedDeezer &&
         !/(?:repren|reprise|lecture|\bflow\b|coups?\s+de\s+c(?:œur|oeur)|smarttracklist)/iu.test(transcript) &&
         turn.calls.some(call => ['media_play','deezer_start'].includes(call.action)))
         return {...turn,calls:[],message:'Le protocole Deezer vérifié ne permet pas de jouer une chanson précise. Affichez sa page ou recherchez son titre, puis choisissez la lecture dans Deezer.'};
       for (const call of turn.calls.filter(call => call.action === 'deezer_start')) {
         const requested = call.arguments.mix === 'flow' ? /\bflow\b/iu : /coups?\s+de\s+c(?:œur|oeur)/iu;
-        ensure(requested.test(transcript),'La sélection Deezer proposée ne figure pas dans votre demande.');
+        ensure(resolvedDeezer || requested.test(transcript),'La sélection Deezer proposée ne figure pas dans votre demande.');
       }
       for (const call of turn.calls.filter(call => ['deezer_content','deezer_smarttracklist'].includes(call.action))) {
         const id = call.arguments.id.replace(/[.*+?^${}()|[\]\\]/g,'\\$&');
-        ensure(new RegExp(`(?:^|[^\\p{L}\\p{N}_-])${id}(?:$|[^\\p{L}\\p{N}_-])`,'u').test(transcript),
+        ensure((alias?.arguments?.id === call.arguments.id && resolvedDeezer) || new RegExp(`(?:^|[^\\p{L}\\p{N}_-])${id}(?:$|[^\\p{L}\\p{N}_-])`,'u').test(transcript),
           'L’identifiant Deezer proposé ne figure pas dans votre demande. Fournissez un lien ou un identifiant, ou demandez une recherche par titre.');
       }
       if (method === 'correct_request') {

@@ -16,13 +16,15 @@ Depuis une demande, ouvrir **Corriger la demande**, choisir l’application et *
 
 Chaque association cible une application précise. Un autre lecteur exige sa propre formulation. Les actions disponibles sont l’ouverture, lecture, pause, piste suivante, piste précédente, arrêt et bascule lecture/pause. Les actions multimédias exigent une session configurée dans la fiche de l’application. Les protocoles Deezer restent limités à ceux déjà vérifiés ; cette fonction n’ajoute ni lecture d’une chanson précise ni insertion dans la file.
 
+Le plugin Deezer ajoute Flow, coups de cœur, recherche, contenus, pages, sélections et rechargement. Les actions avec des paramètres proposent les champs correspondants, par exemple **Recherche à transmettre** ou **Identifiant Deezer**. Leurs valeurs explicites sont enregistrées avec la phrase ; elles ne sont pas régénérées par Needle. Voir [la correction et les commandes Deezer](deezer-routing.md).
+
 ## Reconnaissance et persistance
 
 Les demandes écrites et les transcriptions vocales utilisent la même résolution. La correspondance porte sur la phrase entière, après normalisation de la casse, des accents, des apostrophes typographiques, des espaces répétés et des points, points d’exclamation ou d’interrogation finaux. Aucun remplacement global de « pose » ou « mais » n’est effectué ; un préfixe, une autre phrase ou une négation ne correspond pas à la règle.
 
-La phrase reconnue sélectionne l’action et l’application présentées à Needle. Le prompt interne est formulé comme les autres commandes simples, tout en conservant la transcription originale à l’écran. Le score affiché reste celui renvoyé par Needle et les préférences de confirmation restent actives. Aucun score n’est garanti pour une formulation nouvelle.
+La phrase reconnue sélectionne l’action et l’application présentées à Needle. Le prompt interne est formulé comme les autres commandes simples, tout en conservant la transcription originale à l’écran. Le score affiché reste celui renvoyé par Needle et les préférences de confirmation restent actives. Il porte sur le choix de l’action, pas sur la fidélité de la transcription. Aucun score n’est garanti pour une formulation nouvelle.
 
-Les associations sont stockées dans `commandAliases` du fichier `%APPDATA%\com.enkis.pam\applications.json`. Les anciens profils sont lus sans réécriture. Une formulation possède un identifiant, une phrase de 200 caractères maximum, l’identifiant de l’application et l’action. La limite est de 64 formulations. Les expressions régulières, paramètres de commandes et actions arbitraires ne sont pas acceptés.
+Les associations sont stockées dans `commandAliases` du fichier `%APPDATA%\com.enkis.pam\applications.json`. Les anciens profils sont lus sans réécriture. Une formulation possède un identifiant, une phrase de 200 caractères maximum, l’identifiant de l’application, l’action et, pour Deezer, les paramètres validés. La limite est de 64 formulations. Les expressions régulières, arguments de lancement et actions arbitraires ne sont pas acceptés.
 
 Les doublons après normalisation, négations, commandes citées, mauvaise application explicitement nommée et conflits avec les déclencheurs existants sont refusés. L’action peut être apprise alors que le lecteur est déjà en pause. Lors d’une demande ultérieure, une application inactive, une session absente ou une capacité indisponible produit un refus explicite. La commande n’est pas redirigée vers l’ouverture ou un autre lecteur. La capacité est revérifiée au moment de l’exécution.
 
