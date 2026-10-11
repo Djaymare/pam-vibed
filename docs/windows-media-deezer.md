@@ -23,6 +23,8 @@ Une demande composée ou formulée différemment reste soumise au routage du mod
 
 Ces scores décrivent la première intégration. Le routage actuel reconnaît aussi les favoris, les huit pages et les sélections et fixe les paramètres avant Needle. Les résultats actualisés et les formulations reconnues sont dans [deezer-routing.md](deezer-routing.md).
 
+Les variantes « prochaine piste », le lecteur placé avant l’action et les erreurs « pose/mais/empose » sont décrites dans [media-commands.md](media-commands.md). Sans nom de lecteur, PAM choisit uniquement l’unique lecteur configuré avec une session Windows disponible ; il demande de préciser en cas d’ambiguïté.
+
 Les identifiants de contenus et de sélections doivent venir de l’utilisateur. PAM ne transforme pas un titre en identifiant inventé. Les liens de contenu et de recherche ne garantissent ni une page valide pour le compte courant, ni la disponibilité du média dans son pays.
 
 ## Adaptateur Windows partagé

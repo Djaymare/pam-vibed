@@ -24,6 +24,8 @@ Les formulations personnelles et la correction proposent aussi les actions du pl
 
 Le nom du lecteur peut précéder l’action : « Diseur Flow » ou « Diseur rechercher Daft Punk ». « Démarrer Flow » sans nom de lecteur cible l’unique fiche Deezer active ; plusieurs fiches exigent de préciser son nom ou un alias unique.
 
+« Diseur piste suivante », « Prochaine piste sur Diseur » et « Mais Diseur empose » ciblent aussi l’action exacte avant Needle. « Prochaine piste » ou « Mets le média en pause » sans nom de lecteur utilisent uniquement l’unique lecteur configuré avec une session Windows disponible ; plusieurs lecteurs exigent de préciser lequel. Une pause indisponible ne devient pas un arrêt. Les transcriptions comme « des heures » restent personnalisables par phrase complète. Consultez [les formulations multimédias](docs/media-commands.md).
+
 **Ctrl + Maj + Espace** démarre ou arrête l’enregistrement depuis les autres applications et réaffiche PAM. Fermer la fenêtre ou choisir **Réduire PAM** masque PAM dans la zone de notification et coupe le microphone. Un clic gauche sur l’icône réaffiche PAM ; le menu propose parler/arrêter et **Quitter PAM**, qui libère les modèles. **Quitter PAM** est également disponible dans les préférences. Un raccourci déjà utilisé par un autre programme est signalé dans l’interface ; le bouton microphone et le menu restent utilisables. Une seule instance de PAM peut fonctionner.
 
 ### Applications et arguments

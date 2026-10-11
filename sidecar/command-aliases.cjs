@@ -2,6 +2,7 @@ const {randomUUID} = require('node:crypto');
 const {requestIssue} = require('./needle-tools.cjs');
 const {validateDeezerArgs} = require('./deezer.cjs');
 const {recognizeDeezerCommand} = require('./deezer-commands.cjs');
+const {resolveMediaCommand} = require('./media-commands.cjs');
 const ACTIONS = new Set(['open','media_play','media_pause','media_next','media_previous','media_stop','media_toggle',
   'deezer_search','deezer_content','deezer_start','deezer_page','deezer_reload','deezer_smarttracklist']);
 const UUID = /^[0-9a-f-]{36}$/;
@@ -49,13 +50,17 @@ function saveCommandAlias(value,config,tools) {
   ensure(!value.action.startsWith('deezer_') || !/(?:ajout|ins[eè]r|programme).*?(?:file|queue|en\s+prochain)|(?:joue|jouer|lance|lancer|[ée]coute|[ée]couter|lis|lire|play)\s+(?:(?:la|le|une?|the)\s+)?(?:chanson|titre|morceau|piste|song|track)\s+(?!suivant|pr[eé]c[eé]dent|next|previous)/iu.test(phrase),
     'La lecture d’une chanson précise et son insertion dans la file ne disposent pas de protocole Deezer vérifié.');
   const call={applicationId:application.id,action:value.action,arguments:{}};
-  const issue=requestIssue(phrase,config,[call]) || requestIssue(key,config,[call]);
+  const approved={applicationId:application.id,action:value.action};
+  const issue=requestIssue(phrase,config,[call],undefined,approved) || requestIssue(key,config,[call],undefined,approved);
   ensure(!issue,issue);
   ensure(!aliases.some(alias=>alias.id!==value.id && normalizePhrase(alias.phrase)===key),'Cette formulation est déjà enregistrée. Modifiez son action dans Préférences.');
   const native=tools.filter(tool=>tool.triggers.some(pattern=>new RegExp(pattern,'i').test(phrase) || new RegExp(pattern,'i').test(key)));
   ensure(!native.length || native.every(item=>item.applicationId===application.id && item.action===value.action),
     'Cette formulation correspond déjà à une autre action. Choisissez la formulation mal transcrite.');
   const recognized=recognizeDeezerCommand(phrase,config);
+  const media=resolveMediaCommand(phrase,config);
+  ensure(!media.applicationId || media.personalizable || media.applicationId===application.id && media.action===value.action,
+    'Cette formulation correspond déjà à une autre action multimédia. Choisissez la formulation mal transcrite.');
   const fixed={deezer_start:'mix',deezer_page:'page',deezer_content:'kind',deezer_smarttracklist:'mode'}[value.action];
   ensure(!recognized || (recognized.applicationId===application.id && recognized.action===value.action && (!fixed || recognized.arguments[fixed]===args[fixed])),
     'Cette formulation correspond déjà à une autre action Deezer. Choisissez la formulation mal transcrite.');

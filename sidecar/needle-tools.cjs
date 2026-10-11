@@ -1,6 +1,7 @@
 const { createHash } = require('node:crypto');
 const {boundCommand,recognizeDeezerCommand} = require('./deezer-commands.cjs');
 const {DEEZER_APP_ID} = require('./deezer.cjs');
+const {resolveMediaCommand} = require('./media-commands.cjs');
 
 // Model-facing names are independent of persisted action names and approvals.
 function modelLabel(application) {
@@ -58,7 +59,7 @@ function canonicalPrompt(tool, application) {
 function labels(application) {
   return [...new Set([application.name, ...application.aliases].map(label => label.normalize('NFKD').replace(/\p{M}/gu, '').toLowerCase().trim().replace(/\s+/g, ' ')))];
 }
-function requestIssue(text, config, calls, selectedApplicationId) {
+function requestIssue(text, config, calls, selectedApplicationId,approvedCommand) {
   const normalized = text.normalize('NFKD').replace(/\p{M}/gu, '').toLowerCase().replace(/[’]/g, "'");
   const names=config.applications.flatMap(labels).map(label=>label.replace(/[.*+?^${}()|[\]\\]/g,'\\$&').replace(/ /g,'\\s+')).sort((a,b)=>b.length-a.length);
   const targetPrefix=names.length ? new RegExp(`^\\s*(?:(?:dans|sur)\\s+)?(?:${names.join('|')})(?:\\s*[:,]\\s*|\\s+)`,'u') : null;
@@ -69,7 +70,7 @@ function requestIssue(text, config, calls, selectedApplicationId) {
   if (transmission && calls.some(call => typeof call.arguments?.input === 'string' && call.arguments.input.trim()))
     commandText = normalized.slice(0, transmission.index);
   const directCommand=targetPrefix ? commandText.replace(targetPrefix,'') : commandText;
-  if (/(?:^\s*|\b(?:et|puis|mais|and|then|but)\s+)(?:(?:surtout|merci de)\s+)?(?:ne\s+|n'|don't\s+|do not\s+|never\s+|(?:joue|ouvre|lance|reprends|mets|arrete|demarre)\s+pas\b)/u.test(directCommand))
+  if (/(?:^\s*|\b(?:et|puis|mais|and|then|but)\s+)(?:(?:surtout|merci de)\s+)?(?:ne\s+|n'|don't\s+|do not\s+|never\s+|(?:joue|ouvre|lance|reprends|mets|arrete|demarre|passe|passer|pause|pauser|stoppe|stopper|bascule)\s+pas\b)/u.test(directCommand))
     return 'La demande contient une négation. Aucune action ne sera proposée ; formulez séparément l’action souhaitée.';
   const directOriginal=targetPrefix ? normalized.replace(targetPrefix,'') : normalized;
   if (/^\s*(?:(?:elle|il|on)\s+(?:a dit|dit|a demande|a ecrit)|(?:she|he|they)\s+(?:said|says|asked|wrote))\b/u.test(directOriginal) || /^\s*[«"“]/u.test(directOriginal))
@@ -82,7 +83,21 @@ function requestIssue(text, config, calls, selectedApplicationId) {
     return 'L’application proposée ne correspond pas à celle nommée dans votre demande. Précisez son nom ou son alias.';
   const deezer=recognizeDeezerCommand(text,config);
   const knownDeezer=deezer && calls.length>0 && calls.every(call=>call.applicationId===deezer.applicationId && call.action===deezer.action);
-  const simpleMedia = !knownDeezer && !/\b(?:et|puis|mais|and|then|but)\b/u.test(normalized) && /^\s*(?:play|pause|joue|reprends(?:\s+la\s+lecture)?|mets\s+en\s+pause|mettre\s+en\s+pause|stop|arrete|piste\s+suivante|piste\s+precedente)\s+(?:(?:sur|dans|de|in|on)\s+)?([\p{L}\p{N} _-]+)[.!?]*\s*$/u.exec(normalized);
+  const approved=approvedCommand && calls.length>0 && calls.every(call=>call.applicationId===approvedCommand.applicationId && (call.action || 'open')===approvedCommand.action);
+  let knownMedia=false;
+  if(!knownDeezer && !approved) {
+    const media=resolveMediaCommand(text,config,undefined,selectedApplicationId);
+    if(media.issue)return media.issue;
+    if(media.action && calls.some(call=>call.action!==media.action))return 'L’action proposée ne correspond pas à la commande multimédia demandée.';
+    knownMedia=media.action && calls.length>0 && calls.every(call=>call.action===media.action && (!media.applicationId || call.applicationId===media.applicationId));
+    const launch=/\b(?:ouvre|ouvrez|ouvrir|lance|lancez|lancer|demarre|demarrer|open|launch|start)\b/u.test(commandText);
+    const mediaClue=/\b(?:lecture|play|joue|jouer|pause|pose|pauser|pauiser|reprends|reprendre|stop|arrete|arreter|bascule|suivante?|prochaine?|precedente?|next|previous)\b/u.test(commandText);
+    if(calls.some(call=>(!call.action || call.action==='open') && call.applicationId!==selectedApplicationId && !launch && !labels(config.applications.find(app=>app.id===call.applicationId)).includes(normalized.trim().replace(/[.!?]+$/u,'').trim())))
+      return 'Aucune demande d’ouverture d’application n’a été reconnue. Reformulez la commande ou choisissez son action dans « Corriger la demande ».';
+    if(calls.some(call=>call.action?.startsWith('media_')) && !media.action && !mediaClue)
+      return 'Aucune commande de lecture, pause ou changement de piste n’a été reconnue. Reformulez la demande ou mémorisez votre formulation.';
+  }
+  const simpleMedia = !knownDeezer && !knownMedia && !approved && !/\b(?:et|puis|mais|and|then|but)\b/u.test(normalized) && /^\s*(?:play|pause|joue|reprends(?:\s+la\s+lecture)?|mets\s+en\s+pause|mettre\s+en\s+pause|stop|arrete|piste\s+suivante|piste\s+precedente)\s+(?:(?:sur|dans|de|in|on)\s+)?([\p{L}\p{N} _-]+)[.!?]*\s*$/u.exec(normalized);
   if (simpleMedia) {
     if (!selectedApplicationId && !mentioned.length) return 'Le lecteur demandé n’est pas identifié. Précisez le nom ou un alias d’une application configurée.';
     const targets = config.applications.filter(app => app.enabled && labels(app).includes(simpleMedia[1].trim().replace(/\s+/g, ' ')));

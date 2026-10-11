@@ -9,6 +9,7 @@ const { DEEZER_APP_ID, DEEZER_SOURCE_IDS, CONTENT, PAGES, validateDeezerArgs } =
 const { needleToolName, needleTools, canonicalPrompt, requestIssue } = require('./needle-tools.cjs');
 const { ACTIONS: ALIAS_ACTIONS, validateStore, findCommandAlias, saveCommandAlias } = require('./command-aliases.cjs');
 const {recognizeDeezerCommand,deezerCommandIssue,deezerActionLabel} = require('./deezer-commands.cjs');
+const {resolveMediaCommand} = require('./media-commands.cjs');
 
 const LANGUAGES = new Set(['auto', 'fr', 'en', 'de', 'es', 'it', 'nl', 'pl']);
 const MAX_AUDIO_BYTES = 44 + 16_000 * 30 * 2;
@@ -165,17 +166,18 @@ function toolsFor(config, sessions) {
     return [{...base,action:'open',applicationId:app.id,actionLabel:'Ouvrir'},...extra];
   });
 }
-function matchedInvocation(transcript, tools, config) {
+function matchedInvocation(transcript, tools, config,mediaCommand) {
   const alias=findCommandAlias(transcript,config);
-  const known=alias || recognizeDeezerCommand(transcript,config);
+  const media=mediaCommand || resolveMediaCommand(transcript,config);
+  const known=alias || recognizeDeezerCommand(transcript,config) || (media.applicationId && !media.issue ? media : null);
   if(known)return tools.filter(tool=>tool.applicationId===known.applicationId && tool.action===known.action)
     .map(tool=>tool.action.startsWith('deezer_') ? {...tool,boundArguments:known.arguments || {}} : tool);
   return tools.filter(tool => !tool.action.startsWith('deezer_') && tool.triggers.some(pattern => new RegExp(pattern, 'i').test(transcript)));
 }
-function resolveInvocation(transcript, tools, config) {
+function resolveInvocation(transcript, tools, config,mediaCommand) {
   // Text and speech share this resolution. Only rewrite a literal, unambiguous
   // application invocation; keep compound requests and their arguments intact.
-  const matched = matchedInvocation(transcript,tools,config);
+  const matched = matchedInvocation(transcript,tools,config,mediaCommand);
   if (matched.length !== 1) return { prompt: transcript, requestTools: tools };
   const application = config.applications.find(app => app.id === matched[0].applicationId);
   if(findCommandAlias(transcript,config) && matched[0].action==='open' && application.arguments.some(argument=>argument.includes('{input}')))
@@ -464,9 +466,7 @@ function createAssistant({ runtimeDirectory, configDirectory, runEngine = execut
         const issue=deezerCommandIssue(transcript,config);
         if(issue)return {...turn,message:issue};
       }
-      const explicit = matchedInvocation(transcript,toolsFor(config),config);
-      if (!(method === 'correct_request' && payload.applicationId) && explicit.length === 1 && explicit[0].action.startsWith('media_') && !tools.some(tool => tool.name === explicit[0].name))
-        return {...turn, message:'Le lecteur demandé ne propose actuellement pas cette commande. Vérifiez sa session et ses capacités dans Applications.'};
+      const selectedApplicationId=method==='correct_request' ? payload.applicationId : undefined;
       const deezerApps = config.applications.filter(app => app.enabled && app.media?.deezer);
       const namedDeezer = deezerApps.some(app => [app.name,...app.aliases].flatMap(labelVariants).some(label =>
         new RegExp(`(?:^|[^\\p{L}\\p{N}])${label.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')}(?:$|[^\\p{L}\\p{N}])`,'iu').test(transcript)));
@@ -474,7 +474,12 @@ function createAssistant({ runtimeDirectory, configDirectory, runEngine = execut
         return {...turn,message:'Le protocole Deezer vérifié ne permet pas d’insérer une chanson précise en prochaine position. Choisissez cette action dans Deezer. « Piste suivante » lit le prochain élément déjà présent.'};
       if (namedDeezer && /(?:joue|jouer|lance|lancer|[ée]coute|[ée]couter|lis|lire|play)\s+(?:(?:la|le|une?|the)\s+)?(?:chanson|titre|morceau|piste|song|track)\s+(?!suivant|pr[eé]c[eé]dent|next|previous)/iu.test(transcript))
         return {...turn,message:'Le protocole Deezer vérifié peut afficher ou rechercher une chanson, mais ne permet pas d’en démarrer la lecture précise. Choisissez la lecture dans Deezer.'};
-      let { prompt, requestTools } = resolveInvocation(transcript, tools, config);
+      const mediaCommand=!alias && !recognizeDeezerCommand(transcript,config) ? resolveMediaCommand(transcript,config,sessions || [],selectedApplicationId) : undefined;
+      if(mediaCommand?.issue)return {...turn,message:mediaCommand.issue};
+      const explicit = matchedInvocation(transcript,toolsFor(config),config,mediaCommand);
+      if (!(method === 'correct_request' && payload.applicationId) && explicit.length === 1 && explicit[0].action.startsWith('media_') && !tools.some(tool => tool.name === explicit[0].name))
+        return {...turn, message:'Le lecteur demandé ne propose actuellement pas cette commande. Vérifiez sa session et ses capacités dans Applications.'};
+      let { prompt, requestTools } = resolveInvocation(transcript, tools, config,mediaCommand);
       if (method === 'correct_request' && payload.applicationId) {
         const app = config.applications.find(app => app.id === payload.applicationId);
         requestTools = tools.filter(tool => tool.applicationId === app.id);
@@ -534,7 +539,7 @@ function createAssistant({ runtimeDirectory, configDirectory, runEngine = execut
         'Needle a proposé plusieurs appels pour une seule action. Reformulez la demande ou utilisez le bouton du lecteur.');
       ensure(turn.calls.every(call => requestTools.some(tool => tool.name === call.name)),
         'Needle a proposé une application différente de celle demandée.');
-      const issue = requestIssue(transcript, config, turn.calls, method === 'correct_request' ? payload.applicationId : undefined);
+      const issue = requestIssue(transcript, config, turn.calls, selectedApplicationId,alias);
       if (issue) return {...turn, calls:[], message:issue};
       if (turn.calls.some(call => ['deezer_content','deezer_search'].includes(call.action)) && /(?:^|\s)(?:joue|jouer|[ée]coute|[ée]couter|play)(?:\s|$)/iu.test(transcript)) {
         return {...turn,calls:[],message:'Le protocole Deezer vérifié peut afficher ou rechercher une chanson, mais ne permet pas d’en démarrer la lecture précise. Choisissez la lecture dans Deezer.'};
