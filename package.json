@@ -3,13 +3,19 @@
   "private": true,
   "version": "0.1.0",
   "type": "module",
+  "engines": {
+    "node": "24.21.0",
+    "npm": "11.19.0"
+  },
+  "packageManager": "npm@11.19.0",
   "scripts": {
-    "dev": "vite",
-    "dev:desktop": "npm run prepare:runtime && vite",
+    "check:development": "node scripts/check-development.mjs",
+    "dev": "npm run check:development && vite",
+    "dev:desktop": "npm run check:development && npm run prepare:runtime && vite",
     "prepare:runtime": "node scripts/prepare-runtime.mjs",
-    "build": "vue-tsc --noEmit && vite build",
+    "build": "npm run check:development && vue-tsc --noEmit && vite build",
     "preview": "vite preview",
-    "tauri": "tauri",
+    "tauri": "npm run check:development && tauri",
     "test": "node --test sidecar/*.test.cjs tests/*.test.mjs",
     "test:integration": "node scripts/smoke-runtime.mjs",
     "test:applications": "node scripts/smoke-applications.mjs",
@@ -19,10 +25,10 @@
     "test:media:commands": "node scripts/smoke-media-commands.mjs",
     "test:media:players": "node scripts/smoke-media.mjs --players",
     "test:media:deezer": "node scripts/smoke-media.mjs --deezer",
-    "package:windows": "tauri build --target x86_64-pc-windows-msvc",
+    "package:windows": "npm run check:development && tauri build --target x86_64-pc-windows-msvc -- --locked",
     "package:portable": "node scripts/package-portable.mjs",
     "verify:bundle": "node scripts/verify-bundle.mjs",
-    "package:docker": "tauri build --runner cargo-xwin --target x86_64-pc-windows-msvc --no-bundle && node scripts/package-portable.mjs"
+    "package:docker": "npm run check:development && tauri build --runner cargo-xwin --target x86_64-pc-windows-msvc --no-bundle -- --locked && node scripts/package-portable.mjs"
   },
   "dependencies": {
     "vue": "^3.5.13",

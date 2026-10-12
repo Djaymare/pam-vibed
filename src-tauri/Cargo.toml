@@ -4,6 +4,7 @@ version = "0.1.0"
 description = "PAM — assistant vocal local avec Whistle et Needle"
 authors = ["PAM contributors"]
 edition = "2021"
+rust-version = "1.99"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 

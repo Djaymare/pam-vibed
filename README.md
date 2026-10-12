@@ -61,10 +61,11 @@ Les boutons de **Lecteurs multimédias** préparent toujours une action à valid
 
 ## Développement
 
-Les outils de compilation sont nécessaires **sur la machine de développement uniquement** : Node 24, Rust avec la cible `x86_64-pc-windows-msvc`, outils de compilation C++ Microsoft. Ils ne font pas partie des prérequis de l’utilisateur final.
+Les outils de compilation sont nécessaires **sur la machine de développement uniquement** : Node 24.21.0 / npm 11.19.0, Rust 1.99.0 avec la cible `x86_64-pc-windows-msvc`, Clippy/rustfmt et outils C++ Microsoft. Le contrat d’isolation des dépendances, les clones neufs Windows et le parcours Linux/Docker sont décrits dans [Développement reproductible](docs/development.md).
 
 ```powershell
 npm ci
+npm run check:development
 npm run prepare:runtime
 npm run tauri dev
 ```
@@ -81,19 +82,14 @@ Dans cet espace de travail, si npm n’est pas dans le PATH, le runtime déjà p
 
 ### Compilation et distribution
 
-Ce projet peut être compilé via le bind mount `C:\projets` → `/usr/projets` d’un conteneur doté de `cargo-xwin`, ici `pam-media-build-active` :
+Le parcours Linux utilise une image dédiée, sans monter ni remplacer les `node_modules` Windows :
 
 ```powershell
-docker exec -w /usr/projets/pam pam-media-build-active sh -lc 'export PATH=/root/.cargo/bin:$PATH; npm ci && npm run tauri build -- --runner cargo-xwin --target x86_64-pc-windows-msvc --no-bundle'
+docker build -f Dockerfile.development -t pam-development .
+docker run --rm pam-development
 ```
 
-Le hook Tauri prépare automatiquement les ressources **Windows x64**, même lorsque le build tourne dans Linux. Fermer la version portable de PAM avant de recréer son dossier, car Windows verrouille un exécutable en cours d’utilisation. Pour créer ensuite le dossier exécutable complet :
-
-```powershell
-docker exec -w /usr/projets/pam pam-media-build-active sh -lc 'npm run package:portable && npm run verify:bundle'
-```
-
-Ou, en une commande après `npm ci`, utiliser `npm run package:docker`. L’exécutable seul créé par `--no-bundle` doit être accompagné de `pam-node.exe`, `runtime/` et `sidecar/` ; le script portable assemble ces fichiers. L’inspection des imports PE vérifie les exécutables, la DLL Cactus et le module Koffi x64 et l’absence de DLL Visual C++/Python/libgcc à installer séparément. La cible est Windows 10/11 x64, avec les composants système UCRT fournis par Windows.
+Les versions, contrôles verrouillés et commandes de packaging Docker sont dans [la procédure de développement](docs/development.md). Le hook Tauri prépare les ressources **Windows x64**, même lorsque la compilation tourne dans Linux. L’exécutable créé par `--no-bundle` doit être accompagné de `pam-node.exe`, `runtime/` et `sidecar/` ; le script portable assemble ces fichiers. Fermer le portable de PAM avant de recréer son dossier, car Windows verrouille un exécutable en cours d’utilisation. La cible est Windows 10/11 x64, avec les composants système UCRT fournis par Windows.
 
 Pour créer un installeur complet sur une machine Windows de développement :
 
@@ -121,8 +117,11 @@ npm run verify:bundle
 
 Pour vérifier la découverte native et les nouveaux raccourcis après compilation :
 
-```sh
-docker exec -w /usr/projets/pam/src-tauri pam-media-build-active sh -lc 'export PATH=/root/.cargo/bin:$PATH; cargo xwin build --release --target x86_64-pc-windows-msvc --example discovery'
+```powershell
+docker run --name pam-discovery pam-development cargo xwin build --manifest-path src-tauri/Cargo.toml --locked --release --target x86_64-pc-windows-msvc --example discovery
+New-Item -ItemType Directory -Force src-tauri/target/x86_64-pc-windows-msvc/release/examples | Out-Null
+docker cp pam-discovery:/workspace/pam/src-tauri/target/x86_64-pc-windows-msvc/release/examples/discovery.exe ./src-tauri/target/x86_64-pc-windows-msvc/release/examples/discovery.exe
+docker rm pam-discovery
 ```
 
 Puis, sur Windows, `npm run test:applications` vérifie les cibles et les icônes du catalogue réel. Il crée un raccourci temporaire dans le menu Démarrer vers le Node embarqué, teste son lancement et ses arguments, puis supprime ce raccourci et son profil de test. Aucune application personnelle n’est lancée. `npm test` comprend aussi sept tests supplémentaires pour les applications détectées, les GUID Windows, la persistance, les doublons, la validation des icônes et le test de lancement sans enregistrement.

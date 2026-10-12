@@ -13,14 +13,18 @@ jobs:
         with:
           node-version: '24.21.0'
           cache: npm
-      - uses: dtolnay/rust-toolchain@stable
+      - uses: dtolnay/rust-toolchain@master
         with:
+          toolchain: '1.99.0'
+          components: clippy, rustfmt
           targets: x86_64-pc-windows-msvc
       - uses: Swatinem/rust-cache@v2
         with:
           workspaces: src-tauri
       - run: npm ci
+      - run: npm run check:development
       - run: npm run prepare:runtime
+      - run: cargo check --manifest-path src-tauri/Cargo.toml --locked --target x86_64-pc-windows-msvc
       - run: npm test
       - run: npm run test:integration
       - run: npm run test:confidence
@@ -32,3 +36,9 @@ jobs:
           path: |
             src-tauri/target/x86_64-pc-windows-msvc/release/bundle/nsis/*setup.exe
             artifacts/PAM-windows-x64/
+  linux:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: docker build -f Dockerfile.development -t pam-development .
+      - run: docker run --rm pam-development

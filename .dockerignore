@@ -1,0 +1,17 @@
+.git
+.agents
+.codex
+.aws
+**/node_modules
+**/target
+dist
+dist-ssr
+artifacts
+.runtime-cache
+src-tauri/runtime
+src-tauri/binaries
+src-tauri/gen
+*.local
+*.log
+.env
+.env.*
