@@ -335,3 +335,66 @@ fn concurrent_requests_execute_in_queue_order() {
     }
     assert_eq!(fixture.executions(), ["first", "second", "third"]);
 }
+
+#[test]
+fn interruption_preserves_per_action_outcomes_and_restart_does_not_replay() {
+    for mode in ["partial-timeout", "partial-eof"] {
+        let fixture = Fixture::new(mode, Duration::from_millis(600), 4);
+        let start = Instant::now();
+        let turn = fixture
+            .bridge
+            .request("confirm", json!({"label":"emitted"}))
+            .unwrap();
+        assert!(start.elapsed() < Duration::from_secs(2));
+        assert_eq!(turn["status"], "partial");
+        assert_eq!(turn["results"][0]["outcome"], "performed");
+        assert_eq!(turn["results"][1]["outcome"], "unknown");
+        assert_eq!(turn["results"][2]["outcome"], "not_started");
+        fixture.wait_for(|| fixture.bridge.is_idle());
+        fixture.mode("echo");
+        fixture.bridge.restart();
+        assert_eq!(
+            fixture
+                .bridge
+                .request("status", json!({"label":"recovered"}))
+                .unwrap()["label"],
+            "recovered"
+        );
+        assert_eq!(fixture.executions(), ["emitted", "recovered"]);
+    }
+}
+
+#[test]
+fn sidecar_receives_budget_after_queueing_and_startup() {
+    let fixture = Fixture::new("late", Duration::from_secs(4), 4);
+    let bridge = fixture.bridge.clone();
+    let first = thread::spawn(move || bridge.request("confirm", json!({"label":"first"})));
+    fixture.ready();
+    fixture.at_stage(RESPONSE);
+    fixture
+        .bridge
+        .request("confirm", json!({"label":"second"}))
+        .unwrap();
+    first.join().unwrap().unwrap();
+    let budgets: Vec<u64> = fs::read_to_string(fixture.profile.join("budgets"))
+        .unwrap()
+        .lines()
+        .map(|line| line.parse().unwrap())
+        .collect();
+    assert_eq!(budgets.len(), 2);
+    assert!(budgets[0] <= 3_500);
+    assert!(budgets[1] < budgets[0].saturating_sub(1_000));
+}
+
+#[test]
+fn unrelated_progress_cannot_supply_a_partial_result() {
+    let fixture = Fixture::new("invalid-progress", Duration::from_secs(2), 4);
+    assert_eq!(
+        fixture
+            .bridge
+            .request("confirm", json!({}))
+            .unwrap_err()
+            .code,
+        "bridge_protocol"
+    );
+}

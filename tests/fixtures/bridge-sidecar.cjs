@@ -19,11 +19,19 @@ if (mode === 'never-read-child') {
   const lines = readline.createInterface({ input: process.stdin });
   lines.on('line', line => {
     const request = JSON.parse(line);
+    fs.appendFileSync(path.join(profile, 'budgets'), `${request.remainingMs}\n`);
     if (mode === 'eof') process.exit(0); // Read the request, then close the pipe.
     fs.appendFileSync(path.join(profile, 'executions'), `${request.payload?.label ?? request.method}\n`);
     const reply = () => process.stdout.write(JSON.stringify({ id: request.id, ok: true,
       result: { label: request.payload?.label, pid: process.pid } }) + '\n');
-    if (mode === 'late') setTimeout(reply, 1500);
+    if (mode === 'partial-timeout' || mode === 'partial-eof') {
+      const turn = {id:'11111111-1111-4111-8111-111111111111',transcript:'fixture',language:'fr',confidence:1,reasoning:'',durationMs:0,status:'partial',
+        calls:[{name:'first'},{name:'second'},{name:'third'}],
+        results:[{outcome:'performed',success:true,message:'First performed'}, {outcome:'unknown',success:false,message:'Second emitted'}, {outcome:'not_started',success:false,message:'Third not started'}]};
+      process.stdout.write(JSON.stringify({type:'turn_progress',id:request.id,turn})+'\n', () => {if(mode==='partial-eof')process.exit(0);});
+    }
+    else if (mode === 'invalid-progress') process.stdout.write(JSON.stringify({type:'turn_progress',id:request.id+1,turn:{}})+'\n');
+    else if (mode === 'late') setTimeout(reply, 1500);
     else if (mode === 'silent') { /* read stdin, never answer */ }
     else reply();
   });

@@ -59,6 +59,7 @@ export interface Turn {
   calls: { name: string; arguments: Record<string, string>; applicationId: string; applicationName: string; action?: string; actionLabel?: string }[];
   correctedFrom?: string;
   commandAliasId?: string;
-  results: { applicationName: string; success: boolean; message: string }[];
-  status: 'executed' | 'pending' | 'unsupported' | 'silence' | 'failed' | 'cancelled';
+  results: { index?: number; name?: string; applicationId?: string; applicationName: string; success: boolean; message: string;
+    outcome?: 'not_started' | 'performed' | 'failed' | 'unknown' }[];
+  status: 'executed' | 'pending' | 'unsupported' | 'silence' | 'failed' | 'cancelled' | 'partial';
 }

@@ -2,6 +2,8 @@ const { createAssistant } = require('./assistant.cjs');
 const { createHostChannel, hostLauncher, hostNativeRequest } = require('./host.cjs');
 const { createMedia } = require('./media.cjs');
 const { nativeRequest } = require('./native.cjs');
+const { createBudget } = require('./budget.cjs');
+const { performance } = require('node:perf_hooks');
 
 const { createEngine } = require('./engine.cjs');
 const [runtimeDirectory, configDirectory] = process.argv.slice(2);
@@ -14,13 +16,18 @@ const handle = createAssistant({ runtimeDirectory, configDirectory, runEngine: e
 let buffer = '';
 let queue = Promise.resolve();
 function enqueue(input) {
+  const admittedAt = performance.now();
   queue = queue.then(async () => {
     let request;
     const timer = setTimeout(() => process.exit(70), 45_000);
     try {
       if (!runtimeDirectory || !configDirectory) throw new Error('Chemins du sidecar manquants.');
       request = JSON.parse(input);
-      const result = await handle(request.method, request.payload);
+      const remaining = Number.isFinite(request.remainingMs) ? request.remainingMs : 40_000;
+      const transportRemaining = Number.isFinite(request.deadlineUnixMs) ? request.deadlineUnixMs-Date.now() : remaining;
+      const budget = createBudget({milliseconds:Math.max(0,Math.min(transportRemaining,remaining-(performance.now()-admittedAt)))});
+      const result = await handle(request.method, request.payload, {budget,
+        onProgress: turn => process.stdout.write(JSON.stringify({type:'turn_progress',id:request.id,turn})+'\n')});
       process.stdout.write(JSON.stringify({ id: request.id, ok: true, result }) + '\n');
     } catch (error) {
       process.stdout.write(JSON.stringify({ id: request?.id, ok: false, error: error.message }) + '\n');

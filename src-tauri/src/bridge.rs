@@ -13,7 +13,7 @@ use std::{
         Arc, Mutex,
     },
     thread::{self, JoinHandle},
-    time::{Duration, Instant},
+    time::{Duration, Instant, SystemTime, UNIX_EPOCH},
 };
 
 const REQUEST_LIMIT: usize = 5_000_000;
@@ -56,8 +56,27 @@ struct Attempt {
     deadline: Instant,
     stage: AtomicU8,
     cancelled: AtomicBool,
+    progress: Mutex<Option<Value>>,
 }
 impl Attempt {
+    fn partial(&self, error: &Error) -> Option<Value> {
+        let mut turn = self
+            .progress
+            .lock()
+            .unwrap_or_else(|e| e.into_inner())
+            .clone()?;
+        turn["status"] = json!("partial");
+        turn["message"] = json!(format!("{error} Vérifiez les actions dont le résultat est inconnu avant toute nouvelle demande."));
+        if let Some(results) = turn["results"].as_array_mut() {
+            for result in results {
+                if result["outcome"] == "unknown" {
+                    result["success"] = json!(false);
+                    result["message"] = json!("Résultat inconnu : la commande a pu être effectuée. Aucun rejeu automatique.");
+                }
+            }
+        }
+        Some(turn)
+    }
     fn timeout(&self) -> Error {
         let (code, stage) = match self.stage.load(Ordering::Acquire) {
             STARTING => ("bridge_start_timeout", "démarrage"),
@@ -184,6 +203,7 @@ impl Bridge {
             deadline,
             stage: AtomicU8::new(QUEUED),
             cancelled: AtomicBool::new(false),
+            progress: Mutex::new(None),
         });
         attempt.check(&self.control)?;
         let mut bytes =
@@ -219,7 +239,8 @@ impl Bridge {
             Ok(result) if Instant::now() < deadline => result,
             Ok(_) | Err(RecvTimeoutError::Timeout) => {
                 self.control.cancel(&attempt);
-                Err(attempt.timeout())
+                let error = attempt.timeout();
+                attempt.partial(&error).ok_or(error)
             }
             Err(RecvTimeoutError::Disconnected) => {
                 Err(Error::new("bridge_stopped", "Le bridge est indisponible."))
@@ -311,6 +332,10 @@ fn run_actor(config: Config, receiver: Receiver<Operation>, control: Arc<Control
             .lock()
             .unwrap_or_else(|e| e.into_inner())
             .active = None;
+        let result = match result {
+            Err(error) => attempt.partial(&error).ok_or(error),
+            result => result,
+        };
         let _ = operation.reply.send(result);
         control.pending.fetch_sub(1, Ordering::AcqRel);
     }
@@ -495,7 +520,27 @@ impl Worker {
     }
     fn execute(&mut self, operation: &Operation, catalogue: &Catalogue) -> Result<Value, Error> {
         let attempt = &operation.attempt;
-        self.write(&operation.bytes, attempt)?;
+        // Queueing/startup already consumed part of the admission deadline.
+        // Send the current remainder, with room for the final report.
+        let remaining = attempt
+            .deadline
+            .saturating_duration_since(Instant::now())
+            .as_millis() as u64;
+        let mut request: Value = serde_json::from_slice(&operation.bytes)
+            .map_err(|e| Error::new("bridge_protocol", e.to_string()))?;
+        let remaining = remaining.saturating_sub(remaining.min(1_000) / 2);
+        request["remainingMs"] = json!(remaining);
+        request["deadlineUnixMs"] = json!(
+            SystemTime::now()
+                .duration_since(UNIX_EPOCH)
+                .map_err(|e| Error::new("bridge_protocol", e.to_string()))?
+                .as_millis()
+                + remaining as u128
+        );
+        let mut bytes = serde_json::to_vec(&request)
+            .map_err(|e| Error::new("bridge_protocol", e.to_string()))?;
+        bytes.push(b'\n');
+        self.write(&bytes, attempt)?;
         let mut executed = HashSet::new();
         loop {
             attempt.stage.store(RESPONSE, Ordering::Release);
@@ -518,6 +563,17 @@ impl Worker {
                     ))
                 }
             };
+            if response["type"] == "turn_progress" {
+                if response["id"] != attempt.id || !valid_progress(&response["turn"]) {
+                    return Err(Error::new(
+                        "bridge_protocol",
+                        "Progression d’exécution invalide.",
+                    ));
+                }
+                *attempt.progress.lock().unwrap_or_else(|e| e.into_inner()) =
+                    Some(response["turn"].clone());
+                continue;
+            }
             if response["type"] != "host_request" {
                 if response["id"] != attempt.id {
                     return Err(Error::new(
@@ -551,6 +607,12 @@ impl Worker {
             }
             attempt.stage.store(HOST_EFFECT, Ordering::Release);
             attempt.check(&self.control)?;
+            if response["remainingMs"].as_u64() == Some(0) {
+                return Err(Error::new(
+                    "bridge_host_timeout",
+                    "Budget épuisé avant effet natif.",
+                ));
+            }
             let result = launch::handle(
                 response["method"].as_str().unwrap_or(""),
                 &response["payload"],
@@ -567,6 +629,23 @@ impl Worker {
             self.write(&bytes, attempt)?;
         }
     }
+}
+fn valid_progress(turn: &Value) -> bool {
+    turn["id"]
+        .as_str()
+        .is_some_and(|id| id.len() == 36 && id.bytes().all(|b| b.is_ascii_hexdigit() || b == b'-'))
+        && turn["calls"]
+            .as_array()
+            .is_some_and(|calls| !calls.is_empty() && calls.len() <= 8)
+        && turn["results"].as_array().is_some_and(|results| {
+            results.len() == turn["calls"].as_array().unwrap().len()
+                && results.iter().all(|result| {
+                    matches!(
+                        result["outcome"].as_str(),
+                        Some("not_started" | "performed" | "failed" | "unknown")
+                    )
+                })
+        })
 }
 impl Drop for Worker {
     fn drop(&mut self) {

@@ -11,6 +11,8 @@ const { ACTIONS: ALIAS_ACTIONS, validateStore, findCommandAlias, saveCommandAlia
 const {recognizeDeezerCommand,deezerCommandIssue,deezerActionLabel} = require('./deezer-commands.cjs');
 const {resolveMediaCommand} = require('./media-commands.cjs');
 const { createTemporaryFiles, atomicJson: writeAtomicJson } = require('./temporary-files.cjs');
+const { createBudget, interruptedTurn } = require('./budget.cjs');
+const { executionStore } = require('./execution.cjs');
 
 const LANGUAGES = new Set(['auto', 'fr', 'en', 'de', 'es', 'it', 'nl', 'pl']);
 const MAX_AUDIO_BYTES = 44 + 16_000 * 30 * 2;
@@ -245,9 +247,11 @@ function parseEngineOutput(stdout) {
   throw new Error('Le moteur Needle n’a pas renvoyé de JSON valide.');
 }
 
-async function launch(application, args) {
+async function launch(application, args, { budget, beforeEffect } = {}) {
   ensure((await fs.stat(application.executable)).isFile(), `Exécutable de ${application.name} introuvable.`);
   const argv = application.arguments.map(argument => argument.replaceAll('{input}', args.input ?? ''));
+  await beforeEffect?.();
+  budget?.check('lancement');
   await new Promise((resolve, reject) => {
     const child = spawn(application.executable, argv, { shell: false, windowsHide: true, detached: true, stdio: 'ignore' });
     child.once('error', reject);
@@ -256,28 +260,63 @@ async function launch(application, args) {
   return { applicationName: application.name, success: true, message: `${application.name} lancé.` };
 }
 
-function createAssistant({ runtimeDirectory, configDirectory, runEngine = executeFile, launchApplication = launch, engine, media = createMedia() }) {
+function createAssistant({ runtimeDirectory, configDirectory, runEngine = executeFile, launchApplication = launch, engine, media = createMedia(), now, setTimer, clearTimer, budgetMs = 40_000 }) {
   const temporaryFiles = createTemporaryFiles(configDirectory);
   const atomicJson = (destination, value) => writeAtomicJson(destination, value, configDirectory);
   let startupCleanup = temporaryFiles.collect();
   const configPath = path.join(configDirectory, 'applications.json');
   const pendingDirectory = path.join(configDirectory, 'pending');
-  async function executeCalls(calls, config) {
+  const executions = executionStore(configDirectory);
+  async function executeCalls(turn, config, context) {
     // Validate the whole plan before any executable is launched.
-    const validated = validateCalls(calls, config);
-    const results = [];
-    for (const call of validated) {
+    const validated = validateCalls(turn.calls, config);
+    const { budget, onProgress = () => {} } = context;
+    turn.results = validated.map((call, index) => ({index, name:call.name, applicationId:call.applicationId, applicationName:call.applicationName,
+      outcome:'not_started', success:false, message:'Action non démarrée.'}));
+    const publish = async (complete = false) => {
+      await executions.save(turn, complete);
+      onProgress(structuredClone(turn));
+    };
+    await publish();
+    for (const [index, call] of validated.entries()) {
+      if (budget.remaining() <= 0) break;
       const application = config.applications.find(app => app.id === call.applicationId);
-      try { results.push(call.action && call.action !== 'open' ? await media.execute(application,call.action,call.arguments) : await launchApplication(application, call.arguments)); }
-      catch (error) { results.push({ applicationName: application.name, success: false, message: error.message }); }
+      let emitted = false;
+      const beforeEffect = async () => {
+        budget.check('avant effet');
+        turn.results[index] = {...turn.results[index],outcome:'unknown',message:'Commande émise ; résultat non confirmé.'};
+        // Persist intent before emission. A crash between these steps is
+        // conservatively unknown and never grants permission to replay.
+        await publish();
+        budget.check('avant effet');
+        emitted = true;
+      };
+      try {
+        const result = await budget.run(() => call.action && call.action !== 'open'
+          ? media.execute(application,call.action,call.arguments,{budget,beforeEffect})
+          : launchApplication(application,call.arguments,{budget,beforeEffect}), 'exécution');
+        turn.results[index] = {...turn.results[index],...result,outcome:result.success ? 'performed' : 'failed'};
+      } catch (error) {
+        const timedOut = error.code === 'budget_expired' || error.outcome === 'unknown';
+        turn.results[index] = {...turn.results[index],success:false,
+          outcome:timedOut ? (emitted ? 'unknown' : 'not_started') : 'failed',message:error.message};
+      }
+      await publish();
+      if (budget.remaining() <= 0 || turn.results[index].outcome === 'unknown') break;
     }
-    return results;
+    turn.status = turn.results.every(result=>result.outcome==='performed') ? 'executed'
+      : turn.results.some(result=>['unknown','not_started'].includes(result.outcome)) ? 'partial' : 'failed';
+    turn.durationMs = budget.elapsed();
+    if (turn.status==='partial') turn.message='La demande s’est arrêtée avant confirmation de toutes les actions. Vérifiez les résultats avant de reformuler.';
+    await publish(true);
+    return turn;
   }
-  return async function handle(method, payload = {}) {
-    await startupCleanup;
+  async function handle(method, payload, context) {
+    const { budget } = context;
+    await budget.run(() => startupCleanup, 'nettoyage initial');
     startupCleanup = null;
-    const temporaryCleanup = await temporaryFiles.collect();
-    const config = await readConfig(configDirectory);
+    const temporaryCleanup = await budget.run(() => temporaryFiles.collect(), 'nettoyage');
+    const config = await budget.run(() => readConfig(configDirectory), 'configuration');
     if (method === 'status') {
       const files = ['needle.exe', 'models/needle3.cact', 'models/whistle.cact', 'npm/bin/npm-cli.js', 'libneedle3.dll', 'ffi/node_modules/@koromix/koffi-win32-x64/win32_x64/koffi.node'];
       const checks = await Promise.all(files.map(async file => {
@@ -287,15 +326,15 @@ function createAssistant({ runtimeDirectory, configDirectory, runEngine = execut
       let manifest = null;
       try { manifest = JSON.parse(await fs.readFile(path.join(runtimeDirectory, 'manifest.json'), 'utf8')); } catch {}
       const ready = checks.every(check => check.available);
-      if (ready && engine) await engine.warm();
+      if (ready && engine) await budget.run(() => engine.warm({timeout:budget.timeout()}), 'chargement des moteurs');
       return { ready, checks, manifest, config, configDirectory, temporaryCleanup, engine: engine?.status() ?? null };
     }
     if (method === 'restart_engine') {
       ensure(engine, 'Le moteur persistant est indisponible.');
-      await engine.close(); await engine.warm();
+      await engine.close(); await budget.run(() => engine.warm({timeout:budget.timeout()}), 'chargement des moteurs');
       return engine.status();
     }
-    if (method === 'media_sessions') return media.sessions();
+    if (method === 'media_sessions') return budget.run(() => media.sessions({budget}), 'sessions');
     if (method === 'prepare_action') {
       // A user click creates the same one-shot confirmation as a model proposal.
       const app = config.applications.find(app => app.id === payload.applicationId && app.enabled);
@@ -326,7 +365,7 @@ function createAssistant({ runtimeDirectory, configDirectory, runEngine = execut
       ensure(payload.input === undefined || (typeof payload.input === 'string' && payload.input.length <= 2048 && !payload.input.includes('\0')), 'Texte du test invalide.');
       ensure(!needsInput || payload.input?.trim(), 'Renseignez le texte, le fichier ou l’URL à transmettre pour le test.');
       try {
-        const result = await launchApplication(application, needsInput ? { input: payload.input } : {});
+        const result = await budget.run(() => launchApplication(application, needsInput ? { input: payload.input } : {}, {budget}), 'test de lancement');
         return { ...result, message: `Commande de lancement envoyée à ${application.name}. Vérifiez que l’application s’est ouverte.` };
       } catch (error) { return { applicationName: application.name, success: false, message: error.message }; }
     }
@@ -358,6 +397,13 @@ function createAssistant({ runtimeDirectory, configDirectory, runEngine = execut
     }
     if (method === 'confirm' || method === 'discard') {
       ensure(typeof payload.id === 'string' && /^[0-9a-f-]{36}$/.test(payload.id), 'Identifiant de demande invalide.');
+      if (method === 'confirm') {
+        const previous = await executions.read(payload.id);
+        if (previous) {
+          ensure(previous.status==='partial', 'Cette confirmation a déjà été consommée. Aucun rejeu autorisé.');
+          return previous;
+        }
+      }
       const file = path.join(pendingDirectory, `${payload.id}.json`);
       const pending = JSON.parse(await fs.readFile(file, 'utf8'));
       // Consume before executing, so the same approval cannot launch twice.
@@ -365,8 +411,7 @@ function createAssistant({ runtimeDirectory, configDirectory, runEngine = execut
       if (method === 'discard') return { status: 'cancelled' };
       ensure(Date.now() - pending.createdAt < 10 * 60_000, 'Cette demande a expiré. Relancez votre demande.');
       ensure(pending.configDigest === configDigest(config), 'Les applications ont changé. Relancez votre demande.');
-      const results = await executeCalls(pending.calls, config);
-      return { ...pending.turn, status: results.every(result => result.success) ? 'executed' : 'failed', results };
+      return executeCalls({...pending.turn}, config, context);
     }
     if (method === 'correct_request') {
       ensure(typeof payload.id === 'string' && /^[0-9a-f-]{36}$/.test(payload.id), 'Identifiant de demande invalide.');
@@ -407,22 +452,20 @@ function createAssistant({ runtimeDirectory, configDirectory, runEngine = execut
     ensure(method === 'process_text' || method === 'process_audio' || method === 'correct_request', 'Méthode inconnue.');
     let sessions;
     if (config.applications.some(app => app.enabled && app.media)) {
-      try { sessions = await media.sessions(); } catch { sessions = []; }
+      try { sessions = await budget.run(() => media.sessions({budget}), 'sessions'); }
+      catch (error) { if(error.code==='budget_expired')throw error; sessions = []; }
     }
     const tools = toolsFor(config,sessions);
     ensure(tools.length > 0, 'Ajoutez et activez au moins une application avant de faire une demande.');
     await fs.mkdir(configDirectory, { recursive: true });
     const lease = await temporaryFiles.createTurn();
     const temporary = lease.directory;
-    const startedAt = Date.now();
     async function infer(args) {
-      // Both stages share the same budget, within the sidecar's 45s lifetime.
-      const timeout = 40_000 - (Date.now() - startedAt);
-      ensure(timeout > 0, 'Le moteur Cactus a dépassé le délai de 40 secondes.');
-      const { stdout } = await runEngine(path.join(runtimeDirectory, 'needle.exe'), args, {
+      const timeout = budget.timeout();
+      const { stdout } = await budget.run(() => runEngine(path.join(runtimeDirectory, 'needle.exe'), args, {
         timeout, maxBuffer: 1024 * 1024, windowsHide: true, encoding: 'utf8', shell: false,
         env: { ...process.env, NEEDLE_TELEMETRY: '0', DO_NOT_TRACK: '1' },
-      });
+      }), 'inférence');
       const response = parseEngineOutput(stdout);
       ensure(response.success !== false, response.error || 'Le moteur a refusé la demande.');
       return response;
@@ -446,7 +489,7 @@ function createAssistant({ runtimeDirectory, configDirectory, runEngine = execut
         if (LANGUAGES.has(speech.language) && speech.language !== 'auto') language = speech.language;
       } else transcript = cleanText(payload.text, 'Demande', 2000);
       const turn = { id: randomUUID(), transcript, language, confidence: null, reasoning: '',
-        durationMs: Date.now() - startedAt, calls: [], results: [], status: 'unsupported' };
+        durationMs: budget.elapsed(), calls: [], results: [], status: 'unsupported' };
       if (!transcript) return { ...turn, status: 'silence' };
       const alias=findCommandAlias(transcript,config);
       if(alias) {
@@ -510,13 +553,13 @@ function createAssistant({ runtimeDirectory, configDirectory, runEngine = execut
         ensure(response.audio_text.length <= 2000 && !response.audio_text.includes('\0'), 'Transcription Whistle invalide.');
         turn.transcript = response.audio_text.trim();
         if (LANGUAGES.has(response.audio_language) && response.audio_language !== 'auto') turn.language = response.audio_language;
-        if (!turn.transcript) return { ...turn, status: 'silence', durationMs: Date.now() - startedAt };
+        if (!turn.transcript) return { ...turn, status: 'silence', durationMs: budget.elapsed() };
       }
       const confidence = typeof response.confidence === 'number' && Number.isFinite(response.confidence) &&
         response.confidence >= 0 && response.confidence <= 1 ? response.confidence : null;
       turn.confidence = confidence;
       turn.reasoning = typeof response.reasoning === 'string' ? response.reasoning : '';
-      turn.durationMs = Date.now() - startedAt;
+      turn.durationMs = budget.elapsed();
       ensure(Array.isArray(response.function_calls), 'Réponse Needle invalide : function_calls manquant.');
       const suppressed = response.function_calls.length === 0 && Array.isArray(response.suppressed_calls) && response.suppressed_calls.length > 0;
       const calls = suppressed ? response.suppressed_calls : response.function_calls;
@@ -563,8 +606,7 @@ function createAssistant({ runtimeDirectory, configDirectory, runEngine = execut
       }
       const ungrounded = Array.isArray(response.validation?.ungrounded) && response.validation.ungrounded.length > 0;
       if (method !== 'correct_request' && config.autoExecute && !suppressed && !ungrounded && confidence !== null && confidence >= config.confidenceThreshold) {
-        turn.results = await executeCalls(turn.calls, config);
-        turn.status = turn.results.every(result => result.success) ? 'executed' : 'failed';
+        await executeCalls(turn, config, context);
       } else {
         turn.status = 'pending';
         await atomicJson(path.join(pendingDirectory, `${turn.id}.json`), {
@@ -574,6 +616,15 @@ function createAssistant({ runtimeDirectory, configDirectory, runEngine = execut
       return turn;
     } finally {
       await lease.release();
+    }
+  }
+  return async (method, payload = {}, context = {}) => {
+    const budget = context.budget || createBudget({milliseconds:budgetMs, ...(now ? {now} : {}), ...(setTimer ? {setTimer,clearTimer} : {})});
+    try { return await handle(method,payload,{...context,budget}); }
+    catch (error) {
+      if(error.code!=='budget_expired')throw error;
+      return interruptedTurn({id:randomUUID(),transcript:typeof payload.text==='string'?payload.text:'',language:'fr',confidence:null,
+        reasoning:'',durationMs:budget.elapsed(),calls:[],results:[]},error.message);
     }
   };
 }

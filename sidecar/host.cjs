@@ -5,15 +5,17 @@ const { randomUUID } = require('node:crypto');
 function createHostChannel(write, { timeout = 12_000 } = {}) {
   const pending = new Map();
   return {
-    request(method, payload) {
+    request(method, payload, {budget} = {}) {
+      try { budget?.check('transport hôte'); } catch(error) { return Promise.reject(error); }
       const id = randomUUID();
       return new Promise((resolve, reject) => {
         const timer = setTimeout(() => {
           pending.delete(id);
-          reject(new Error('L’hôte de lancement n’a pas répondu. La commande ne sera pas rejouée.'));
-        }, timeout);
+          const error=new Error('L’hôte de lancement n’a pas répondu. La commande ne sera pas rejouée.');
+          error.outcome='unknown';reject(error);
+        }, budget ? budget.timeout(timeout) : timeout);
         pending.set(id, { resolve, reject, timer });
-        try { write(JSON.stringify({ type: 'host_request', id, method, payload }) + '\n'); }
+        try { write(JSON.stringify({ type: 'host_request', id, method, payload, ...(budget ? {remainingMs:budget.remaining()} : {}) }) + '\n'); }
         catch (error) { clearTimeout(timer); pending.delete(id); reject(error); }
       });
     },
@@ -29,7 +31,7 @@ function createHostChannel(write, { timeout = 12_000 } = {}) {
     },
     close() {
       for (const request of pending.values()) {
-        clearTimeout(request.timer); request.reject(new Error('L’hôte de lancement a été interrompu.'));
+        clearTimeout(request.timer); const error=new Error('L’hôte de lancement a été interrompu.');error.outcome='unknown';request.reject(error);
       }
       pending.clear();
     },
@@ -37,17 +39,19 @@ function createHostChannel(write, { timeout = 12_000 } = {}) {
 }
 
 function hostLauncher(request) {
-  return async (application, args) => {
+  return async (application, args, options = {}) => {
     const argv = application.arguments.map(argument => argument.replaceAll('{input}', args.input ?? ''));
-    const result = await request('launch_application', { ...application, arguments: argv });
+    if(options.beforeEffect)await options.beforeEffect();
+    options.budget?.check('lancement hôte');
+    const result = await request('launch_application', { ...application, arguments: argv }, options);
     if (result?.accepted !== true) throw new Error('Windows a refusé le lancement.');
     return { applicationName: application.name, success: true, message: `${application.name} lancé.`, details: result };
   };
 }
 
 function hostNativeRequest(hostRequest, nativeRequest) {
-  return request => request.method === 'deezer_open'
-    ? hostRequest('deezer_open', request) : nativeRequest(request);
+  return (request, options) => request.method === 'deezer_open'
+    ? hostRequest('deezer_open', request, options) : nativeRequest(request, options);
 }
 
 module.exports = { createHostChannel, hostLauncher, hostNativeRequest };

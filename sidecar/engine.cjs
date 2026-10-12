@@ -43,22 +43,22 @@ function createEngine(runtimeDirectory, { workerFactory = data => new Worker(pat
   }
   const runEngine = async (_file, args, { timeout }) => {
     const value = flag => args[args.indexOf(flag) + 1];
-    const started = Date.now();
+    const budget = require('./budget.cjs').createBudget({milliseconds:timeout});
     const operation = args.includes('--tools') ? 'complete' : 'transcribe';
     const payload = operation === 'complete'
       ? { text: value('--prompt'), tools: JSON.parse(await fs.readFile(value('--tools'), 'utf8')), system: await fs.readFile(value('--system'), 'utf8') }
       : { audioPath: value('--audio'), language: args.includes('--audio-language') ? value('--audio-language') : null,
         keywords: await fs.readFile(value('--audio-keywords'), 'utf8') };
-    try { return { stdout: JSON.stringify(await send(operation, payload, timeout)) }; }
+    try { return { stdout: JSON.stringify(await send(operation, payload, budget.timeout())) }; }
     catch (error) {
-      if (worker || Date.now() - started >= timeout) throw error;
-      return { stdout: JSON.stringify(await send(operation, payload, timeout - (Date.now() - started))) };
+      if (worker || budget.remaining()<=0) throw error;
+      return { stdout: JSON.stringify(await send(operation, payload, budget.timeout())) };
     }
   };
   runEngine.unicode = true;
   return {
     runEngine,
-    warm: () => send('warm', {}, 40_000),
+    warm: ({timeout=40_000} = {}) => send('warm', {}, timeout),
     status: () => ({ loaded, generation, pid: process.pid }),
     async close() {
       const current = worker; worker = undefined; loaded = false;

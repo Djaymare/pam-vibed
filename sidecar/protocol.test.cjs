@@ -23,8 +23,8 @@ test('le sidecar garde un seul processus, corrige les demandes et s’arrête à
     const reply = JSON.parse(line); const waiter = pending.get(reply.id);
     if (waiter) { pending.delete(reply.id); waiter(reply); }
   });
-  const request = (method, payload = {}) => new Promise(resolve => {
-    const id = ++serial; pending.set(id, resolve); child.stdin.write(JSON.stringify({ id, method, payload }) + '\n');
+  const request = (method, payload = {}, transport = {}) => new Promise(resolve => {
+    const id = ++serial; pending.set(id, resolve); child.stdin.write(JSON.stringify({ id, method, payload, ...transport }) + '\n');
   });
   const first = await request('status');
   assert.equal(first.ok, true); assert.equal(first.result.engine.loaded, true); assert.equal(first.result.engine.pid, child.pid);
@@ -44,5 +44,8 @@ test('le sidecar garde un seul processus, corrige les demandes et s’arrête à
   const after = await request('process_text', { text: 'Diseur' });
   assert.equal(after.result.calls[0].applicationName, 'Deezer');
   await request('discard', { id: corrected.result.id }); await request('discard', { id: after.result.id });
+  const expired = await request('process_text',{text:'Diseur'},{remainingMs:40_000,deadlineUnixMs:Date.now()-1});
+  assert.equal(expired.result.status,'partial');assert.deepEqual(expired.result.calls,[]);
+  assert.deepEqual(expired.result.results,[]);assert.match(expired.result.message,/délai global/);
   child.stdin.end(); assert.equal(await closed, 0);
 });

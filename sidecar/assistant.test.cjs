@@ -15,7 +15,7 @@ function wav() {
   buffer.writeUInt32LE(16000, 24); buffer.writeUInt32LE(32000, 28); buffer.writeUInt16LE(2, 32); buffer.writeUInt16LE(16, 34);
   buffer.write('data', 36); buffer.writeUInt32LE(buffer.length - 44, 40); return Array.from(buffer);
 }
-async function fixture(t, response, overrides = {}) {
+async function fixture(t, response, overrides = {}, assistantOptions = {}) {
   const temporary = await fs.mkdtemp(path.join(os.tmpdir(), 'pam-test-'));
   t.after(async () => {
     assert.equal(path.dirname(path.resolve(temporary)), path.resolve(os.tmpdir()));
@@ -28,6 +28,7 @@ async function fixture(t, response, overrides = {}) {
   const requests = [];
   let invocations = 0;
   const handle = createAssistant({ configDirectory: temporary, runtimeDirectory: temporary,
+    ...(assistantOptions.now ? {setTimer:()=>0,clearTimer:()=>{}} : {}), ...assistantOptions,
     runEngine: async (_file, args, options) => {
       invocations++;
       assert.equal(options.shell, false); assert.equal(options.env.NEEDLE_TELEMETRY, '0');
@@ -262,19 +263,20 @@ test('la langue détectée par Whistle est conservée et son score ne déclenche
 });
 
 test('le budget de 40 secondes est partagé entre Whistle et Needle', async t => {
-  t.mock.timers.enable({ apis: ['Date'], now: Date.now() });
+  let elapsed=0;
   const f = await fixture(t, invocation => {
-    if (invocation === 1) { t.mock.timers.tick(1500); return { text: 'diseur', language: 'fr' }; }
+    if (invocation === 1) { elapsed+=1500; return { text: 'diseur', language: 'fr' }; }
     return { confidence: 0.3, function_calls: [{ name: toolName(deezer), arguments: {} }] };
-  }, aliasConfig);
+  }, aliasConfig, {now:()=>elapsed});
   await f.handle('process_audio', { audio: wav() });
   assert.equal(f.requests[0].timeout, 40_000); assert.equal(f.requests[1].timeout, 38_500);
 });
 
 test('un budget épuisé pendant Whistle empêche le démarrage de Needle et nettoie l’audio', async t => {
-  t.mock.timers.enable({ apis: ['Date'], now: Date.now() });
-  const f = await fixture(t, () => { t.mock.timers.tick(40_001); return { text: 'diseur', language: 'fr' }; }, aliasConfig);
-  await assert.rejects(f.handle('process_audio', { audio: wav() }), /délai de 40 secondes/);
+  let elapsed=0;
+  const f = await fixture(t, () => { elapsed+=40_001; return { text: 'diseur', language: 'fr' }; }, aliasConfig,{now:()=>elapsed});
+  const turn=await f.handle('process_audio', { audio: wav() });
+  assert.equal(turn.status,'partial');assert.match(turn.message,/délai global/);assert.deepEqual(turn.results,[]);
   assert.equal(f.invocations(), 1); assert.equal(f.launched.length, 0);
   assert.deepEqual((await fs.readdir(f.directory)).filter(name => name.startsWith('turn-')), []);
 });
