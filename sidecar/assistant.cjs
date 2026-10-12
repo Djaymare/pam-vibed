@@ -122,9 +122,44 @@ function resolveInvocation(transcript, tools, config,mediaCommand) {
   if (matched.length !== 1) return { prompt: transcript, requestTools: tools };
   const application = config.applications.find(app => app.id === matched[0].applicationId);
   if(findCommandAlias(transcript,config) && matched[0].action==='open' && application.arguments.some(argument=>argument.includes('{input}')))
-    return {prompt:transcript,requestTools:matched};
+    return {prompt:transcript,requestTools:matched,singleAction:true};
   if (matched[0].action.startsWith('deezer_') && !matched[0].boundArguments) return {prompt:transcript,requestTools:matched};
-  return { prompt: canonicalPrompt(matched[0], application), requestTools: matched };
+  return { prompt: canonicalPrompt(matched[0], application), requestTools: matched, singleAction:true };
+}
+function validateCardinality(transcript, calls, tools, singleAction) {
+  // Quoted/input text cannot authorize extra effects. Repetitions are grounded
+  // in literal opening clauses, never in the model's confidence or reasoning.
+  const command = transcript.replace(/«[^»]*»|"[^"]*"|“[^”]*”/gu, ' ')
+    .split(/\b(?:avec\s+(?:le\s+)?texte|with\s+(?:the\s+)?text)\b/iu)[0];
+  const clauses = command.split(/\s+(?:et|puis|and|then)\s+|[;,]/iu).filter(clause=>clause.trim());
+  const words = {une:1,un:1,deux:2,trois:3,quatre:4,cinq:5,six:6,sept:7,huit:8,
+    one:1,two:2,three:3,four:4,five:5,seven:7,eight:8,once:1,twice:2};
+  const repeatPattern = /\b(?:(une?|deux|trois|quatre|cinq|six|sept|huit|one|two|three|four|five|seven|eight|[1-8])\s+(?:fois|times?)|once|twice)\b/giu;
+  const limits = new Map();
+  let maxCalls = 0;
+  for (const clause of clauses) {
+    const repeats = [...clause.matchAll(repeatPattern)];
+    const literal = clause.replace(repeatPattern,' ').replace(/\s+/g,' ').trim();
+    const matched = tools.filter(tool=>tool.action==='open' && tool.triggers.some(pattern=>new RegExp(pattern,'i').test(literal)));
+    // Unsupported repetition wording grants no additional allowance.
+    const token = repeats.length===1 ? (repeats[0][1] || repeats[0][0]).toLowerCase() : '';
+    const count = matched.length===1 && repeats.length===1 ? (words[token] || Number(token)) : 1;
+    maxCalls += count;
+    if(matched.length===1)limits.set(matched[0].applicationId,(limits.get(matched[0].applicationId)||0)+count);
+  }
+  ensure(calls.length <= (singleAction ? 1 : Math.max(1,maxCalls)),
+    'Needle a proposé plusieurs appels pour une seule action ou un appel supplémentaire. Reformulez la demande.');
+  const openings = new Map();
+  for(const call of calls.filter(call=>!call.action || call.action==='open')) {
+    const count=(openings.get(call.applicationId)||0)+1;
+    ensure(count <= (limits.get(call.applicationId)||1),
+      'Needle a proposé une ouverture supplémentaire sans répétition explicite. Reformulez la demande.');
+    openings.set(call.applicationId,count);
+  }
+  for(const [applicationId,count] of limits) {
+    ensure(count<=1 || openings.get(applicationId)===count,
+      'Needle n’a pas respecté le nombre d’ouvertures explicitement demandé. Reformulez la demande.');
+  }
 }
 function mediaTriggers(application, applications, action) {
   const phrases = {
@@ -473,7 +508,7 @@ function createAssistant({ runtimeDirectory, configDirectory, runEngine = execut
       const explicit = matchedInvocation(transcript,toolsFor(config),config,mediaCommand);
       if (!(method === 'correct_request' && payload.applicationId) && explicit.length === 1 && explicit[0].action.startsWith('media_') && !tools.some(tool => tool.name === explicit[0].name))
         return {...turn, message:'Le lecteur demandé ne propose actuellement pas cette commande. Vérifiez sa session et ses capacités dans Applications.'};
-      let { prompt, requestTools } = resolveInvocation(transcript, tools, config,mediaCommand);
+      let { prompt, requestTools, singleAction } = resolveInvocation(transcript, tools, config,mediaCommand);
       if (method === 'correct_request' && payload.applicationId) {
         const app = config.applications.find(app => app.id === payload.applicationId);
         requestTools = tools.filter(tool => tool.applicationId === app.id);
@@ -485,7 +520,11 @@ function createAssistant({ runtimeDirectory, configDirectory, runEngine = execut
           if(explicit[0].boundArguments)selected={...selected,boundArguments:explicit[0].boundArguments};
           prompt = canonicalPrompt(selected, app);
           requestTools = [selected];
-        } else if (!app.media) prompt = canonicalPrompt(tools.find(tool => tool.applicationId === app.id && tool.action === 'open'), app);
+          singleAction = true;
+        } else if (!app.media) {
+          prompt = canonicalPrompt(tools.find(tool => tool.applicationId === app.id && tool.action === 'open'), app);
+          singleAction = true;
+        }
       }
       const toolsPath = path.join(temporary, 'tools.json');
       const systemPath = path.join(temporary, 'system.txt');
@@ -529,12 +568,11 @@ function createAssistant({ runtimeDirectory, configDirectory, runEngine = execut
           'Needle a modifié les paramètres d’une commande reconnue. Reformulez la demande.');
         return {...call,name,arguments:bound || call.arguments};
       }), config);
-      ensure(requestTools.length !== 1 || requestTools[0].action === 'open' || turn.calls.length === 1,
-        'Needle a proposé plusieurs appels pour une seule action. Reformulez la demande ou utilisez le bouton du lecteur.');
       ensure(turn.calls.every(call => requestTools.some(tool => tool.name === call.name)),
         'Needle a proposé une application différente de celle demandée.');
       const issue = requestIssue(transcript, config, turn.calls, selectedApplicationId,alias);
       if (issue) return {...turn, calls:[], message:issue};
+      validateCardinality(transcript,turn.calls,tools,singleAction);
       if (turn.calls.some(call => ['deezer_content','deezer_search'].includes(call.action)) && /(?:^|\s)(?:joue|jouer|[ée]coute|[ée]couter|play)(?:\s|$)/iu.test(transcript)) {
         return {...turn,calls:[],message:'Le protocole Deezer vérifié peut afficher ou rechercher une chanson, mais ne permet pas d’en démarrer la lecture précise. Choisissez la lecture dans Deezer.'};
       }
