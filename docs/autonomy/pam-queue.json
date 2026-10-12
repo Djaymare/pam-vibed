@@ -1,0 +1,562 @@
+{
+  "protocol": "PAM_AUTONOMOUS_V1",
+  "preparedOn": "2026-10-12",
+  "activation": "explicit-human-start-required",
+  "executionMode": "worker-chain",
+  "project": {
+    "notionUrl": "https://app.notion.com/p/3f6b3e0422a480198704e702b209706b",
+    "notionId": "3f6b3e04-22a4-8019-8704-e702b209706b",
+    "taskDataSource": "collection://38a52916-0c8c-4af3-a9a7-53d2a4a620df",
+    "taskView": "view://3f6b3e04-22a4-8033-b94f-000c8b125229",
+    "localProjectId": "59c45af6-0d17-44e2-b72d-dcc8d8078876",
+    "workspace": "C:\\projets\\pam",
+    "integrationBranch": "codex/deezer-routing"
+  },
+  "worker": {
+    "model": "gpt-6.1-sol",
+    "thinking": "xhigh",
+    "environment": "local",
+    "maxConcurrentWriters": 1,
+    "maxTicketsPerThread": 1,
+    "mayCreateThreads": true,
+    "maxSuccessors": 1,
+    "mayCloseNotionTickets": true,
+    "maySpawnSubagents": false
+  },
+  "policy": {
+    "selection": "first-eligible-in-order",
+    "scope": "listed-tickets-only",
+    "dependencySatisfiedBy": "verified-delivery-commits-in-integration-branch-and-notion-Terminé",
+    "commitBeforeNotionDone": true,
+    "retryRequiresNewEvidence": true,
+    "externalPublishingAuthorized": false,
+    "quotaRecovery": {
+      "activation": "with-explicit-human-start",
+      "instructionsPath": "docs/autonomy/quota-recovery.md",
+      "resumePromptPath": "docs/autonomy/quota-resume-prompt.md",
+      "shortWindow": {
+        "strategy": "prearm-current-owner-chat-resumption",
+        "scheduleSource": "server-resetsAt",
+        "delayAfterResetSeconds": 60,
+        "maxPendingResumptions": 1,
+        "cancelBeforeHandoff": true
+      },
+      "weeklyWindow": {
+        "automaticResetConsumption": false,
+        "explicitConfirmationPerUse": true
+      }
+    },
+    "promptPaths": [
+      "docs/autonomy/start-prompt.md",
+      "docs/autonomy/worker-prompt.md",
+      "docs/autonomy/quota-resume-prompt.md"
+    ],
+    "receiptDirectory": "artifacts/autonomy/receipts",
+    "statePath": "artifacts/autonomy/state.json",
+    "lockPath": "artifacts/autonomy/worker-chain.lock",
+    "stateWriteLockPath": "artifacts/autonomy/state-write.lock",
+    "handoff": {
+      "successorStartsReadOnly": true,
+      "transfer": "atomic-state-owner-and-generation",
+      "ambiguousCreation": "reconcile-before-retry",
+      "predecessorStopsWritingAfterTransfer": true
+    },
+    "deliveryDirectory": "docs/tickets"
+  },
+  "order": [
+    "PAM-34",
+    "PAM-01",
+    "PAM-02",
+    "PAM-04",
+    "PAM-03",
+    "PAM-05",
+    "PAM-06",
+    "PAM-07",
+    "PAM-08",
+    "PAM-09",
+    "PAM-10",
+    "PAM-11",
+    "PAM-12",
+    "PAM-13",
+    "PAM-14",
+    "PAM-15",
+    "PAM-16",
+    "PAM-17",
+    "PAM-18",
+    "PAM-19",
+    "PAM-20",
+    "PAM-21",
+    "PAM-22",
+    "PAM-23",
+    "PAM-24",
+    "PAM-25",
+    "PAM-26",
+    "PAM-27",
+    "PAM-28",
+    "PAM-29",
+    "PAM-30",
+    "PAM-31",
+    "PAM-32",
+    "PAM-35",
+    "PAM-36",
+    "PAM-37",
+    "PAM-33",
+    "PAM-38",
+    "PAM-39",
+    "PAM-40"
+  ],
+  "tickets": [
+    {
+      "id": "PAM-34",
+      "notionId": "3f7b3e04-22a4-81c1-a3f4-ed24d7cfafea",
+      "url": "https://app.notion.com/p/3f7b3e0422a481c1a3f4ed24d7cfafea",
+      "title": "PAM-34 — Rendre l’environnement de développement reproductible entre Windows et Linux",
+      "priority": "Moyenne",
+      "dependsOn": [],
+      "condition": "always"
+    },
+    {
+      "id": "PAM-01",
+      "notionId": "3f7b3e04-22a4-8137-8e14-fc10dca04b80",
+      "url": "https://app.notion.com/p/3f7b3e0422a481378e14fc10dca04b80",
+      "title": "PAM-01 — Isoler les applications utilisateur du Job Object de PAM",
+      "priority": "Haute",
+      "dependsOn": [],
+      "condition": "always"
+    },
+    {
+      "id": "PAM-02",
+      "notionId": "3f7b3e04-22a4-81f5-b82a-db559c6dacb3",
+      "url": "https://app.notion.com/p/3f7b3e0422a481f5b82adb559c6dacb3",
+      "title": "PAM-02 — Nettoyer l’audio après crash ou timeout dur",
+      "priority": "Haute",
+      "dependsOn": [],
+      "condition": "always"
+    },
+    {
+      "id": "PAM-04",
+      "notionId": "3f7b3e04-22a4-8175-87be-e3d9361db1ac",
+      "url": "https://app.notion.com/p/3f7b3e0422a4817587bee3d9361db1ac",
+      "title": "PAM-04 — Borner aussi l’écriture dans le pipe du sidecar",
+      "priority": "Haute",
+      "dependsOn": [],
+      "condition": "always"
+    },
+    {
+      "id": "PAM-03",
+      "notionId": "3f7b3e04-22a4-8192-96a6-eb709b981269",
+      "url": "https://app.notion.com/p/3f7b3e0422a4819296a6eb709b981269",
+      "title": "PAM-03 — Appliquer un budget global et rendre les exécutions partielles visibles",
+      "priority": "Haute",
+      "dependsOn": [
+        "PAM-04"
+      ],
+      "condition": "always"
+    },
+    {
+      "id": "PAM-05",
+      "notionId": "3f7b3e04-22a4-81c9-9828-cd35f53bd2b3",
+      "url": "https://app.notion.com/p/3f7b3e0422a481c99828cd35f53bd2b3",
+      "title": "PAM-05 — Valider entièrement la configuration lue et proposer une réparation",
+      "priority": "Haute",
+      "dependsOn": [],
+      "condition": "always"
+    },
+    {
+      "id": "PAM-06",
+      "notionId": "3f7b3e04-22a4-8107-853a-d37baa6c820c",
+      "url": "https://app.notion.com/p/3f7b3e0422a48107853ad37baa6c820c",
+      "title": "PAM-06 — Rendre les trois fenêtres modales réellement utilisables au clavier",
+      "priority": "Haute",
+      "dependsOn": [],
+      "condition": "always"
+    },
+    {
+      "id": "PAM-07",
+      "notionId": "3f7b3e04-22a4-81b2-9ebd-d1d49dffec06",
+      "url": "https://app.notion.com/p/3f7b3e0422a481b29ebdd1d49dffec06",
+      "title": "PAM-07 — Corriger les contrastes des aides, états et actions",
+      "priority": "Haute",
+      "dependsOn": [],
+      "condition": "always"
+    },
+    {
+      "id": "PAM-08",
+      "notionId": "3f7b3e04-22a4-81c8-b81b-dd48d0ccfb5c",
+      "url": "https://app.notion.com/p/3f7b3e0422a481c8b81bdd48d0ccfb5c",
+      "title": "PAM-08 — Refuser les lancements dupliqués pour une commande simple",
+      "priority": "Moyenne",
+      "dependsOn": [],
+      "condition": "always"
+    },
+    {
+      "id": "PAM-09",
+      "notionId": "3f7b3e04-22a4-813a-a987-cedbefad9ce2",
+      "url": "https://app.notion.com/p/3f7b3e0422a4813aa987cedbefad9ce2",
+      "title": "PAM-09 — Permettre de désactiver une application désinstallée",
+      "priority": "Moyenne",
+      "dependsOn": [
+        "PAM-05"
+      ],
+      "condition": "always"
+    },
+    {
+      "id": "PAM-10",
+      "notionId": "3f7b3e04-22a4-81d5-b838-d439bc4fe72e",
+      "url": "https://app.notion.com/p/3f7b3e0422a481d5b838d439bc4fe72e",
+      "title": "PAM-10 — Gérer explicitement l’expiration et l’invalidation des propositions",
+      "priority": "Moyenne",
+      "dependsOn": [
+        "PAM-05"
+      ],
+      "condition": "always"
+    },
+    {
+      "id": "PAM-11",
+      "notionId": "3f7b3e04-22a4-818b-8659-c04db96dceba",
+      "url": "https://app.notion.com/p/3f7b3e0422a4818b8659c04db96dceba",
+      "title": "PAM-11 — Ajouter sauvegarde et migrations du profil",
+      "priority": "Moyenne",
+      "dependsOn": [
+        "PAM-05"
+      ],
+      "condition": "always"
+    },
+    {
+      "id": "PAM-12",
+      "notionId": "3f7b3e04-22a4-81b9-ac7f-c6fa21ba40e1",
+      "url": "https://app.notion.com/p/3f7b3e0422a481b9ac7fc6fa21ba40e1",
+      "title": "PAM-12 — Introduire des erreurs structurées et des diagnostics locaux",
+      "priority": "Moyenne",
+      "dependsOn": [],
+      "condition": "always"
+    },
+    {
+      "id": "PAM-13",
+      "notionId": "3f7b3e04-22a4-81eb-9eaf-db109ecfd557",
+      "url": "https://app.notion.com/p/3f7b3e0422a481eb9eafdb109ecfd557",
+      "title": "PAM-13 — Typer et versionner les contrats entre Vue, Rust et Node",
+      "priority": "Moyenne",
+      "dependsOn": [
+        "PAM-03",
+        "PAM-10",
+        "PAM-12"
+      ],
+      "condition": "always"
+    },
+    {
+      "id": "PAM-14",
+      "notionId": "3f7b3e04-22a4-81a2-aa77-cd5977ec5c2b",
+      "url": "https://app.notion.com/p/3f7b3e0422a481a2aa77cd5977ec5c2b",
+      "title": "PAM-14 — Séparer les responsabilités Rust et documenter les invariants unsafe",
+      "priority": "Moyenne",
+      "dependsOn": [
+        "PAM-13"
+      ],
+      "condition": "always"
+    },
+    {
+      "id": "PAM-15",
+      "notionId": "3f7b3e04-22a4-817c-9f32-cade622bbfcf",
+      "url": "https://app.notion.com/p/3f7b3e0422a4817c9f32cade622bbfcf",
+      "title": "PAM-15 — Durcir le cycle de vie du superviseur",
+      "priority": "Moyenne",
+      "dependsOn": [
+        "PAM-01",
+        "PAM-02",
+        "PAM-04",
+        "PAM-12"
+      ],
+      "condition": "always"
+    },
+    {
+      "id": "PAM-16",
+      "notionId": "3f7b3e04-22a4-81f9-a5a5-cd6d94d9965f",
+      "url": "https://app.notion.com/p/3f7b3e0422a481f9a5a5cd6d94d9965f",
+      "title": "PAM-16 — Découper App.vue et le cœur métier Node",
+      "priority": "Moyenne",
+      "dependsOn": [
+        "PAM-13"
+      ],
+      "condition": "always"
+    },
+    {
+      "id": "PAM-17",
+      "notionId": "3f7b3e04-22a4-816a-a514-e748e5719e49",
+      "url": "https://app.notion.com/p/3f7b3e0422a4816aa514e748e5719e49",
+      "title": "PAM-17 — Rendre explicites les états asynchrones du front",
+      "priority": "Moyenne",
+      "dependsOn": [
+        "PAM-13",
+        "PAM-16"
+      ],
+      "condition": "always"
+    },
+    {
+      "id": "PAM-18",
+      "notionId": "3f7b3e04-22a4-81ca-b17e-d22b46135dc2",
+      "url": "https://app.notion.com/p/3f7b3e0422a481cab17ed22b46135dc2",
+      "title": "PAM-18 — Centraliser les définitions d’actions et capacités",
+      "priority": "Moyenne",
+      "dependsOn": [
+        "PAM-13"
+      ],
+      "condition": "always"
+    },
+    {
+      "id": "PAM-19",
+      "notionId": "3f7b3e04-22a4-811a-ab19-c519bc7cf82a",
+      "url": "https://app.notion.com/p/3f7b3e0422a4811aab19c519bc7cf82a",
+      "title": "PAM-19 — Préserver les brouillons et signaler les changements non enregistrés",
+      "priority": "Moyenne",
+      "dependsOn": [
+        "PAM-06",
+        "PAM-17"
+      ],
+      "condition": "always"
+    },
+    {
+      "id": "PAM-20",
+      "notionId": "3f7b3e04-22a4-8197-babc-c4f0f2bba8ad",
+      "url": "https://app.notion.com/p/3f7b3e0422a48197babcc4f0f2bba8ad",
+      "title": "PAM-20 — Rendre la suppression récupérable",
+      "priority": "Moyenne",
+      "dependsOn": [
+        "PAM-17"
+      ],
+      "condition": "always"
+    },
+    {
+      "id": "PAM-21",
+      "notionId": "3f7b3e04-22a4-816f-bd9e-ef753055e4ec",
+      "url": "https://app.notion.com/p/3f7b3e0422a4816fbd9eef753055e4ec",
+      "title": "PAM-21 — Afficher et annoncer l’état réellement disponible",
+      "priority": "Moyenne",
+      "dependsOn": [
+        "PAM-15",
+        "PAM-17"
+      ],
+      "condition": "always"
+    },
+    {
+      "id": "PAM-22",
+      "notionId": "3f7b3e04-22a4-8153-a471-fb7c2673ea67",
+      "url": "https://app.notion.com/p/3f7b3e0422a48153a471fb7c2673ea67",
+      "title": "PAM-22 — Rendre les propositions et résultats immédiatement compréhensibles",
+      "priority": "Moyenne",
+      "dependsOn": [
+        "PAM-17",
+        "PAM-18"
+      ],
+      "condition": "always"
+    },
+    {
+      "id": "PAM-23",
+      "notionId": "3f7b3e04-22a4-8138-a90a-dbdae1f022af",
+      "url": "https://app.notion.com/p/3f7b3e0422a48138a90adbdae1f022af",
+      "title": "PAM-23 — Compléter la navigation accessible et les formulaires",
+      "priority": "Moyenne",
+      "dependsOn": [
+        "PAM-06"
+      ],
+      "condition": "always"
+    },
+    {
+      "id": "PAM-24",
+      "notionId": "3f7b3e04-22a4-8148-8e31-ed30f9b15d66",
+      "url": "https://app.notion.com/p/3f7b3e0422a481488e31ed30f9b15d66",
+      "title": "PAM-24 — Renforcer le parcours et le cycle de vie du microphone",
+      "priority": "Moyenne",
+      "dependsOn": [
+        "PAM-17"
+      ],
+      "condition": "always"
+    },
+    {
+      "id": "PAM-25",
+      "notionId": "3f7b3e04-22a4-81ea-bd59-e39b1b2b6cb0",
+      "url": "https://app.notion.com/p/3f7b3e0422a481eabd59e39b1b2b6cb0",
+      "title": "PAM-25 — Actualiser les sessions après une action ou un changement de lecteur",
+      "priority": "Moyenne",
+      "dependsOn": [
+        "PAM-17",
+        "PAM-18"
+      ],
+      "condition": "always"
+    },
+    {
+      "id": "PAM-26",
+      "notionId": "3f7b3e04-22a4-8136-8519-ec7e2045354a",
+      "url": "https://app.notion.com/p/3f7b3e0422a481368519ec7e2045354a",
+      "title": "PAM-26 — Simplifier le premier usage et les descriptions d’applications",
+      "priority": "Moyenne",
+      "dependsOn": [
+        "PAM-09",
+        "PAM-19",
+        "PAM-21",
+        "PAM-23",
+        "PAM-24"
+      ],
+      "condition": "always"
+    },
+    {
+      "id": "PAM-27",
+      "notionId": "3f7b3e04-22a4-8185-80f5-c75d85b53e80",
+      "url": "https://app.notion.com/p/3f7b3e0422a4818580f5c75d85b53e80",
+      "title": "PAM-27 — Donner des entrées simples aux paramètres avancés",
+      "priority": "Moyenne",
+      "dependsOn": [
+        "PAM-18",
+        "PAM-19",
+        "PAM-23"
+      ],
+      "condition": "always"
+    },
+    {
+      "id": "PAM-28",
+      "notionId": "3f7b3e04-22a4-819d-94a8-c0fd961c86f7",
+      "url": "https://app.notion.com/p/3f7b3e0422a4819d94a8c0fd961c86f7",
+      "title": "PAM-28 — Aligner les langues proposées et les langues exécutables",
+      "priority": "Moyenne",
+      "dependsOn": [
+        "PAM-18"
+      ],
+      "condition": "always"
+    },
+    {
+      "id": "PAM-29",
+      "notionId": "3f7b3e04-22a4-8115-9e40-fcad70a86d92",
+      "url": "https://app.notion.com/p/3f7b3e0422a481159e40fcad70a86d92",
+      "title": "PAM-29 — Évaluer l’exécution automatique sur un corpus indépendant",
+      "priority": "Moyenne",
+      "dependsOn": [
+        "PAM-08",
+        "PAM-18",
+        "PAM-28"
+      ],
+      "condition": "always"
+    },
+    {
+      "id": "PAM-30",
+      "notionId": "3f7b3e04-22a4-81c2-948c-ec953a86e9a3",
+      "url": "https://app.notion.com/p/3f7b3e0422a481c2948cec953a86e9a3",
+      "title": "PAM-30 — Vérifier la capacité réelle et les budgets de performance",
+      "priority": "Moyenne",
+      "dependsOn": [
+        "PAM-18",
+        "PAM-34"
+      ],
+      "condition": "always"
+    },
+    {
+      "id": "PAM-31",
+      "notionId": "3f7b3e04-22a4-81df-9815-d42ba2a67702",
+      "url": "https://app.notion.com/p/3f7b3e0422a481df9815d42ba2a67702",
+      "title": "PAM-31 — Ajouter des tests Rust du bridge et des adaptateurs",
+      "priority": "Moyenne",
+      "dependsOn": [
+        "PAM-03",
+        "PAM-14",
+        "PAM-15"
+      ],
+      "condition": "always"
+    },
+    {
+      "id": "PAM-32",
+      "notionId": "3f7b3e04-22a4-81d4-85ce-f879ec617f94",
+      "url": "https://app.notion.com/p/3f7b3e0422a481d485cef879ec617f94",
+      "title": "PAM-32 — Ajouter des tests de composants et de parcours Vue/WebView2",
+      "priority": "Moyenne",
+      "dependsOn": [
+        "PAM-07",
+        "PAM-17",
+        "PAM-23",
+        "PAM-24"
+      ],
+      "condition": "always"
+    },
+    {
+      "id": "PAM-35",
+      "notionId": "3f7b3e04-22a4-81fb-805a-e8d8ced86f54",
+      "url": "https://app.notion.com/p/3f7b3e0422a481fb805ae8d8ced86f54",
+      "title": "PAM-35 — Couvrir toutes les dépendances dans le suivi de sécurité",
+      "priority": "Moyenne",
+      "dependsOn": [],
+      "condition": "always"
+    },
+    {
+      "id": "PAM-36",
+      "notionId": "3f7b3e04-22a4-81a4-b4ff-c2936585fe2e",
+      "url": "https://app.notion.com/p/3f7b3e0422a481a4b4ffc2936585fe2e",
+      "title": "PAM-36 — Assembler un paquet frais et vérifier son contenu exact",
+      "priority": "Moyenne",
+      "dependsOn": [
+        "PAM-34"
+      ],
+      "condition": "always"
+    },
+    {
+      "id": "PAM-37",
+      "notionId": "3f7b3e04-22a4-81ae-a5af-d095f201a409",
+      "url": "https://app.notion.com/p/3f7b3e0422a481aea5afd095f201a409",
+      "title": "PAM-37 — Durcir le workflow GitHub et son coût d’exécution",
+      "priority": "Moyenne",
+      "dependsOn": [
+        "PAM-34"
+      ],
+      "condition": "always"
+    },
+    {
+      "id": "PAM-33",
+      "notionId": "3f7b3e04-22a4-810f-bde8-dc39cbddf6f7",
+      "url": "https://app.notion.com/p/3f7b3e0422a4810fbde8dc39cbddf6f7",
+      "title": "PAM-33 — Faire de la CI une barrière de qualité complète",
+      "priority": "Moyenne",
+      "dependsOn": [
+        "PAM-31",
+        "PAM-32",
+        "PAM-34",
+        "PAM-36",
+        "PAM-37"
+      ],
+      "condition": "always"
+    },
+    {
+      "id": "PAM-38",
+      "notionId": "3f7b3e04-22a4-810b-8fc2-e8e7fd202eef",
+      "url": "https://app.notion.com/p/3f7b3e0422a4810b8fc2e8e7fd202eef",
+      "title": "PAM-38 — Préparer signature, installation et mises à jour Windows",
+      "priority": "Basse",
+      "dependsOn": [
+        "PAM-11",
+        "PAM-29",
+        "PAM-33",
+        "PAM-35"
+      ],
+      "condition": "external-distribution-approved"
+    },
+    {
+      "id": "PAM-39",
+      "notionId": "3f7b3e04-22a4-810f-843b-dc40fbda64b7",
+      "url": "https://app.notion.com/p/3f7b3e0422a4810f843bdc40fbda64b7",
+      "title": "PAM-39 — Optimiser les transferts audio et la découverte si les mesures le justifient",
+      "priority": "Basse",
+      "dependsOn": [
+        "PAM-30"
+      ],
+      "condition": "measured-performance-need"
+    },
+    {
+      "id": "PAM-40",
+      "notionId": "3f7b3e04-22a4-817f-b43f-e2dadcf64449",
+      "url": "https://app.notion.com/p/3f7b3e0422a4817fb43fe2dadcf64449",
+      "title": "PAM-40 — Déclarer des permissions Tauri plus fines",
+      "priority": "Basse",
+      "dependsOn": [
+        "PAM-13",
+        "PAM-31"
+      ],
+      "condition": "access-surface-extension-planned"
+    }
+  ]
+}
