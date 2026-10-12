@@ -5,6 +5,7 @@ import { listen, type UnlistenFn } from '@tauri-apps/api/event';
 import { open } from '@tauri-apps/plugin-dialog';
 import Icon from './components/Icon.vue';
 import ApplicationPicker from './components/ApplicationPicker.vue';
+import ModalDialog from './components/ModalDialog.vue';
 import MediaControls from './components/MediaControls.vue';
 import CommandAliases from './components/CommandAliases.vue';
 import CommandArguments from './components/CommandArguments.vue';
@@ -27,6 +28,8 @@ const level = ref(0);
 const text = ref('');
 const turns = ref<Turn[]>([]);
 const editorOpen = ref(false);
+const dialogReturnFocus = ref<HTMLElement | null>(null);
+function rememberDialogTrigger() { dialogReturnFocus.value = document.activeElement instanceof HTMLElement ? document.activeElement : null; }
 const editingId = ref<string>();
 const form = reactive({ name: '', description: '', executable: '', aliases: '', arguments: '[]', enabled: true, windowsApp: undefined as WindowsApplication | undefined });
 const mediaSource = ref('');
@@ -158,6 +161,7 @@ async function cancelRecording() {
 }
 onBeforeUnmount(() => { disposed = true; clearTimers(); window.clearInterval(healthTimer); unlisten.forEach(stop => stop()); void recorder?.dispose(); });
 function editTurn(turn: Turn) {
+  rememberDialogTrigger();
   correction.value = turn; correctionError.value = '';
   Object.assign(correctionForm, { text: turn.transcript, applicationId: turn.calls[0]?.applicationId || '', action:'', input: turn.calls[0]?.arguments.input || '', saveAlias: false,
     saveCommandAlias:false,commandPhrase:turn.transcript,arguments:{...turn.calls[0]?.arguments},
@@ -166,6 +170,7 @@ function editTurn(turn: Turn) {
 async function correctTurn() {
   if (!correction.value || locked.value) return;
   const original = correction.value;
+  let prepared = false;
   busy.value = true; correctionError.value = '';
   try {
     const turn = await request<Turn>('correct_request', { id: original.id, text: correctionForm.text.trim(),
@@ -175,10 +180,10 @@ async function correctTurn() {
       saveAlias: correctionForm.saveAlias && !!correctionApp.value && (!correctionForm.action || correctionForm.action==='open'), alias: correctionForm.alias,
       saveCommandAlias:correctionForm.saveCommandAlias && !!correctionApp.value && !!correctionForm.action,commandPhrase:correctionForm.commandPhrase });
     turns.value = [turn, ...turns.value.map(item => item.id === original.id && item.status === 'pending' ? { ...item, status: 'cancelled' as const } : item)].slice(0, 20);
-    correction.value = undefined;
+    prepared = true;
     status.value = await request<RuntimeStatus>('status'); config.value = status.value.config;
   } catch (caught) { correctionError.value = describeError(caught); }
-  finally { busy.value = false; void updateHealth(); }
+  finally { busy.value = false; if (prepared) correction.value = undefined; void updateHealth(); }
 }
 async function desktop(action: 'hide' | 'quit') {
   try { await invoke('desktop_action', { action }); }
@@ -199,7 +204,8 @@ async function resolveTurn(turn: Turn, accept: boolean) {
   } catch (caught) { error.value = describeError(caught); }
   finally { busy.value = false; }
 }
-function editApplication(application?: Application) {
+function editApplication(application?: Application, preserveTrigger = false) {
+  if (!preserveTrigger) rememberDialogTrigger();
   editingId.value = application?.id;
   form.windowsApp = application?.windowsApp;
   mediaSource.value = application?.media?.sourceAppId || '';
@@ -210,6 +216,7 @@ function editApplication(application?: Application) {
   formError.value = ''; testResult.value = undefined; testInput.value = ''; editorOpen.value = true;
 }
 async function addApplication() {
+  rememberDialogTrigger();
   pickerOpen.value = true;
   if (!installedApplications.value.length) await discoverApplications();
 }
@@ -221,7 +228,7 @@ async function discoverApplications() {
   finally { discoveryLoading.value = false; }
 }
 function selectInstalled(application: InstalledApplication) {
-  pickerOpen.value = false; editApplication();
+  pickerOpen.value = false; editApplication(undefined, true);
   form.name = application.name.slice(0, 60);
   form.description = `Ouvrir ${form.name}.`;
   form.windowsApp = { appId: application.appId, kind: application.kind, icon: application.icon, launchArgument: application.launchArgument };
@@ -229,7 +236,7 @@ function selectInstalled(application: InstalledApplication) {
   if (deezerTarget.value) { deezerPlugin.value = true; mediaSource.value = 'Deezer.exe'; }
   // The native bridge supplies the trusted launch target when saving or testing.
 }
-function manualApplication() { pickerOpen.value = false; editApplication(); }
+function manualApplication() { pickerOpen.value = false; editApplication(undefined, true); }
 function useExecutable() { form.windowsApp = undefined; form.executable = ''; form.arguments = '[]'; testResult.value = undefined; deezerPlugin.value = false; mediaSource.value = ''; }
 function applicationPayload() {
   let args: unknown;
@@ -297,7 +304,7 @@ const outcomeLabels = {not_started:'Non démarrée',performed:'Effectuée',faile
       <div class="brand"><span class="brand-mark"><Icon name="spark" :size="24" /></span><span>PAM<span class="brand-caption">Votre assistant, en local.</span></span></div>
       <div class="nav-label">ESPACE PERSONNEL</div>
       <nav aria-label="Navigation principale">
-        <button :disabled="recording || requestingMic" :class="{ selected: page === 'assistant' }" @click="page = 'assistant'"><Icon name="mic" />Assistant</button>
+        <button data-dialog-fallback :disabled="recording || requestingMic" :class="{ selected: page === 'assistant' }" @click="page = 'assistant'"><Icon name="mic" />Assistant</button>
         <button :disabled="recording || requestingMic" :class="{ selected: page === 'applications' }" @click="page = 'applications'"><Icon name="apps" />Applications<span class="nav-count">{{ config.applications.length }}</span></button>
         <button :disabled="recording || requestingMic" :class="{ selected: page === 'settings' }" @click="page = 'settings'"><Icon name="settings" />Préférences</button>
       </nav>
@@ -356,11 +363,11 @@ const outcomeLabels = {not_started:'Non démarrée',performed:'Effectuée',faile
         <footer class="content-footer"><Icon name="shield" :size="13" />Traitement local · aucun compte requis<span>PAM / PROTOTYPE</span></footer>
       </div>
     </main>
-    <div v-if="correction" class="modal-backdrop" @click.self="!busy && (correction = undefined)">
-      <section class="modal" role="dialog" aria-modal="true" aria-labelledby="correction-title">
-        <div class="modal-heading"><div><div class="eyebrow">AFFINER VOTRE DEMANDE</div><h2 id="correction-title">Corriger la demande</h2></div><button class="icon-button" :disabled="busy" aria-label="Fermer" @click="correction = undefined"><Icon name="close" /></button></div>
+    <ModalDialog v-if="correction" labelledby="correction-title" :return-focus="dialogReturnFocus" fallback-focus=".sidebar nav button.selected" :close-disabled="busy" @close="correction = undefined">
+      <template #default="{ requestClose }">
+        <div class="modal-heading"><div><div class="eyebrow">AFFINER VOTRE DEMANDE</div><h2 id="correction-title">Corriger la demande</h2></div><button class="icon-button" :disabled="busy" aria-label="Fermer" @click="requestClose('explicit')"><Icon name="close" /></button></div>
         <form @submit.prevent="correctTurn">
-          <label>Ce que vous vouliez dire<textarea v-model="correctionForm.text" required maxlength="2000" rows="3" :disabled="busy" /></label>
+          <label>Ce que vous vouliez dire<textarea data-dialog-initial-focus v-model="correctionForm.text" required maxlength="2000" rows="3" :disabled="busy" /></label>
           <label>Je voulais cette application<select v-model="correctionForm.applicationId" :disabled="busy"><option value="">Laisser Needle choisir</option><option v-for="app in activeApps" :key="app.id" :value="app.id">{{ app.name }}</option></select></label>
           <label v-if="correctionApp">Je voulais cette action<select v-model="correctionForm.action" :disabled="busy"><option value="">Interpréter la demande corrigée</option><option v-for="choice in correctionActions" :key="choice.key" :value="choice.key">{{ choice.label }}</option></select><small>Choisissez la lecture, une page ou une recherche Deezer, puis vérifiez ses paramètres.</small></label>
           <CommandArguments v-model="correctionForm.arguments" :action="correctionChoice?.action" :disabled="busy" />
@@ -375,17 +382,17 @@ const outcomeLabels = {not_started:'Non démarrée',performed:'Effectuée',faile
           </template>
           <p class="correction-help">L’action proposée sera à valider. {{ correction.status === 'pending' ? 'La proposition initiale sera annulée.' : correction.status === 'executed' ? 'L’action déjà exécutée reste effectuée.' : '' }}</p>
           <div v-if="correctionError" class="notice error" role="alert">{{ correctionError }}</div>
-          <div class="modal-footer"><button type="button" class="secondary" :disabled="busy" @click="correction = undefined">Annuler</button><button class="primary" :disabled="busy || !correctionForm.text.trim()">{{ busy ? 'Préparation…' : 'Préparer la correction' }}</button></div>
+          <div class="modal-footer"><button type="button" class="secondary" :disabled="busy" @click="requestClose('explicit')">Annuler</button><button class="primary" :disabled="busy || !correctionForm.text.trim()">{{ busy ? 'Préparation…' : 'Préparer la correction' }}</button></div>
         </form>
-      </section>
-    </div>
-    <ApplicationPicker v-if="pickerOpen" :applications="installedApplications" :registered="config.applications" :loading="discoveryLoading" :error="discoveryError" @close="pickerOpen = false" @refresh="discoverApplications" @manual="manualApplication" @select="selectInstalled" />
-    <div v-if="editorOpen" class="modal-backdrop" @click.self="!busy && (editorOpen = false)" @keydown.esc="!busy && (editorOpen = false)">
-      <section class="modal" role="dialog" aria-modal="true" aria-labelledby="editor-title">
-        <div class="modal-heading"><div><div class="eyebrow">CONNECTER UNE APPLICATION</div><h2 id="editor-title">{{ editingId ? 'Modifier l’application' : 'Nouvelle application' }}</h2></div><button class="icon-button" :disabled="busy" aria-label="Fermer" @click="editorOpen = false"><Icon name="close" /></button></div>
+      </template>
+    </ModalDialog>
+    <ApplicationPicker v-if="pickerOpen" :return-focus="dialogReturnFocus" :applications="installedApplications" :registered="config.applications" :loading="discoveryLoading" :error="discoveryError" @close="pickerOpen = false" @refresh="discoverApplications" @manual="manualApplication" @select="selectInstalled" />
+    <ModalDialog v-if="editorOpen" labelledby="editor-title" :return-focus="dialogReturnFocus" fallback-focus=".sidebar nav button.selected" :close-disabled="busy" @close="editorOpen = false">
+      <template #default="{ requestClose }">
+        <div class="modal-heading"><div><div class="eyebrow">CONNECTER UNE APPLICATION</div><h2 id="editor-title">{{ editingId ? 'Modifier l’application' : 'Nouvelle application' }}</h2></div><button class="icon-button" :disabled="busy" aria-label="Fermer" @click="requestClose('explicit')"><Icon name="close" /></button></div>
         <form @submit.prevent="saveApplication">
           <div v-if="form.windowsApp" class="detected-target"><span class="application-avatar"><img v-if="form.windowsApp.icon" :src="form.windowsApp.icon" alt="" /><Icon v-else name="apps" /></span><div><strong>Application détectée</strong><small>{{ form.windowsApp.kind === 'store' ? 'Microsoft Store' : 'Application de bureau' }} · lancement géré par Windows</small></div><button type="button" class="text-button" :disabled="busy" @click="useExecutable">Choisir un .exe</button></div>
-          <label>Nom de l’application<input v-model="form.name" required maxlength="60" placeholder="Ex. : Visual Studio Code" :disabled="busy" /></label>
+          <label>Nom de l’application<input data-dialog-initial-focus v-model="form.name" required maxlength="60" placeholder="Ex. : Visual Studio Code" :disabled="busy" /></label>
           <label>À quoi sert-elle ?<textarea v-model="form.description" required maxlength="240" rows="2" placeholder="Ex. : Ouvrir l’éditeur de code et travailler sur un projet." :disabled="busy" /><small>Cette description aide Needle à choisir la bonne application.</small></label>
           <label v-if="!form.windowsApp">Exécutable Windows<div class="path-field"><input v-model="form.executable" required placeholder="C:\…\application.exe" :disabled="busy" /><button type="button" class="secondary" :disabled="busy" @click="browse"><Icon name="folder" :size="18" />Parcourir</button></div></label>
           <label>Autres noms <span class="optional">facultatif</span><input v-model="form.aliases" placeholder="Ex. : VS Code, éditeur de code" :disabled="busy" /><small>Séparez les noms par des virgules.</small></label>
@@ -397,10 +404,10 @@ const outcomeLabels = {not_started:'Non démarrée',performed:'Effectuée',faile
           <div class="launch-test"><label v-if="testNeedsInput">Texte, fichier ou URL pour le test<input v-model="testInput" maxlength="2048" :disabled="busy" placeholder="Ex. : C:\projets\mon-projet" /></label><button type="button" class="secondary" :disabled="busy || !form.name.trim() || (!form.windowsApp && !form.executable.trim())" @click="testLaunch"><Icon name="arrow" :size="17" />{{ testing ? 'Lancement…' : 'Tester le lancement' }}</button><small>Ce bouton ouvre l’application sans enregistrer le formulaire.</small></div>
           <div v-if="testResult" class="notice" :class="testResult.success ? 'success' : 'error'" role="status">{{ testResult.message }}</div>
           <div v-if="formError" class="notice error" role="alert">{{ formError }}</div>
-          <div class="modal-footer"><button type="button" class="secondary" :disabled="busy" @click="editorOpen = false">Annuler</button><button class="primary" :disabled="busy"><Icon name="check" :size="17" />{{ busy ? (testing ? 'Test en cours…' : 'Enregistrement…') : 'Enregistrer' }}</button></div>
+          <div class="modal-footer"><button type="button" class="secondary" :disabled="busy" @click="requestClose('explicit')">Annuler</button><button class="primary" :disabled="busy"><Icon name="check" :size="17" />{{ busy ? (testing ? 'Test en cours…' : 'Enregistrement…') : 'Enregistrer' }}</button></div>
         </form>
-      </section>
-    </div>
+      </template>
+    </ModalDialog>
   </div>
 </template>
 <style src="./style.css"></style>

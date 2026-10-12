@@ -1,8 +1,9 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue';
 import Icon from './Icon.vue';
+import ModalDialog from './ModalDialog.vue';
 import type { Application, InstalledApplication } from '../types';
-const props = defineProps<{ applications: InstalledApplication[]; registered: Application[]; loading: boolean; error: string }>();
+const props = defineProps<{ applications: InstalledApplication[]; registered: Application[]; loading: boolean; error: string; returnFocus?: HTMLElement | null }>();
 const emit = defineEmits<{ close: []; refresh: []; manual: []; select: [application: InstalledApplication] }>();
 const search = ref('');
 const fold = (text: string) => text.normalize('NFKD').replace(/\p{M}/gu, '').toLowerCase();
@@ -15,11 +16,11 @@ function registered(app: InstalledApplication) {
 </script>
 
 <template>
-  <div class="modal-backdrop" @click.self="emit('close')" @keydown.esc="emit('close')">
-    <section class="modal discovery-modal" role="dialog" aria-modal="true" aria-labelledby="discovery-title">
-      <div class="modal-heading"><div><div class="eyebrow">CONNECTER UNE APPLICATION</div><h2 id="discovery-title">Choisir sur cet ordinateur</h2></div><button class="icon-button" aria-label="Fermer" @click="emit('close')"><Icon name="close" /></button></div>
+  <ModalDialog class="discovery-modal" labelledby="discovery-title" :return-focus="returnFocus" fallback-focus="[data-dialog-fallback]" @close="emit('close')">
+    <template #default="{ requestClose }">
+      <div class="modal-heading"><div><div class="eyebrow">CONNECTER UNE APPLICATION</div><h2 id="discovery-title">Choisir sur cet ordinateur</h2></div><button class="icon-button" aria-label="Fermer" @click="requestClose('explicit')"><Icon name="close" /></button></div>
       <p class="discovery-intro">Choisissez une application de bureau ou du Microsoft Store, puis indiquez à PAM à quoi elle sert.</p>
-      <label class="discovery-search">Rechercher une application<input v-model="search" type="search" placeholder="Ex. : Deezer, Code, Calculatrice…" autofocus /></label>
+      <label class="discovery-search">Rechercher une application<input v-model="search" type="search" placeholder="Ex. : Deezer, Code, Calculatrice…" data-dialog-initial-focus /></label>
       <div v-if="error" class="notice error" role="alert">{{ error }}</div>
       <div class="discovery-summary"><span aria-live="polite">{{ loading ? 'Lecture des applications Windows…' : `${filtered.length} application(s)` }}</span><button class="text-button" :disabled="loading" @click="emit('refresh')">Actualiser</button></div>
       <div class="discovery-list" :aria-busy="loading">
@@ -32,6 +33,6 @@ function registered(app: InstalledApplication) {
         </button>
       </div>
       <div class="discovery-footer"><span>Une application portable ou absente de la liste ?</span><button class="secondary" @click="emit('manual')"><Icon name="folder" :size="17" />Choisir un .exe</button></div>
-    </section>
-  </div>
+    </template>
+  </ModalDialog>
 </template>

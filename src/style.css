@@ -47,3 +47,7 @@ main{margin-left:234px;width:calc(100% - 234px)}.topbar{height:72px;border-botto
 .notice.success { background: #eef8f4; color: #39846e; }
 @media (max-width: 560px) { .detected-target { flex-wrap: wrap; } .discovery-added { font-size: 0; } }
 .turn-badge.partial{background:#fff5e4;color:#ba7042}
+
+/* Native dialogs use the browser top layer and inert background. */
+dialog.modal{border:0;margin:auto;color:inherit;max-width:calc(100vw - 50px)}
+dialog.modal::backdrop{background:#28314566;backdrop-filter:blur(4px)}

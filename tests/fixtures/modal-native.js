@@ -1,0 +1,26 @@
+// Frontend-only services: no sidecar, file picker, microphone or launched app.
+const config = { version: 1, applications: [{ id: '11111111-1111-4111-8111-111111111111', name: 'Fixture', description: 'Application simulée', executable: 'C:\\fixture.exe', arguments: [], aliases: [], enabled: true }], language: 'fr', autoExecute: false, confidenceThreshold: 0.7 };
+let saveAttempts = 0, correctionAttempts = 0;
+const turn = (id, text) => ({ id, transcript: text, status: 'pending', confidence: 0.9, durationMs: 1, calls: [], results: [] });
+export const isTauri = () => true;
+export const listen = async () => () => {};
+export const open = async () => null;
+export async function invoke(command, input) {
+  if (command === 'discover_applications') return [{ name: 'Détectée', appId: 'Fixture.Detected', kind: 'desktop' }];
+  if (command !== 'assistant_request') return;
+  const { method, payload } = input;
+  if (method === 'status') return { config, ready: true, checks: [], engine: null };
+  if (method === 'media_sessions') return [];
+  if (method === 'save_application') {
+    if (++saveAttempts === 1) throw Error('Enregistrement simulé refusé. Corrigez puis réessayez.');
+    const app = { ...payload, id: payload.id || '22222222-2222-4222-8222-222222222222' };
+    config.applications = [...config.applications.filter(a => a.id !== app.id), app];
+    return config;
+  }
+  if (method === 'process_text') return turn('original', payload.text);
+  if (method === 'correct_request') {
+    if (++correctionAttempts === 1) throw Error('Correction simulée refusée. Réessayez.');
+    return turn('corrected', payload.text);
+  }
+  throw Error(`Unexpected fixture method: ${method}`);
+}

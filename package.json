@@ -17,6 +17,8 @@
     "preview": "vite preview",
     "tauri": "npm run check:development && tauri",
     "test": "node --test sidecar/*.test.cjs tests/*.test.mjs",
+    "test:modals": "node scripts/test-modals.mjs",
+    "test:modals:build": "node scripts/build-modal-test-host.mjs",
     "test:integration": "node scripts/smoke-runtime.mjs",
     "test:processes": "node scripts/smoke-process-isolation.mjs",
     "test:applications": "node scripts/smoke-applications.mjs",
