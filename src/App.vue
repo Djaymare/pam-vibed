@@ -304,9 +304,9 @@ const outcomeLabels = {not_started:'Non démarrée',performed:'Effectuée',faile
       <div class="brand"><span class="brand-mark"><Icon name="spark" :size="24" /></span><span>PAM<span class="brand-caption">Votre assistant, en local.</span></span></div>
       <div class="nav-label">ESPACE PERSONNEL</div>
       <nav aria-label="Navigation principale">
-        <button data-dialog-fallback :disabled="recording || requestingMic" :class="{ selected: page === 'assistant' }" @click="page = 'assistant'"><Icon name="mic" />Assistant</button>
-        <button :disabled="recording || requestingMic" :class="{ selected: page === 'applications' }" @click="page = 'applications'"><Icon name="apps" />Applications<span class="nav-count">{{ config.applications.length }}</span></button>
-        <button :disabled="recording || requestingMic" :class="{ selected: page === 'settings' }" @click="page = 'settings'"><Icon name="settings" />Préférences</button>
+        <button data-dialog-fallback aria-label="Assistant" :disabled="recording || requestingMic" :class="{ selected: page === 'assistant' }" @click="page = 'assistant'"><Icon name="mic" />Assistant</button>
+        <button aria-label="Applications" :disabled="recording || requestingMic" :class="{ selected: page === 'applications' }" @click="page = 'applications'"><Icon name="apps" />Applications<span class="nav-count">{{ config.applications.length }}</span></button>
+        <button aria-label="Préférences" :disabled="recording || requestingMic" :class="{ selected: page === 'settings' }" @click="page = 'settings'"><Icon name="settings" />Préférences</button>
       </nav>
       <div class="privacy-card"><Icon name="shield" :size="22" /><strong>Sur votre machine.</strong><p>Votre voix et vos demandes sont traitées localement.</p><span class="local-dot">Windows x64</span></div>
       <div class="sidebar-footer"><span class="small-logo">P</span><div>Prototype personnel<small>Whistle + Needle</small></div><span class="version">v0.1</span></div>

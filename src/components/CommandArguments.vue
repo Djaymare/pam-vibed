@@ -19,5 +19,5 @@ function update(key:string,event:Event) {emit('update:modelValue',{...props.mode
   </div>
 </template>
 <style scoped>
-.command-arguments{grid-column:1/-1;display:grid;gap:16px}.command-arguments label{display:flex;flex-direction:column;gap:7px;font-size:11px;color:#69758c;min-width:0}.command-arguments input,.command-arguments select{font-size:12px}.command-arguments small{font-size:10px;color:#929bad;line-height:1.6}
+.command-arguments{grid-column:1/-1;display:grid;gap:16px}.command-arguments label{display:flex;flex-direction:column;gap:7px;font-size:12px;color:var(--text-secondary);min-width:0}.command-arguments input,.command-arguments select{font-size:12px}.command-arguments small{font-size:12px;color:var(--text-secondary);line-height:1.6}
 </style>
