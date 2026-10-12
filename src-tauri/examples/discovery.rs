@@ -22,10 +22,18 @@ fn main() {
                     .ends_with("\\explorer.exe"));
             }
             assert!(catalogue
-                .prepare(
-                    &mut serde_json::json!({"windowsApp": {"appId": "PAM.UnknownApp!Fixture"}})
+                .prepare_request(
+                    "test_application",
+                    &mut serde_json::json!({"windowsApp": {"appId": "PAM.UnknownApp!Fixture"}}),
+                    None
                 )
                 .is_err());
+            let mut status = serde_json::json!({"config":{"applications":[{"id":"absent","windowsApp":{"appId":"PAM.UnknownApp!Fixture"}}]},"applicationAvailability":{"absent":{"available":true}}});
+            catalogue.annotate_status(&mut status);
+            assert_eq!(
+                status["applicationAvailability"]["absent"]["available"],
+                false
+            );
             println!("{}", serde_json::to_string(&applications).unwrap());
         }
         Err(error) => {

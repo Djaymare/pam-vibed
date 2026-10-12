@@ -30,8 +30,15 @@ function configDigest(config) {
 }
 async function validateApplication(value, existingId, checkAvailability = true) {
   const application = validateApplicationStructure(value, existingId);
-  if (checkAvailability) ensure((await fs.stat(application.executable)).isFile(), 'Cet exécutable est introuvable.');
+  if (checkAvailability) {
+    const available = await applicationAvailability(application);
+    ensure(available.available, available.reason);
+  }
   return application;
+}
+async function applicationAvailability(application) {
+  try { if ((await fs.stat(application.executable)).isFile()) return { available: true }; } catch {}
+  return { available: false, reason: 'Exécutable indisponible. Réparez le chemin ou choisissez une autre application.' };
 }
 
 function toolName(application) {
@@ -227,6 +234,7 @@ function parseEngineOutput(stdout) {
 }
 
 async function launch(application, args, { budget, beforeEffect } = {}) {
+  ensure(!application.windowsApp, 'Le lancement d’une application du catalogue Windows nécessite l’hôte natif de PAM pour vérifier sa disponibilité.');
   ensure((await fs.stat(application.executable)).isFile(), `Exécutable de ${application.name} introuvable.`);
   const argv = application.arguments.map(argument => argument.replaceAll('{input}', args.input ?? ''));
   await beforeEffect?.();
@@ -318,7 +326,8 @@ function createAssistant({ runtimeDirectory, configDirectory, runEngine = execut
       try { manifest = JSON.parse(await fs.readFile(path.join(runtimeDirectory, 'manifest.json'), 'utf8')); } catch {}
       const ready = !configError && checks.every(check => check.available);
       if (ready && engine) await budget.run(() => engine.warm({timeout:budget.timeout()}), 'chargement des moteurs');
-      return { ready, checks, manifest, config, configDirectory, ...(configError ? { configError } : {}), temporaryCleanup, engine: engine?.status() ?? null };
+      const applicationAvailabilityEntries = await Promise.all(config.applications.map(async app => [app.id, await applicationAvailability(app)]));
+      return { ready, checks, manifest, config, applicationAvailability: Object.fromEntries(applicationAvailabilityEntries), configDirectory, ...(configError ? { configError } : {}), temporaryCleanup, engine: engine?.status() ?? null };
     }
     if (method === 'restart_engine') {
       ensure(engine, 'Le moteur persistant est indisponible.');
@@ -336,16 +345,28 @@ function createAssistant({ runtimeDirectory, configDirectory, runEngine = execut
       await atomicJson(path.join(pendingDirectory, `${turn.id}.json`), {createdAt:Date.now(),configDigest:configDigest(config),calls,turn});
       return turn;
     }
+    if (method === 'set_application_enabled') {
+      ensure(typeof payload.enabled === 'boolean', 'État de l’application invalide.');
+      const application = config.applications.find(app => app.id === payload.id);
+      ensure(application, 'Application à modifier introuvable.');
+      if (payload.enabled) await validateApplication(application, application.id);
+      application.enabled = payload.enabled;
+      await saveConfig(config);
+      return config;
+    }
     if (method === 'save_application') {
       const id = payload.id;
       ensure(id === undefined || config.applications.some(app => app.id === id), 'Application à modifier introuvable.');
       const previous = config.applications.find(app => app.id === id);
-      const application = await validateApplication(payload, id, !previous || previous.executable !== payload.executable);
+      const application = validateApplicationStructure(payload, id);
       ensure(!config.applications.some(app => app.id !== application.id && app.name.toLowerCase() === application.name.toLowerCase()), 'Ce nom est déjà utilisé.');
       ensure(!application.windowsApp || !config.applications.some(app => app.id !== application.id &&
         app.windowsApp?.appId.toLowerCase() === application.windowsApp.appId.toLowerCase()), 'Cette application Windows est déjà ajoutée.');
       ensure(id || config.applications.length < 32, '32 applications maximum pour ce prototype.');
       config.applications = [...config.applications.filter(app => app.id !== application.id), application];
+      // Reference/schema errors retain PAM-05's deterministic precedence.
+      validateConfig(config);
+      if (!previous || payload.enabled || previous.executable !== payload.executable) await validateApplication(application, application.id);
       await saveConfig(config);
       return config;
     }

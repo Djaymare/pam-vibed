@@ -46,7 +46,7 @@ fn launch(payload: &Value, catalogue: &Catalogue) -> Result<Value, String> {
     }
     if !payload["windowsApp"].is_null() {
         let mut canonical = payload.clone();
-        catalogue.prepare(&mut canonical)?;
+        catalogue.prepare_fresh(&mut canonical)?;
         if canonical["executable"] != payload["executable"]
             || canonical["arguments"] != payload["arguments"]
         {
@@ -94,5 +94,50 @@ mod tests {
             &Catalogue::default()
         )
         .is_err());
+    }
+
+    #[cfg(windows)]
+    #[test]
+    fn absent_windows_target_is_not_authorized_by_a_cached_entry() {
+        let catalogue = Catalogue::default();
+        let id = "PAM.MissingFixture!Application";
+        let target = format!("shell:AppsFolder\\{id}");
+        *catalogue.0.lock().unwrap() = Some(vec![crate::applications::InstalledApplication {
+            app_id: id.into(),
+            name: "Absent fixture".into(),
+            kind: "store".into(),
+            icon: None,
+            launch_argument: target.clone(),
+        }]);
+        let payload = json!({"id":"11111111-1111-4111-8111-111111111111", "enabled":true,
+            "executable":std::env::current_exe().unwrap(), "arguments":[target], "windowsApp":{"appId":id,"kind":"store","icon":null}});
+        // A valid .exe and a previously cached catalogue entry must not spawn.
+        assert!(handle("launch_application", &payload, &catalogue)
+            .unwrap_err()
+            .contains("absente du catalogue"));
+        let mut disabled = payload.clone();
+        disabled["enabled"] = json!(false);
+        let expected = disabled.clone();
+        catalogue
+            .prepare_request("save_application", &mut disabled, Some(&payload))
+            .unwrap();
+        assert_eq!(disabled, expected);
+        assert!(catalogue
+            .prepare_request("test_application", &mut disabled, Some(&payload))
+            .is_err());
+        assert!(catalogue
+            .prepare_request("save_application", &mut disabled, None)
+            .is_err());
+        let mut repaired = disabled.clone();
+        repaired["windowsApp"]["appId"] = json!("PAM.OtherMissingFixture!App");
+        assert!(catalogue
+            .prepare_request("save_application", &mut repaired, Some(&payload))
+            .is_err());
+        let mut status = json!({"config":{"applications":[payload]},"applicationAvailability":{"11111111-1111-4111-8111-111111111111":{"available":true}}});
+        catalogue.annotate_status(&mut status);
+        assert_eq!(
+            status["applicationAvailability"]["11111111-1111-4111-8111-111111111111"]["available"],
+            false
+        );
     }
 }

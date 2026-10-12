@@ -93,13 +93,7 @@ pub fn run_process_test_host() {
             bridge.request("status", json!({}))
         } else {
             let mut payload = request["payload"].clone();
-            if matches!(method, "save_application" | "test_application") {
-                catalogue
-                    .prepare(&mut payload)
-                    .and_then(|_| bridge.request(method, payload))
-            } else {
-                bridge.request(method, payload)
-            }
+            catalogue_request(&bridge, &catalogue, method, &mut payload)
         };
         let response = match result {
             Ok(result) => json!({"ok":true,"result":result}),
@@ -158,6 +152,46 @@ fn toggle_voice(app: &tauri::AppHandle) {
     let _ = app.emit_to("main", "pam-toggle-voice", ());
 }
 
+fn catalogue_request(
+    bridge: &AssistantBridge,
+    catalogue: &applications::Catalogue,
+    method: &str,
+    payload: &mut Value,
+) -> Result<Value, String> {
+    if matches!(method, "save_application" | "test_application") {
+        let previous_status = if method == "save_application"
+            && payload["enabled"] == false
+            && payload["id"].is_string()
+        {
+            bridge.request("status", json!({}))?
+        } else {
+            Value::Null
+        };
+        let previous = previous_status["config"]["applications"]
+            .as_array()
+            .and_then(|apps| apps.iter().find(|app| app["id"] == payload["id"]));
+        catalogue.prepare_request(method, payload, previous)?;
+    } else if method == "set_application_enabled" && payload["enabled"] == true {
+        let status = bridge.request("status", json!({}))?;
+        let app = status["config"]["applications"]
+            .as_array()
+            .and_then(|apps| apps.iter().find(|app| app["id"] == payload["id"]))
+            .ok_or("Application à modifier introuvable.")?;
+        let mut canonical = app.clone();
+        catalogue.prepare_fresh(&mut canonical)?;
+        if canonical["executable"] != app["executable"]
+            || canonical["arguments"] != app["arguments"]
+        {
+            return Err("La cible a changé. Réparez l’application avant de la réactiver.".into());
+        }
+    }
+    let mut result = bridge.request(method, payload.clone())?;
+    if method == "status" {
+        catalogue.annotate_status(&mut result);
+    }
+    Ok(result)
+}
+
 #[tauri::command]
 async fn assistant_request(
     window: tauri::WebviewWindow,
@@ -172,6 +206,7 @@ async fn assistant_request(
         "status"
             | "recover_config"
             | "save_application"
+            | "set_application_enabled"
             | "delete_application"
             | "settings"
             | "process_text"
@@ -192,10 +227,7 @@ async fn assistant_request(
     tauri::async_runtime::spawn_blocking(move || {
         let state = app.state::<AssistantBridge>();
         let mut payload = payload.unwrap_or(json!({}));
-        if matches!(method.as_str(), "save_application" | "test_application") {
-            app.state::<Arc<applications::Catalogue>>().prepare(&mut payload)?;
-        }
-        let mut result = state.request(&method, payload)?;
+        let mut result = catalogue_request(&state, &app.state::<Arc<applications::Catalogue>>(), &method, &mut payload)?;
         if method == "status" { result["desktop"] = json!({ "shortcut": "Ctrl + Maj + Espace", "shortcutAvailable": state.shortcut_error.is_empty(), "shortcutError": state.shortcut_error, "closeToTray": true }); }
         Ok(result)
     }).await.map_err(|e| e.to_string())?

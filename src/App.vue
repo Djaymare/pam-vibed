@@ -42,6 +42,9 @@ const pickerOpen = ref(false);
 const discoveryLoading = ref(false);
 const discoveryError = ref('');
 const installedApplications = ref<InstalledApplication[]>([]);
+const replacingTarget = ref(false);
+const editingAvailability = computed(() => editingId.value ? status.value?.applicationAvailability?.[editingId.value] : undefined);
+function unavailable(application: Application) { return status.value?.applicationAvailability?.[application.id]?.available === false; }
 const testResult = ref<{ success: boolean; message: string }>();
 const testInput = ref('');
 const testing = ref(false);
@@ -216,6 +219,7 @@ function editApplication(application?: Application, preserveTrigger = false) {
   formError.value = ''; testResult.value = undefined; testInput.value = ''; editorOpen.value = true;
 }
 async function addApplication() {
+  replacingTarget.value = false;
   rememberDialogTrigger();
   pickerOpen.value = true;
   if (!installedApplications.value.length) await discoverApplications();
@@ -228,6 +232,13 @@ async function discoverApplications() {
   finally { discoveryLoading.value = false; }
 }
 function selectInstalled(application: InstalledApplication) {
+  if (replacingTarget.value) {
+    pickerOpen.value = false; replacingTarget.value = false; editorOpen.value = true;
+    form.windowsApp = { appId: application.appId, kind: application.kind, icon: application.icon, launchArgument: application.launchArgument };
+    deezerPlugin.value = deezerPlugin.value && deezerTarget.value;
+    testResult.value = undefined;
+    return;
+  }
   pickerOpen.value = false; editApplication(undefined, true);
   form.name = application.name.slice(0, 60);
   form.description = `Ouvrir ${form.name}.`;
@@ -236,7 +247,9 @@ function selectInstalled(application: InstalledApplication) {
   if (deezerTarget.value) { deezerPlugin.value = true; mediaSource.value = 'Deezer.exe'; }
   // The native bridge supplies the trusted launch target when saving or testing.
 }
-function manualApplication() { pickerOpen.value = false; editApplication(undefined, true); }
+function closePicker() { pickerOpen.value = false; if (replacingTarget.value) { replacingTarget.value = false; editorOpen.value = true; } }
+async function replaceTarget() { replacingTarget.value = true; editorOpen.value = false; pickerOpen.value = true; await discoverApplications(); }
+function manualApplication() { if (replacingTarget.value) { useExecutable(); closePicker(); } else { pickerOpen.value = false; editApplication(undefined, true); } }
 function useExecutable() { form.windowsApp = undefined; form.executable = ''; form.arguments = '[]'; testResult.value = undefined; deezerPlugin.value = false; mediaSource.value = ''; }
 function applicationPayload() {
   let args: unknown;
@@ -263,13 +276,13 @@ async function saveApplication() {
     config.value = await request<Config>('save_application', applicationPayload());
     editorOpen.value = false;
   } catch (caught) { formError.value = describeError(caught); }
-  finally { busy.value = false; }
+  finally { busy.value = false; void updateHealth(); }
 }
 async function toggleApplication(application: Application) {
   busy.value = true; error.value = '';
-  try { config.value = await request<Config>('save_application', { ...application, enabled: !application.enabled }); }
+  try { config.value = await request<Config>('set_application_enabled', { id: application.id, enabled: !application.enabled }); }
   catch (caught) { error.value = describeError(caught); }
-  finally { busy.value = false; }
+  finally { busy.value = false; void updateHealth(); }
 }
 async function deleteApplication(application: Application) {
   busy.value = true; error.value = '';
@@ -350,7 +363,7 @@ const outcomeLabels = {not_started:'Non démarrée',performed:'Effectuée',faile
         <template v-else-if="page === 'applications'">
           <div class="page-intro inline"><div><div class="eyebrow">VOTRE BOÎTE À OUTILS</div><h1>Applications</h1><p>Choisissez les applications que PAM peut lancer.</p></div><button class="primary" :disabled="locked" @click="addApplication()"><Icon name="plus" :size="18" />Ajouter une application</button></div>
           <div v-if="!config.applications.length" class="large-empty"><span class="empty-icon"><Icon name="apps" :size="30" /></span><h2>Faites une place à vos applications</h2><p>Choisissez une application installée ou un exécutable,<br />puis décrivez à quoi elle sert.</p><button class="primary" :disabled="locked" @click="addApplication()"><Icon name="plus" :size="17" />Ajouter une application</button></div>
-          <div class="application-list"><article v-for="app in config.applications" :key="app.id" class="application-card" :class="{ disabled: !app.enabled }"><span class="application-avatar"><img v-if="app.windowsApp?.icon" :src="app.windowsApp.icon" alt="" /> <template v-else>{{ app.name.slice(0, 1).toUpperCase() }}</template></span><div class="application-body"><h3>{{ app.name }}</h3><p>{{ app.description }}</p><code>{{ app.windowsApp ? (app.windowsApp.kind === 'store' ? 'Microsoft Store' : 'Application de bureau') : app.executable }}</code><div class="alias-list"><span v-for="alias in app.aliases" :key="alias">{{ alias }}</span><span v-if="!app.windowsApp && app.arguments.length">{{ app.arguments.length }} argument(s)</span></div></div><div class="application-actions"><button class="toggle" :class="{ on: app.enabled }" :disabled="locked" role="switch" :aria-checked="app.enabled" :aria-label="`Activer ${app.name}`" @click="toggleApplication(app)"><span /></button><button class="icon-button" :disabled="locked" :aria-label="`Modifier ${app.name}`" @click="editApplication(app)"><Icon name="edit" :size="17" /></button><button class="icon-button danger" :disabled="locked" :aria-label="`Supprimer ${app.name}`" @click="deleteApplication(app)"><Icon name="trash" :size="17" /></button></div></article></div>
+          <div class="application-list"><article v-for="app in config.applications" :key="app.id" class="application-card" :class="{ disabled: !app.enabled }"><span class="application-avatar"><img v-if="app.windowsApp?.icon" :src="app.windowsApp.icon" alt="" /> <template v-else>{{ app.name.slice(0, 1).toUpperCase() }}</template></span><div class="application-body"><h3>{{ app.name }}</h3><p v-if="unavailable(app)" class="result-error" role="status">Indisponible · Réparez la cible ou choisissez une autre application.</p><p>{{ app.description }}</p><code>{{ app.windowsApp ? (app.windowsApp.kind === 'store' ? 'Microsoft Store' : 'Application de bureau') : app.executable }}</code><div class="alias-list"><span v-for="alias in app.aliases" :key="alias">{{ alias }}</span><span v-if="!app.windowsApp && app.arguments.length">{{ app.arguments.length }} argument(s)</span></div></div><div class="application-actions"><button class="toggle" :class="{ on: app.enabled }" :disabled="locked" role="switch" :aria-checked="app.enabled" :aria-label="`Activer ${app.name}`" @click="toggleApplication(app)"><span /></button><button class="icon-button" :disabled="locked" :aria-label="`${unavailable(app) ? 'Réparer' : 'Modifier'} ${app.name}`" @click="editApplication(app)"><Icon name="edit" :size="17" /></button><button class="icon-button danger" :disabled="locked" :aria-label="`Supprimer ${app.name}`" @click="deleteApplication(app)"><Icon name="trash" :size="17" /></button></div></article></div>
           <div class="notice info"><Icon name="info" /><span>PAM lance les applications enregistrées et peut leur transmettre un texte, un fichier ou une URL via leurs arguments. Les actions internes dépendent de ce que chaque application accepte en ligne de commande.</span></div>
         </template>
         <template v-else>
@@ -386,12 +399,12 @@ const outcomeLabels = {not_started:'Non démarrée',performed:'Effectuée',faile
         </form>
       </template>
     </ModalDialog>
-    <ApplicationPicker v-if="pickerOpen" :return-focus="dialogReturnFocus" :applications="installedApplications" :registered="config.applications" :loading="discoveryLoading" :error="discoveryError" @close="pickerOpen = false" @refresh="discoverApplications" @manual="manualApplication" @select="selectInstalled" />
+    <ApplicationPicker v-if="pickerOpen" :return-focus="dialogReturnFocus" :applications="installedApplications" :registered="replacingTarget ? config.applications.filter(app => app.id !== editingId) : config.applications" :loading="discoveryLoading" :error="discoveryError" @close="closePicker" @refresh="discoverApplications" @manual="manualApplication" @select="selectInstalled" />
     <ModalDialog v-if="editorOpen" labelledby="editor-title" :return-focus="dialogReturnFocus" fallback-focus=".sidebar nav button.selected" :close-disabled="busy" @close="editorOpen = false">
       <template #default="{ requestClose }">
         <div class="modal-heading"><div><div class="eyebrow">CONNECTER UNE APPLICATION</div><h2 id="editor-title">{{ editingId ? 'Modifier l’application' : 'Nouvelle application' }}</h2></div><button class="icon-button" :disabled="busy" aria-label="Fermer" @click="requestClose('explicit')"><Icon name="close" /></button></div>
         <form @submit.prevent="saveApplication">
-          <div v-if="form.windowsApp" class="detected-target"><span class="application-avatar"><img v-if="form.windowsApp.icon" :src="form.windowsApp.icon" alt="" /><Icon v-else name="apps" /></span><div><strong>Application détectée</strong><small>{{ form.windowsApp.kind === 'store' ? 'Microsoft Store' : 'Application de bureau' }} · lancement géré par Windows</small></div><button type="button" class="text-button" :disabled="busy" @click="useExecutable">Choisir un .exe</button></div>
+          <p v-if="editingAvailability?.available === false" class="notice error" role="status">{{ editingAvailability.reason }} Vos formulations sont conservées lors de la désactivation.</p><button v-if="editingId" type="button" class="secondary small" :disabled="busy" @click="replaceTarget">Choisir une autre application Windows</button><div v-if="form.windowsApp" class="detected-target"><span class="application-avatar"><img v-if="form.windowsApp.icon" :src="form.windowsApp.icon" alt="" /><Icon v-else name="apps" /></span><div><strong>Application détectée</strong><small>{{ form.windowsApp.kind === 'store' ? 'Microsoft Store' : 'Application de bureau' }} · lancement géré par Windows</small></div><button type="button" class="text-button" :disabled="busy" @click="useExecutable">Choisir un .exe</button></div>
           <label>Nom de l’application<input data-dialog-initial-focus v-model="form.name" required maxlength="60" placeholder="Ex. : Visual Studio Code" :disabled="busy" /></label>
           <label>À quoi sert-elle ?<textarea v-model="form.description" required maxlength="240" rows="2" placeholder="Ex. : Ouvrir l’éditeur de code et travailler sur un projet." :disabled="busy" /><small>Cette description aide Needle à choisir la bonne application.</small></label>
           <label v-if="!form.windowsApp">Exécutable Windows<div class="path-field"><input v-model="form.executable" required placeholder="C:\…\application.exe" :disabled="busy" /><button type="button" class="secondary" :disabled="busy" @click="browse"><Icon name="folder" :size="18" />Parcourir</button></div></label>

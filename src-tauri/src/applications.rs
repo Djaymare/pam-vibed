@@ -46,6 +46,70 @@ impl Catalogue {
         payload["windowsApp"] = serde_json::json!({ "appId": entry.app_id, "kind": entry.kind, "icon": entry.icon, "launchArgument": entry.launch_argument });
         Ok(())
     }
+
+    pub fn prepare_fresh(&self, payload: &mut Value) -> Result<(), String> {
+        // Effect/registration paths must not trust a stale picker snapshot.
+        // prepare() alone supports read-only batch checks on one scan.
+        if !payload["windowsApp"].is_null() {
+            self.scan()?;
+        }
+        self.prepare(payload)
+    }
+
+    pub fn prepare_request(
+        &self,
+        method: &str,
+        payload: &mut Value,
+        previous: Option<&Value>,
+    ) -> Result<(), String> {
+        // Only an existing disabled record can bypass target availability.
+        // The sidecar still checks its ID and the full structural schema.
+        if method == "save_application"
+            && payload["enabled"] == false
+            && previous.is_some_and(|app| {
+                payload["id"].is_string()
+                    && app["id"] == payload["id"]
+                    && app["executable"] == payload["executable"]
+                    && app["arguments"] == payload["arguments"]
+                    && app["windowsApp"]["appId"] == payload["windowsApp"]["appId"]
+            })
+        {
+            return Ok(());
+        }
+        self.prepare_fresh(payload)
+    }
+
+    pub fn annotate_status(&self, status: &mut Value) {
+        let Some(applications) = status["config"]["applications"].as_array() else {
+            return;
+        };
+        let applications = applications.clone();
+        if !applications.iter().any(|app| !app["windowsApp"].is_null()) {
+            return;
+        }
+        let catalogue = self.scan();
+        for app in applications
+            .iter()
+            .filter(|app| !app["windowsApp"].is_null())
+        {
+            let Some(id) = app["id"].as_str() else {
+                continue;
+            };
+            let entry = catalogue.as_ref().ok().and_then(|entries| {
+                entries.iter().find(|entry| {
+                    Some(entry.app_id.as_str()) == app["windowsApp"]["appId"].as_str()
+                })
+            });
+            let available = entry.is_some_and(|entry| {
+                app["arguments"] == serde_json::json!([entry.launch_argument])
+            }) && status["applicationAvailability"][id]["available"] == true;
+            status["applicationAvailability"][id] = if available {
+                serde_json::json!({"available":true})
+            } else {
+                serde_json::json!({"available":false,"reason":catalogue.as_ref().err().cloned().unwrap_or_else(|| "Application indisponible dans le catalogue Windows. Réparez sa cible ou choisissez une autre application.".into())})
+            };
+        }
+    }
 }
 
 #[cfg(not(windows))]
