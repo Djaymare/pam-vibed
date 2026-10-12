@@ -10,6 +10,7 @@ const { needleToolName, needleTools, canonicalPrompt, requestIssue } = require('
 const { ACTIONS: ALIAS_ACTIONS, validateStore, findCommandAlias, saveCommandAlias } = require('./command-aliases.cjs');
 const {recognizeDeezerCommand,deezerCommandIssue,deezerActionLabel} = require('./deezer-commands.cjs');
 const {resolveMediaCommand} = require('./media-commands.cjs');
+const { createTemporaryFiles, atomicJson: writeAtomicJson } = require('./temporary-files.cjs');
 
 const LANGUAGES = new Set(['auto', 'fr', 'en', 'de', 'es', 'it', 'nl', 'pl']);
 const MAX_AUDIO_BYTES = 44 + 16_000 * 30 * 2;
@@ -24,12 +25,6 @@ function configDigest(config) {
   const hash=createHash('sha256').update(JSON.stringify(config.applications));
   if(config.commandAliases?.length)hash.update(JSON.stringify(config.commandAliases));
   return hash.digest('hex');
-}
-async function atomicJson(destination, value) {
-  await fs.mkdir(path.dirname(destination), { recursive: true });
-  const temporary = `${destination}.${randomUUID()}.tmp`;
-  await fs.writeFile(temporary, JSON.stringify(value, null, 2), { mode: 0o600 });
-  await fs.rename(temporary, destination);
 }
 async function readConfig(directory) {
   try {
@@ -262,6 +257,9 @@ async function launch(application, args) {
 }
 
 function createAssistant({ runtimeDirectory, configDirectory, runEngine = executeFile, launchApplication = launch, engine, media = createMedia() }) {
+  const temporaryFiles = createTemporaryFiles(configDirectory);
+  const atomicJson = (destination, value) => writeAtomicJson(destination, value, configDirectory);
+  let startupCleanup = temporaryFiles.collect();
   const configPath = path.join(configDirectory, 'applications.json');
   const pendingDirectory = path.join(configDirectory, 'pending');
   async function executeCalls(calls, config) {
@@ -276,15 +274,10 @@ function createAssistant({ runtimeDirectory, configDirectory, runEngine = execut
     return results;
   }
   return async function handle(method, payload = {}) {
+    await startupCleanup;
+    startupCleanup = null;
+    const temporaryCleanup = await temporaryFiles.collect();
     const config = await readConfig(configDirectory);
-    try {
-      for (const name of await fs.readdir(pendingDirectory)) {
-        if (!/^[0-9a-f-]{36}\.json$/.test(name)) continue;
-        const file = path.join(pendingDirectory, name);
-        const metadata = await fs.stat(file);
-        if (Date.now() - metadata.mtimeMs >= 10 * 60_000) await fs.unlink(file);
-      }
-    } catch (error) { if (error.code !== 'ENOENT') throw error; }
     if (method === 'status') {
       const files = ['needle.exe', 'models/needle3.cact', 'models/whistle.cact', 'npm/bin/npm-cli.js', 'libneedle3.dll', 'ffi/node_modules/@koromix/koffi-win32-x64/win32_x64/koffi.node'];
       const checks = await Promise.all(files.map(async file => {
@@ -295,7 +288,7 @@ function createAssistant({ runtimeDirectory, configDirectory, runEngine = execut
       try { manifest = JSON.parse(await fs.readFile(path.join(runtimeDirectory, 'manifest.json'), 'utf8')); } catch {}
       const ready = checks.every(check => check.available);
       if (ready && engine) await engine.warm();
-      return { ready, checks, manifest, config, configDirectory, engine: engine?.status() ?? null };
+      return { ready, checks, manifest, config, configDirectory, temporaryCleanup, engine: engine?.status() ?? null };
     }
     if (method === 'restart_engine') {
       ensure(engine, 'Le moteur persistant est indisponible.');
@@ -419,7 +412,8 @@ function createAssistant({ runtimeDirectory, configDirectory, runEngine = execut
     const tools = toolsFor(config,sessions);
     ensure(tools.length > 0, 'Ajoutez et activez au moins une application avant de faire une demande.');
     await fs.mkdir(configDirectory, { recursive: true });
-    const temporary = await fs.mkdtemp(path.join(configDirectory, 'turn-'));
+    const lease = await temporaryFiles.createTurn();
+    const temporary = lease.directory;
     const startedAt = Date.now();
     async function infer(args) {
       // Both stages share the same budget, within the sidecar's 45s lifetime.
@@ -579,9 +573,7 @@ function createAssistant({ runtimeDirectory, configDirectory, runEngine = execut
       }
       return turn;
     } finally {
-      ensure(path.resolve(temporary).startsWith(path.resolve(configDirectory) + path.sep) &&
-        path.basename(temporary).startsWith('turn-'), 'Dossier temporaire hors de la configuration.');
-      await fs.rm(temporary, { recursive: true, force: true });
+      await lease.release();
     }
   };
 }

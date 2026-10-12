@@ -44,6 +44,7 @@ export interface RuntimeStatus {
   manifest: { node: string; npm: string; target: string } | null;
   config: Config;
   configDirectory: string;
+  temporaryCleanup?: { removed: number; failed: number; retained: number };
   engine: { loaded: boolean; generation: number; pid: number } | null;
   desktop?: { shortcut: string; shortcutAvailable: boolean; shortcutError: string; closeToTray: boolean };
 }
