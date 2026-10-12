@@ -4,7 +4,7 @@ const {createAssistant,DEFAULT_CONFIG}=require('./assistant.cjs');
 const {parseMediaAction,resolveMediaCommand}=require('./media-commands.cjs');
 const {DEEZER_APP_ID}=require('./deezer.cjs');
 const deezer={id:'11111111-1111-4111-8111-111111111111',name:'Deezer Music',aliases:['Diseur','Deezer'],description:'Musique',enabled:true,
-  executable:'C:\\fixture.exe',arguments:[],windowsApp:{appId:DEEZER_APP_ID,kind:'store',icon:null},media:{sourceAppId:'Deezer.exe',deezer:true}};
+  executable:'C:\\Windows\\explorer.exe',arguments:[`shell:AppsFolder\\${DEEZER_APP_ID}`],windowsApp:{appId:DEEZER_APP_ID,kind:'store',icon:null},media:{sourceAppId:'Deezer.exe',deezer:true}};
 const browser={...deezer,id:'22222222-2222-4222-8222-222222222222',name:'Navigateur Opera GX',aliases:['le navigateur'],windowsApp:undefined,media:{sourceAppId:'opera.exe',deezer:false}};
 const ea={...browser,id:'33333333-3333-4333-8333-333333333333',name:'EA',aliases:[],media:undefined};
 const config={...DEFAULT_CONFIG,applications:[deezer,browser,ea],autoExecute:false};

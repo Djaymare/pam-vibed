@@ -1,0 +1,16 @@
+{
+  "version": 1,
+  "applications": [{
+    "id": "3c4a1d0a-0101-4101-8101-010101010101",
+    "name": "Éditeur de test",
+    "description": "Ouvrir l’éditeur de test.",
+    "executable": "C:\\PAM-test-absent\\editor.exe",
+    "arguments": ["{input}"],
+    "aliases": ["Testpad"],
+    "enabled": true
+  }],
+  "commandAliases": [],
+  "language": "fr",
+  "autoExecute": true,
+  "confidenceThreshold": 0.7
+}

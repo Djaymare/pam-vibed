@@ -18,7 +18,7 @@ await mkdir(cache,{recursive:true});
 const profile=await mkdtemp(join(cache,'smoke-deezer-routing-'));
 const engine=createEngine(runtime);
 const deezer={id:'11111111-1111-4111-8111-111111111111',name:'Deezer Music',aliases:['Diseur','Deezer'],description:'Écoute de musique',enabled:true,
-  executable:'C:\\fixture.exe',arguments:[],windowsApp:{appId:DEEZER_APP_ID,kind:'store',icon:null},media:{sourceAppId:'Deezer.exe',deezer:true}};
+  executable:'C:\\Windows\\explorer.exe',arguments:[`shell:AppsFolder\\${DEEZER_APP_ID}`],windowsApp:{appId:DEEZER_APP_ID,kind:'store',icon:null},media:{sourceAppId:'Deezer.exe',deezer:true}};
 const browser={...deezer,id:'22222222-2222-4222-8222-222222222222',name:'Opera GX',aliases:['Navigateur'],windowsApp:undefined,media:{sourceAppId:'opera.exe',deezer:false}};
 const config={...DEFAULT_CONFIG,applications:[deezer,browser],autoExecute:false};
 const report={date:new Date().toISOString(),runtime,baseline:[],checks:[],realActionsExecuted:0};

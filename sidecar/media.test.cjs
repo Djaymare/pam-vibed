@@ -100,7 +100,7 @@ test('clic manuel : validation obligatoire, consommation unique et pas de lancem
 });
 test('le changement de cible média invalide une confirmation',async t=>{
   const f=await fixture(t);const turn=await f.handle('prepare_action',{applicationId:deezer.id,action:'media_next'});
-  const c=JSON.parse(await fs.readFile(path.join(f.directory,'applications.json'),'utf8'));c.applications[0].media.sourceAppId='opera.exe';
+  const c=JSON.parse(await fs.readFile(path.join(f.directory,'applications.json'),'utf8'));c.applications[0].media.sourceAppId='opera.exe';c.applications[0].media.deezer=false;
   await fs.writeFile(path.join(f.directory,'applications.json'),JSON.stringify(c));
   await assert.rejects(f.handle('confirm',{id:turn.id}),/applications ont changé/);assert.equal(f.calls.length,0);
 });

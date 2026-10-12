@@ -16,6 +16,8 @@ const page = ref<'assistant' | 'applications' | 'settings'>('assistant');
 const status = ref<RuntimeStatus>();
 const config = ref<Config>({ version: 1, applications: [], language: 'fr', autoExecute: true, confidenceThreshold: 0.7 });
 const error = ref('');
+const recoveryOpen = ref(false);
+const recoveryBackup = ref('');
 const busy = ref(false);
 const loading = ref(true);
 const recording = ref(false);
@@ -76,8 +78,23 @@ async function refresh() {
 }
 async function updateHealth() {
   if (locked.value || !isTauri()) return;
-  try { status.value = await request<RuntimeStatus>('status'); }
+  try {
+    const next = await request<RuntimeStatus>('status');
+    if (next.configError || status.value?.configError) config.value = next.config;
+    status.value = next;
+  }
   catch (caught) { error.value = describeError(caught); }
+}
+async function recoverProfile() {
+  const fingerprint = status.value?.configError?.fingerprint;
+  if (!fingerprint || locked.value) return;
+  busy.value = true; error.value = '';
+  try {
+    const result = await request<{ config: Config; backupPath: string }>('recover_config', { confirmed: true, fingerprint });
+    config.value = result.config; recoveryBackup.value = result.backupPath; recoveryOpen.value = false;
+    await refresh();
+  } catch (caught) { const message = describeError(caught); recoveryOpen.value = false; await refresh(); error.value = message; }
+  finally { busy.value = false; }
 }
 onMounted(async () => {
   if (isTauri()) {
@@ -291,6 +308,16 @@ const outcomeLabels = {not_started:'Non démarrée',performed:'Effectuée',faile
       <header class="topbar"><span>{{ page === 'assistant' ? 'Assistant' : page === 'applications' ? 'Applications' : 'Préférences' }}</span><span class="runtime-pill" :class="{ offline: !status?.ready }"><i />{{ loading ? 'Vérification…' : status?.engine?.loaded ? 'Moteurs en mémoire' : status?.ready ? 'Moteurs disponibles' : 'Runtime indisponible' }}</span></header>
       <div class="desktop-toolbar"><span><kbd>Ctrl</kbd> + <kbd>Maj</kbd> + <kbd>Espace</kbd> pour parler</span><button class="text-button" @click="desktop('hide')">Réduire dans la zone de notification</button></div>
       <div class="content">
+        <div v-if="status?.configError" class="notice error" role="alert">
+          <span>{{ status.configError.message }}</span>
+          <button v-if="status.configError.recoverable && !recoveryOpen" :disabled="locked" @click="recoveryOpen = true">Récupérer le profil</button>
+        </div>
+        <section v-if="status?.configError && recoveryOpen" class="notice" aria-label="Confirmation de récupération">
+          <span>Une copie exacte du fichier sera conservée dans le dossier du profil. Les applications et formulations seront retirées du profil actif et les préférences restaurées par défaut. Vous pourrez récupérer vos données depuis la sauvegarde. Confirmer la restauration d’un profil vide ?</span>
+          <button :disabled="locked" @click="recoverProfile">Sauvegarder puis restaurer</button>
+          <button :disabled="locked" @click="recoveryOpen = false">Annuler</button>
+        </section>
+        <div v-if="recoveryBackup" class="notice" role="status">Profil vide restauré. Original sauvegardé : {{ recoveryBackup }}</div>
         <div v-if="status?.desktop?.shortcutError" class="notice error" role="alert">{{ status.desktop.shortcutError }} Vous pouvez utiliser le microphone ou le menu de PAM dans la zone de notification.</div>
         <div v-if="error" class="notice error" role="alert"><Icon name="info" /><span>{{ error }}</span><button v-if="!status?.ready" :disabled="locked" @click="refresh">Réessayer</button><button v-else aria-label="Fermer le message" @click="error = ''"><Icon name="close" :size="16" /></button></div>
         <template v-if="page === 'assistant'">

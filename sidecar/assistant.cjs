@@ -7,16 +7,16 @@ const executeFile = promisify(execFile);
 const { createMedia, MEDIA_ACTIONS } = require('./media.cjs');
 const { DEEZER_APP_ID, DEEZER_SOURCE_IDS, CONTENT, PAGES, validateDeezerArgs } = require('./deezer.cjs');
 const { needleToolName, needleTools, canonicalPrompt, requestIssue } = require('./needle-tools.cjs');
-const { ACTIONS: ALIAS_ACTIONS, validateStore, findCommandAlias, saveCommandAlias } = require('./command-aliases.cjs');
+const { ACTIONS: ALIAS_ACTIONS, findCommandAlias, saveCommandAlias } = require('./command-aliases.cjs');
 const {recognizeDeezerCommand,deezerCommandIssue,deezerActionLabel} = require('./deezer-commands.cjs');
 const {resolveMediaCommand} = require('./media-commands.cjs');
 const { createTemporaryFiles, atomicJson: writeAtomicJson } = require('./temporary-files.cjs');
 const { createBudget, interruptedTurn } = require('./budget.cjs');
 const { executionStore } = require('./execution.cjs');
 
-const LANGUAGES = new Set(['auto', 'fr', 'en', 'de', 'es', 'it', 'nl', 'pl']);
+const { validateConfig, validateApplicationStructure, LANGUAGES, DEFAULT_CONFIG } = require('./config-schema.cjs');
+const { readConfig, recoverConfig } = require('./config-store.cjs');
 const MAX_AUDIO_BYTES = 44 + 16_000 * 30 * 2;
-const DEFAULT_CONFIG = { version: 1, applications: [], commandAliases: [], language: 'fr', autoExecute: true, confidenceThreshold: 0.7 };
 
 function ensure(condition, message) { if (!condition) throw new Error(message); }
 function cleanText(value, label, max = 200) {
@@ -28,66 +28,10 @@ function configDigest(config) {
   if(config.commandAliases?.length)hash.update(JSON.stringify(config.commandAliases));
   return hash.digest('hex');
 }
-async function readConfig(directory) {
-  try {
-    const config = JSON.parse(await fs.readFile(path.join(directory, 'applications.json'), 'utf8'));
-    ensure(config.version === 1 && Array.isArray(config.applications), 'Configuration des applications incompatible.');
-    ensure(LANGUAGES.has(config.language) && typeof config.autoExecute === 'boolean' &&
-      Number.isFinite(config.confidenceThreshold) && config.confidenceThreshold >= 0.1 && config.confidenceThreshold <= 1,
-      'Préférences invalides.');
-    config.commandAliases ??= [];
-    validateStore(config.commandAliases);
-    return config;
-  } catch (error) {
-    if (error.code === 'ENOENT') return structuredClone(DEFAULT_CONFIG);
-    throw new Error(`Impossible de lire la configuration : ${error.message}`);
-  }
-}
-
-async function validateApplication(value, existingId) {
-  ensure(value && typeof value === 'object', 'Application invalide.');
-  const name = cleanText(value.name, 'Nom', 60);
-  const description = cleanText(value.description, 'Description', 240);
-  const executable = cleanText(value.executable, 'Exécutable', 1024);
-  ensure(path.win32.isAbsolute(executable) && executable.toLowerCase().endsWith('.exe'), 'Choisissez le chemin absolu d’un fichier .exe.');
-  ensure((await fs.stat(executable)).isFile(), 'Cet exécutable est introuvable.');
-  ensure(Array.isArray(value.arguments) && value.arguments.length <= 20 && value.arguments.every(argument =>
-    typeof argument === 'string' && argument.length <= 2048 && !argument.includes('\0')), 'Arguments invalides (tableau de chaînes, 20 maximum).');
-  const aliases = Array.isArray(value.aliases) ? value.aliases.map(alias => cleanText(alias, 'Alias', 40)) : [];
-  ensure(aliases.length <= 6, 'Six alias maximum par application.');
-  ensure(typeof value.enabled === 'boolean', 'État de l’application invalide.');
-  let windowsApp;
-  if (value.windowsApp != null) {
-    const target = value.windowsApp;
-    const appId = cleanText(target.appId, 'Application Windows', 1024);
-    ensure(!/[\x00-\x1f]/.test(appId) && !appId.includes('{input}') && ['desktop', 'store'].includes(target.kind), 'Application Windows invalide.');
-    const launchArgument = target.launchArgument ?? `shell:AppsFolder\\${appId}`;
-    ensure(typeof launchArgument === 'string' && !/[\x00-\x1f]/.test(launchArgument) && !launchArgument.includes('{input}') &&
-      (launchArgument === `shell:AppsFolder\\${appId}` || (target.kind === 'desktop' && appId === `shortcut:${launchArgument}` &&
-        path.win32.isAbsolute(launchArgument) && launchArgument.toLowerCase().endsWith('.lnk'))), 'Raccourci Windows invalide.');
-    ensure(path.win32.basename(executable).toLowerCase() === 'explorer.exe' && value.arguments.length === 1 &&
-      value.arguments[0] === launchArgument, 'Le lancement doit correspondre à l’application Windows choisie.');
-    const icon = target.icon ?? null;
-    if (icon !== null) {
-      ensure(typeof icon === 'string' && icon.length <= 32768 && /^data:image\/png;base64,[A-Za-z0-9+/]+={0,2}$/.test(icon), 'Icône Windows invalide.');
-      const bytes = Buffer.from(icon.slice('data:image/png;base64,'.length), 'base64');
-      ensure(bytes.length >= 33 && bytes.subarray(0, 8).equals(Buffer.from([137, 80, 78, 71, 13, 10, 26, 10])) &&
-        bytes.toString('ascii', 12, 16) === 'IHDR' && bytes.readUInt32BE(16) > 0 && bytes.readUInt32BE(16) <= 64 &&
-        bytes.readUInt32BE(20) > 0 && bytes.readUInt32BE(20) <= 64, 'Icône Windows invalide.');
-    }
-    windowsApp = { appId, kind: target.kind, icon, ...(target.launchArgument ? { launchArgument } : {}) };
-  }
-  let media;
-  if (value.media != null) {
-    ensure(typeof value.media === 'object' && !Array.isArray(value.media) &&
-      Object.keys(value.media).every(key => ['sourceAppId','deezer'].includes(key)), 'Configuration multimédia invalide.');
-    const sourceAppId = cleanText(value.media.sourceAppId, 'Identifiant de session Windows', 1024);
-    ensure(!/[\x00-\x1f]/.test(sourceAppId) && typeof value.media.deezer === 'boolean', 'Lecteur multimédia invalide.');
-    if (value.media.deezer) ensure(windowsApp?.appId === DEEZER_APP_ID && DEEZER_SOURCE_IDS.includes(sourceAppId), 'Le plugin Deezer doit cibler la session de Deezer Music.');
-    media = { sourceAppId, deezer:value.media.deezer };
-  }
-  return { id: existingId || randomUUID(), name, description, executable,
-    arguments: value.arguments, aliases, enabled: value.enabled, ...(windowsApp ? { windowsApp } : {}), ...(media ? {media} : {}) };
+async function validateApplication(value, existingId, checkAvailability = true) {
+  const application = validateApplicationStructure(value, existingId);
+  if (checkAvailability) ensure((await fs.stat(application.executable)).isFile(), 'Cet exécutable est introuvable.');
+  return application;
 }
 
 function toolName(application) {
@@ -316,7 +260,19 @@ function createAssistant({ runtimeDirectory, configDirectory, runEngine = execut
     await budget.run(() => startupCleanup, 'nettoyage initial');
     startupCleanup = null;
     const temporaryCleanup = await budget.run(() => temporaryFiles.collect(), 'nettoyage');
-    const config = await budget.run(() => readConfig(configDirectory), 'configuration');
+    if (method === 'recover_config') return budget.run(() => recoverConfig(configDirectory, payload, { budget }), 'récupération du profil');
+    let config, configError;
+    try { config = await budget.run(() => readConfig(configDirectory), 'configuration'); }
+    catch (error) {
+      if (method !== 'status' || error.code !== 'invalid_profile') throw error;
+      config = structuredClone(DEFAULT_CONFIG); configError = error.details;
+    }
+    const loadedConfig = JSON.stringify(config);
+    const saveConfig = async value => {
+      const validated = validateConfig(value);
+      ensure(JSON.stringify(await readConfig(configDirectory)) === loadedConfig, 'Le profil a changé pendant la modification. Relisez-le avant de réessayer.');
+      await atomicJson(configPath, validated);
+    };
     if (method === 'status') {
       const files = ['needle.exe', 'models/needle3.cact', 'models/whistle.cact', 'npm/bin/npm-cli.js', 'libneedle3.dll', 'ffi/node_modules/@koromix/koffi-win32-x64/win32_x64/koffi.node'];
       const checks = await Promise.all(files.map(async file => {
@@ -325,9 +281,9 @@ function createAssistant({ runtimeDirectory, configDirectory, runEngine = execut
       }));
       let manifest = null;
       try { manifest = JSON.parse(await fs.readFile(path.join(runtimeDirectory, 'manifest.json'), 'utf8')); } catch {}
-      const ready = checks.every(check => check.available);
+      const ready = !configError && checks.every(check => check.available);
       if (ready && engine) await budget.run(() => engine.warm({timeout:budget.timeout()}), 'chargement des moteurs');
-      return { ready, checks, manifest, config, configDirectory, temporaryCleanup, engine: engine?.status() ?? null };
+      return { ready, checks, manifest, config, configDirectory, ...(configError ? { configError } : {}), temporaryCleanup, engine: engine?.status() ?? null };
     }
     if (method === 'restart_engine') {
       ensure(engine, 'Le moteur persistant est indisponible.');
@@ -348,13 +304,14 @@ function createAssistant({ runtimeDirectory, configDirectory, runEngine = execut
     if (method === 'save_application') {
       const id = payload.id;
       ensure(id === undefined || config.applications.some(app => app.id === id), 'Application à modifier introuvable.');
-      const application = await validateApplication(payload, id);
+      const previous = config.applications.find(app => app.id === id);
+      const application = await validateApplication(payload, id, !previous || previous.executable !== payload.executable);
       ensure(!config.applications.some(app => app.id !== application.id && app.name.toLowerCase() === application.name.toLowerCase()), 'Ce nom est déjà utilisé.');
       ensure(!application.windowsApp || !config.applications.some(app => app.id !== application.id &&
         app.windowsApp?.appId.toLowerCase() === application.windowsApp.appId.toLowerCase()), 'Cette application Windows est déjà ajoutée.');
       ensure(id || config.applications.length < 32, '32 applications maximum pour ce prototype.');
       config.applications = [...config.applications.filter(app => app.id !== application.id), application];
-      await atomicJson(configPath, config);
+      await saveConfig(config);
       return config;
     }
     if (method === 'test_application') {
@@ -373,18 +330,18 @@ function createAssistant({ runtimeDirectory, configDirectory, runEngine = execut
       ensure(config.applications.some(app => app.id === payload.id), 'Application introuvable.');
       config.applications = config.applications.filter(app => app.id !== payload.id);
       config.commandAliases=config.commandAliases.filter(alias=>alias.applicationId!==payload.id);
-      await atomicJson(configPath, config);
+      await saveConfig(config);
       return config;
     }
     if (method === 'save_command_alias') {
       saveCommandAlias(payload,config,toolsFor(config));
-      await atomicJson(configPath,config);
+      await saveConfig(config);
       return config;
     }
     if (method === 'delete_command_alias') {
       ensure(config.commandAliases.some(alias=>alias.id===payload.id),'Formulation introuvable.');
       config.commandAliases=config.commandAliases.filter(alias=>alias.id!==payload.id);
-      await atomicJson(configPath,config);
+      await saveConfig(config);
       return config;
     }
     if (method === 'settings') {
@@ -392,7 +349,7 @@ function createAssistant({ runtimeDirectory, configDirectory, runEngine = execut
       ensure(typeof payload.autoExecute === 'boolean', 'Préférence d’exécution invalide.');
       ensure(Number.isFinite(payload.confidenceThreshold) && payload.confidenceThreshold >= 0.1 && payload.confidenceThreshold <= 1, 'Seuil de confiance invalide.');
       Object.assign(config, { language: payload.language, autoExecute: payload.autoExecute, confidenceThreshold: payload.confidenceThreshold });
-      await atomicJson(configPath, config);
+      await saveConfig(config);
       return config;
     }
     if (method === 'confirm' || method === 'discard') {
@@ -438,7 +395,7 @@ function createAssistant({ runtimeDirectory, configDirectory, runEngine = execut
         ensure(chosenCalls,'Choisissez explicitement l’action à mémoriser.');
         saveCommandAlias({phrase:payload.commandPhrase,applicationId:app.id,action:payload.action,...(payload.action.startsWith('deezer_')?{arguments:payload.arguments ?? {}}:{})},config,toolsFor(config));
       }
-      if(payload.saveAlias===true || payload.saveCommandAlias===true)await atomicJson(configPath,config);
+      if(payload.saveAlias===true || payload.saveCommandAlias===true)await saveConfig(config);
       // Retire the old approval before preparing a replacement, even if inference fails.
       try { await fs.unlink(path.join(pendingDirectory, `${payload.id}.json`)); }
       catch (error) { if (error.code !== 'ENOENT') throw error; }

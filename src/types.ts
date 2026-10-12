@@ -43,6 +43,7 @@ export interface RuntimeStatus {
   checks: { file: string; available: boolean }[];
   manifest: { node: string; npm: string; target: string } | null;
   config: Config;
+  configError?: { message: string; fingerprint?: string; recoverable: boolean };
   configDirectory: string;
   temporaryCleanup?: { removed: number; failed: number; retained: number };
   engine: { loaded: boolean; generation: number; pid: number } | null;

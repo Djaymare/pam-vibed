@@ -282,7 +282,8 @@ test('un budget épuisé pendant Whistle empêche le démarrage de Needle et net
 });
 test('une configuration corrompue n’est pas écrasée', async t => {
   const f = await fixture(t, {}); const file = path.join(f.directory, 'applications.json');
-  await fs.writeFile(file, 'broken'); await assert.rejects(f.handle('status'), /configuration/);
+  await fs.writeFile(file, 'broken'); assert.match((await f.handle('status')).configError.message, /Profil invalide/);
+  await assert.rejects(f.handle('process_text', {text:'Ouvre Bloc-notes'}), /Profil invalide/);
   assert.equal(await fs.readFile(file, 'utf8'), 'broken');
 });
 test('les erreurs moteur nettoient les fichiers contenant l’audio', async t => {

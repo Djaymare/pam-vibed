@@ -170,6 +170,7 @@ async fn assistant_request(
     if !matches!(
         method.as_str(),
         "status"
+            | "recover_config"
             | "save_application"
             | "delete_application"
             | "settings"

@@ -1,0 +1,8 @@
+{
+  "version": 1,
+  "applications": [{"id": "broken", "enabled": true}],
+  "commandAliases": [],
+  "language": "fr",
+  "autoExecute": true,
+  "confidenceThreshold": 0.7
+}

@@ -2,9 +2,9 @@ const test=require('node:test'),assert=require('node:assert/strict');
 const fs=require('node:fs/promises'),path=require('node:path'),os=require('node:os');
 const {createAssistant,DEFAULT_CONFIG,actionToolName}=require('./assistant.cjs');
 const {DEEZER_APP_ID}=require('./deezer.cjs');
-const {recognizeDeezerCommand}=require('./deezer-commands.cjs');
+const {recognizeDeezerCommand,deezerCommandIssue}=require('./deezer-commands.cjs');
 const app={id:'11111111-1111-4111-8111-111111111111',name:'Deezer Music',aliases:['Diseur','Deezer'],description:'Musique',enabled:true,
-  executable:'C:\\fixture.exe',arguments:[],windowsApp:{appId:DEEZER_APP_ID,kind:'store'},media:{sourceAppId:'Deezer.exe',deezer:true}};
+  executable:'C:\\Windows\\explorer.exe',arguments:[`shell:AppsFolder\\${DEEZER_APP_ID}`],windowsApp:{appId:DEEZER_APP_ID,kind:'store',icon:null},media:{sourceAppId:'Deezer.exe',deezer:true}};
 const browser={...app,id:'22222222-2222-4222-8222-222222222222',name:'Opera',aliases:['Navigateur'],windowsApp:undefined,media:{sourceAppId:'opera.exe',deezer:false}};
 async function fixture(t,options={}) {
   const directory=await fs.mkdtemp(path.join(os.tmpdir(),'pam-deezer-routing-'));
@@ -147,13 +147,17 @@ test('le lecteur en premier conserve aussi les recherches et les identifiants ex
 });
 test('Flow sans lecteur refuse une cible absente ou ambiguë avant Needle ; un nom unique la résout',async t=>{
   const second={...app,id:'33333333-3333-4333-8333-333333333333',name:'Musique secondaire',aliases:[]};
-  for(const applications of [[app,second,browser],[{...app,enabled:false},browser],[{...app,media:{...app.media,deezer:false}},browser]]) {
+  const duplicate=await fixture(t,{config:{applications:[app,second,browser]}});
+  await assert.rejects(duplicate.handle('process_text',{text:'Démarrer Flow.'}),/Application Windows en doublon/);
+  assert.equal(duplicate.requests.length,0);assert.equal(duplicate.executions.length,0);
+  assert.match(deezerCommandIssue('Démarrer Flow.',{applications:[app,second,browser]}),/Plusieurs applications Deezer/);
+  for(const applications of [[{...app,enabled:false},browser],[{...app,media:{...app.media,deezer:false}},browser]]) {
     const f=await fixture(t,{config:{applications,autoExecute:true}});
     const turn=await f.handle('process_text',{text:'Démarrer Flow.'});
     assert.equal(turn.status,'unsupported');assert.equal(turn.calls.length,0);assert.equal(turn.confidence,null);
     assert.match(turn.message,/Plusieurs applications Deezer|plugin Deezer Music/);assert.equal(f.requests.length,0);assert.equal(f.executions.length,0);
   }
-  const f=await fixture(t,{config:{applications:[app,second,browser]}});
+  const f=await fixture(t,{config:{applications:[second,browser]}});
   const turn=await f.handle('process_text',{text:'Musique secondaire Flow'});assert.equal(turn.calls[0].applicationId,second.id);
   const shared=await fixture(t,{config:{applications:[app,{...browser,aliases:['Diseur']}]}});
   assert.match((await shared.handle('process_text',{text:'Diseur Flow'})).message,/plusieurs applications/);assert.equal(shared.requests.length,0);
