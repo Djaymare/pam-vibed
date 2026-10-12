@@ -196,8 +196,8 @@ mod native {
             if rows != height {
                 return None;
             }
-            let has_alpha = rgba.chunks_exact(4).any(|pixel| pixel[3] != 0);
-            for pixel in rgba.chunks_exact_mut(4) {
+            let has_alpha = rgba.as_chunks::<4>().0.iter().any(|pixel| pixel[3] != 0);
+            for pixel in rgba.as_chunks_mut::<4>().0 {
                 pixel.swap(0, 2); // Windows BGRA -> PNG RGBA.
                 if !has_alpha {
                     pixel[3] = 255;

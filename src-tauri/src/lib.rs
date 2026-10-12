@@ -1,17 +1,13 @@
 use serde_json::{json, Value};
 use std::{
-    io::{BufRead, BufReader, Read, Write},
     path::{Path, PathBuf},
-    process::{Child, ChildStdin, Command, Stdio},
-    sync::{
-        atomic::{AtomicBool, Ordering},
-        mpsc, Arc, Mutex,
-    },
+    sync::Arc,
     time::Duration,
 };
 use tauri::{Emitter, Manager};
 use tauri_plugin_global_shortcut::{Code, GlobalShortcutExt, Modifiers, Shortcut, ShortcutState};
 mod applications;
+mod bridge;
 mod launch;
 pub mod media;
 
@@ -28,226 +24,18 @@ async fn discover_applications(
         .map_err(|error| error.to_string())?
 }
 
-#[cfg(windows)]
-struct ProcessJob(windows_sys::Win32::Foundation::HANDLE);
-#[cfg(windows)]
-unsafe impl Send for ProcessJob {}
-#[cfg(windows)]
-impl Drop for ProcessJob {
-    fn drop(&mut self) {
-        unsafe {
-            windows_sys::Win32::Foundation::CloseHandle(self.0);
-        }
-    }
-}
-#[cfg(windows)]
-fn supervise(child: &Child) -> Result<ProcessJob, String> {
-    use std::os::windows::io::AsRawHandle;
-    use windows_sys::Win32::System::JobObjects::*;
-    unsafe {
-        let handle = CreateJobObjectW(std::ptr::null(), std::ptr::null());
-        if handle.is_null() {
-            return Err("Impossible de superviser le sidecar.".into());
-        }
-        let job = ProcessJob(handle);
-        let mut info: JOBOBJECT_EXTENDED_LIMIT_INFORMATION = std::mem::zeroed();
-        info.BasicLimitInformation.LimitFlags = JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE;
-        if SetInformationJobObject(
-            handle,
-            JobObjectExtendedLimitInformation,
-            &info as *const _ as *const _,
-            std::mem::size_of_val(&info) as u32,
-        ) == 0
-            || AssignProcessToJobObject(handle, child.as_raw_handle()) == 0
-        {
-            return Err("Impossible de superviser le sidecar.".into());
-        }
-        Ok(job)
-    }
-}
-
-struct Worker {
-    child: Child,
-    stdin: ChildStdin,
-    replies: mpsc::Receiver<Result<Value, String>>,
-    #[cfg(windows)]
-    _job: ProcessJob,
-}
-
-fn receive_response(
-    worker: &mut Worker,
-    catalogue: &applications::Catalogue,
-) -> Result<Value, String> {
-    let deadline = std::time::Instant::now() + Duration::from_secs(50);
-    let mut executed = std::collections::HashSet::new();
-    loop {
-        let remaining = deadline.saturating_duration_since(std::time::Instant::now());
-        let response = worker.replies.recv_timeout(remaining).map_err(|_| {
-            "Le moteur local s’est arrêté ou a dépassé le délai prévu.".to_string()
-        })??;
-        if response["type"] != "host_request" {
-            return Ok(response);
-        }
-        let id = response["id"]
-            .as_str()
-            .ok_or("Identifiant de lancement absent.")?;
-        if id.len() != 36
-            || !id.bytes().all(|b| b.is_ascii_hexdigit() || b == b'-')
-            || executed.len() >= 32
-            || !executed.insert(id.to_owned())
-        {
-            return Err("Demande de lancement dupliquée ou invalide.".into());
-        }
-        let result = launch::handle(
-            response["method"].as_str().unwrap_or(""),
-            &response["payload"],
-            catalogue,
-        );
-        let reply = match result {
-            Ok(result) => json!({"type":"host_response","id":id,"ok":true,"result":result}),
-            Err(error) => json!({"type":"host_response","id":id,"ok":false,"error":error}),
-        };
-        let mut bytes = serde_json::to_vec(&reply).map_err(|e| e.to_string())?;
-        bytes.push(b'\n');
-        worker.stdin.write_all(&bytes).map_err(|e| e.to_string())?;
-    }
-}
-impl Drop for Worker {
-    fn drop(&mut self) {
-        let _ = self.child.kill();
-        let _ = self.child.wait();
-    }
-}
 struct AssistantBridge {
-    catalogue: Arc<applications::Catalogue>,
-    node: PathBuf,
-    script: PathBuf,
-    runtime: PathBuf,
-    config: PathBuf,
-    worker: Arc<Mutex<Option<Worker>>>,
+    transport: bridge::Bridge,
     shortcut_error: String,
-    started: AtomicBool,
-    stopped: AtomicBool,
 }
 impl AssistantBridge {
-    fn start(&self) -> Result<Worker, String> {
-        if !self.node.is_file() || !self.script.is_file() {
-            return Err(
-                "Le runtime embarqué est absent. Préparez les ressources avant de compiler PAM."
-                    .into(),
-            );
-        }
-        std::fs::create_dir_all(&self.config).map_err(|e| e.to_string())?;
-        let mut command = Command::new(&self.node);
-        command
-            .arg(&self.script)
-            .arg(&self.runtime)
-            .arg(&self.config)
-            .env_remove("NODE_OPTIONS")
-            .env_remove("NODE_PATH")
-            .env("NEEDLE_TELEMETRY", "0")
-            .env("DO_NOT_TRACK", "1")
-            .env("PAM_LAUNCH_HOST", "1")
-            .env(
-                "PAM_NATIVE_EXE",
-                std::env::current_exe().map_err(|e| e.to_string())?,
-            )
-            .stdin(Stdio::piped())
-            .stdout(Stdio::piped())
-            .stderr(Stdio::null());
-        #[cfg(windows)]
-        {
-            use std::os::windows::process::CommandExt;
-            command.creation_flags(0x08000000);
-        }
-        let mut child = command
-            .spawn()
-            .map_err(|e| format!("Impossible de démarrer Node embarqué : {e}"))?;
-        #[cfg(windows)]
-        let job = match supervise(&child) {
-            Ok(job) => job,
-            Err(error) => {
-                let _ = child.kill();
-                let _ = child.wait();
-                return Err(error);
-            }
-        };
-        let stdin = child.stdin.take().ok_or("stdin du sidecar absent.")?;
-        let stdout = child.stdout.take().ok_or("stdout du sidecar absent.")?;
-        let (sender, replies) = mpsc::channel();
-        std::thread::spawn(move || {
-            let mut reader = BufReader::new(stdout);
-            loop {
-                let mut line = String::new();
-                let read = reader.by_ref().take(2_000_001).read_line(&mut line);
-                let reply = match read {
-                    Ok(0) => break,
-                    Ok(_) if line.len() <= 2_000_000 && line.ends_with('\n') => {
-                        serde_json::from_str(&line)
-                            .map_err(|_| "Réponse du sidecar invalide.".into())
-                    }
-                    _ => Err("Lecture du sidecar interrompue ou réponse trop volumineuse.".into()),
-                };
-                let failed = reply.is_err();
-                if sender.send(reply).is_err() || failed {
-                    break;
-                }
-            }
-        });
-        Ok(Worker {
-            child,
-            stdin,
-            replies,
-            #[cfg(windows)]
-            _job: job,
-        })
-    }
     fn request(&self, method: &str, payload: Value) -> Result<Value, String> {
-        let mut slot = self
-            .worker
-            .lock()
-            .map_err(|_| "Le bridge est indisponible.")?;
-        // Serialize configuration, inference and approvals over one persistent pipe.
-        if slot
-            .as_mut()
-            .map(|w| w.child.try_wait().ok().flatten().is_some())
-            .unwrap_or(false)
-        {
-            *slot = None;
+        if method == "restart_engine" {
+            self.transport.restart();
         }
-        if slot.is_none() {
-            *slot = Some(self.start()?);
-            self.started.store(true, Ordering::Relaxed);
-        }
-        let mut bytes =
-            serde_json::to_vec(&json!({ "id": 1, "method": method, "payload": payload }))
-                .map_err(|e| e.to_string())?;
-        if bytes.len() > 5_000_000 {
-            return Err("Demande trop volumineuse.".into());
-        }
-        bytes.push(b'\n');
-        let worker = slot.as_mut().unwrap();
-        let reply = worker
-            .stdin
-            .write_all(&bytes)
-            .map_err(|_| "Communication avec le sidecar interrompue.".to_string())
-            .and_then(|_| receive_response(worker, &self.catalogue));
-        match reply {
-            Ok(response) if response["id"] == 1 => {
-                if response["ok"] == true {
-                    Ok(response["result"].clone())
-                } else {
-                    Err(response["error"]
-                        .as_str()
-                        .unwrap_or("Erreur inconnue du sidecar.")
-                        .into())
-                }
-            }
-            _ => {
-                *slot = None;
-                Err("Le moteur local a été interrompu. Réessayez ; il sera redémarré automatiquement.".into())
-            }
-        }
+        self.transport
+            .request(method, payload)
+            .map_err(|error| error.to_string())
     }
 }
 
@@ -277,16 +65,18 @@ pub fn run_process_test_host() {
         4,
         "node, script, runtime, isolated profile required"
     );
+    use std::io::BufRead;
+    let catalogue = Arc::new(applications::Catalogue::default());
     let bridge = AssistantBridge {
-        catalogue: Arc::new(applications::Catalogue::default()),
-        node: args[0].clone().into(),
-        script: args[1].clone().into(),
-        runtime: args[2].clone().into(),
-        config: args[3].clone().into(),
-        worker: Arc::new(Mutex::new(None)),
+        transport: bridge::Bridge::new(bridge::Config {
+            catalogue: catalogue.clone(),
+            node: args[0].clone().into(),
+            script: args[1].clone().into(),
+            runtime: args[2].clone().into(),
+            profile: args[3].clone().into(),
+        })
+        .expect("process-test bridge"),
         shortcut_error: String::new(),
-        started: AtomicBool::new(false),
-        stopped: AtomicBool::new(false),
     };
     for line in std::io::stdin().lock().lines() {
         let request: Value = serde_json::from_str(&line.unwrap()).unwrap();
@@ -297,15 +87,14 @@ pub fn run_process_test_host() {
         let result = if method == "create_fixture_shortcut" {
             process_test_shortcut(&request["payload"])
         } else if method == "discover_applications" {
-            bridge.catalogue.scan().map(|entries| json!(entries))
+            catalogue.scan().map(|entries| json!(entries))
         } else if method == "restart_sidecar" {
-            *bridge.worker.lock().unwrap() = None;
+            bridge.transport.restart();
             bridge.request("status", json!({}))
         } else {
             let mut payload = request["payload"].clone();
             if matches!(method, "save_application" | "test_application") {
-                bridge
-                    .catalogue
+                catalogue
                     .prepare(&mut payload)
                     .and_then(|_| bridge.request(method, payload))
             } else {
@@ -533,28 +322,23 @@ pub fn run() {
                 app.path().app_config_dir()?
             };
             app.manage(AssistantBridge {
-                catalogue: app.state::<Arc<applications::Catalogue>>().inner().clone(),
-                node,
-                script,
-                runtime: runtime_path(&resources, "runtime"),
-                config,
-                worker: Arc::new(Mutex::new(None)),
+                transport: bridge::Bridge::new(bridge::Config {
+                    catalogue: app.state::<Arc<applications::Catalogue>>().inner().clone(),
+                    node,
+                    script,
+                    runtime: runtime_path(&resources, "runtime"),
+                    profile: config,
+                })?,
                 shortcut_error,
-                started: AtomicBool::new(false),
-                stopped: AtomicBool::new(false),
             });
             let handle = app.handle().clone();
             std::thread::spawn(move || loop {
                 std::thread::sleep(Duration::from_secs(15));
                 let state = handle.state::<AssistantBridge>();
-                if state.stopped.load(Ordering::Relaxed) {
+                if state.transport.is_stopped() {
                     break;
                 }
-                let check = if let Ok(_slot) = state.worker.try_lock() {
-                    state.started.load(Ordering::Relaxed)
-                } else {
-                    false
-                };
+                let check = state.transport.is_idle() && state.transport.has_started();
                 // Supervise while hidden too. Warm a replacement without replaying
                 // a failed request, approval or application launch.
                 if check {
@@ -580,10 +364,7 @@ pub fn run() {
         .run(|app, event| {
             if matches!(event, tauri::RunEvent::Exit) {
                 let state = app.state::<AssistantBridge>();
-                state.stopped.store(true, Ordering::Relaxed);
-                if let Ok(mut slot) = state.worker.try_lock() {
-                    *slot = None;
-                };
+                state.transport.shutdown();
             }
         });
 }
