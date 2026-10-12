@@ -18,6 +18,7 @@
     "tauri": "npm run check:development && tauri",
     "test": "node --test sidecar/*.test.cjs tests/*.test.mjs",
     "test:integration": "node scripts/smoke-runtime.mjs",
+    "test:processes": "node scripts/smoke-process-isolation.mjs",
     "test:applications": "node scripts/smoke-applications.mjs",
     "test:media": "node scripts/smoke-media.mjs",
     "test:confidence": "node scripts/smoke-confidence.mjs",

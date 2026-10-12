@@ -32,6 +32,7 @@
     "resources": {
       "runtime/": "runtime/",
       "../sidecar/main.cjs": "sidecar/main.cjs",
+      "../sidecar/host.cjs": "sidecar/host.cjs",
       "../sidecar/assistant.cjs": "sidecar/assistant.cjs",
       "../sidecar/needle-tools.cjs": "sidecar/needle-tools.cjs",
       "../sidecar/command-aliases.cjs": "sidecar/command-aliases.cjs",

@@ -161,13 +161,25 @@ mod native {
                     DEEZER_APP_ID.split('!').next().unwrap(),
                 ))
                 .map_err(err)?;
-            let accepted = Launcher::LaunchUriWithOptionsAsync(
+            let operation = Launcher::LaunchUriWithOptionsAsync(
                 &Uri::CreateUri(&HSTRING::from(uri)).map_err(err)?,
                 &options,
             )
-            .map_err(err)?
-            .join()
             .map_err(err)?;
+            // This operation now runs in the host. Keep a bounded wait within
+            // the reverse RPC deadline and never replay a timed-out launch.
+            let deadline = std::time::Instant::now() + std::time::Duration::from_secs(10);
+            while operation.Status().map_err(err)?.0 == 0 {
+                if std::time::Instant::now() >= deadline {
+                    let _ = operation.Cancel();
+                    return Err(
+                        "Windows n’a pas répondu au lancement. La commande ne sera pas rejouée."
+                            .into(),
+                    );
+                }
+                std::thread::sleep(std::time::Duration::from_millis(20));
+            }
+            let accepted = operation.GetResults().map_err(err)?;
             return Ok(json!({"accepted":accepted,"uri":uri}));
         }
         let manager = Manager::RequestAsync().map_err(err)?.join().map_err(err)?;

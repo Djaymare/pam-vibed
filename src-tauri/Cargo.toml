@@ -20,6 +20,7 @@ tauri-build = { version = "2", features = [] }
 
 [features]
 custom-protocol = ["tauri/custom-protocol"]
+process-tests = []
 
 [dependencies]
 tauri = { version = "2", features = ["tray-icon"] }

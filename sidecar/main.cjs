@@ -1,9 +1,16 @@
 const { createAssistant } = require('./assistant.cjs');
+const { createHostChannel, hostLauncher, hostNativeRequest } = require('./host.cjs');
+const { createMedia } = require('./media.cjs');
+const { nativeRequest } = require('./native.cjs');
 
 const { createEngine } = require('./engine.cjs');
 const [runtimeDirectory, configDirectory] = process.argv.slice(2);
 const engine = createEngine(runtimeDirectory);
-const handle = createAssistant({ runtimeDirectory, configDirectory, runEngine: engine.runEngine, engine });
+const host = createHostChannel(line => process.stdout.write(line));
+const useHost = process.env.PAM_LAUNCH_HOST === '1';
+const handle = createAssistant({ runtimeDirectory, configDirectory, runEngine: engine.runEngine, engine,
+  ...(useHost ? { launchApplication: hostLauncher(host.request),
+    media: createMedia(hostNativeRequest(host.request, nativeRequest)) } : {}) });
 let buffer = '';
 let queue = Promise.resolve();
 function enqueue(input) {
@@ -27,10 +34,15 @@ process.stdin.on('data', chunk => {
   let newline;
   while ((newline = buffer.indexOf('\n')) >= 0) {
     const line = buffer.slice(0, newline); buffer = buffer.slice(newline + 1);
-    if (line.trim()) enqueue(line);
+    if (line.trim()) {
+      let response;
+      try { response = JSON.parse(line); } catch {}
+      if (!host.receive(response)) enqueue(line);
+    }
   }
 });
 process.stdin.on('end', () => {
+  host.close();
   if (buffer.trim()) enqueue(buffer);
   void queue.finally(async () => { await engine.close(); });
 });

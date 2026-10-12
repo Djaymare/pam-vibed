@@ -12,6 +12,7 @@ use std::{
 use tauri::{Emitter, Manager};
 use tauri_plugin_global_shortcut::{Code, GlobalShortcutExt, Modifiers, Shortcut, ShortcutState};
 mod applications;
+mod launch;
 pub mod media;
 
 #[tauri::command]
@@ -22,7 +23,7 @@ async fn discover_applications(
         return Err("Fenêtre non autorisée.".into());
     }
     let app = window.app_handle().clone();
-    tauri::async_runtime::spawn_blocking(move || app.state::<applications::Catalogue>().scan())
+    tauri::async_runtime::spawn_blocking(move || app.state::<Arc<applications::Catalogue>>().scan())
         .await
         .map_err(|error| error.to_string())?
 }
@@ -72,6 +73,45 @@ struct Worker {
     #[cfg(windows)]
     _job: ProcessJob,
 }
+
+fn receive_response(
+    worker: &mut Worker,
+    catalogue: &applications::Catalogue,
+) -> Result<Value, String> {
+    let deadline = std::time::Instant::now() + Duration::from_secs(50);
+    let mut executed = std::collections::HashSet::new();
+    loop {
+        let remaining = deadline.saturating_duration_since(std::time::Instant::now());
+        let response = worker.replies.recv_timeout(remaining).map_err(|_| {
+            "Le moteur local s’est arrêté ou a dépassé le délai prévu.".to_string()
+        })??;
+        if response["type"] != "host_request" {
+            return Ok(response);
+        }
+        let id = response["id"]
+            .as_str()
+            .ok_or("Identifiant de lancement absent.")?;
+        if id.len() != 36
+            || !id.bytes().all(|b| b.is_ascii_hexdigit() || b == b'-')
+            || executed.len() >= 32
+            || !executed.insert(id.to_owned())
+        {
+            return Err("Demande de lancement dupliquée ou invalide.".into());
+        }
+        let result = launch::handle(
+            response["method"].as_str().unwrap_or(""),
+            &response["payload"],
+            catalogue,
+        );
+        let reply = match result {
+            Ok(result) => json!({"type":"host_response","id":id,"ok":true,"result":result}),
+            Err(error) => json!({"type":"host_response","id":id,"ok":false,"error":error}),
+        };
+        let mut bytes = serde_json::to_vec(&reply).map_err(|e| e.to_string())?;
+        bytes.push(b'\n');
+        worker.stdin.write_all(&bytes).map_err(|e| e.to_string())?;
+    }
+}
 impl Drop for Worker {
     fn drop(&mut self) {
         let _ = self.child.kill();
@@ -79,6 +119,7 @@ impl Drop for Worker {
     }
 }
 struct AssistantBridge {
+    catalogue: Arc<applications::Catalogue>,
     node: PathBuf,
     script: PathBuf,
     runtime: PathBuf,
@@ -106,6 +147,7 @@ impl AssistantBridge {
             .env_remove("NODE_PATH")
             .env("NEEDLE_TELEMETRY", "0")
             .env("DO_NOT_TRACK", "1")
+            .env("PAM_LAUNCH_HOST", "1")
             .env(
                 "PAM_NATIVE_EXE",
                 std::env::current_exe().map_err(|e| e.to_string())?,
@@ -185,9 +227,11 @@ impl AssistantBridge {
         }
         bytes.push(b'\n');
         let worker = slot.as_mut().unwrap();
-        let reply = worker.stdin.write_all(&bytes).map_err(|_| "Communication avec le sidecar interrompue.".to_string())
-            .and_then(|_| worker.replies.recv_timeout(Duration::from_secs(50)).map_err(|_| "Le moteur local s’est arrêté ou a dépassé le délai prévu. Réessayez ; il sera redémarré automatiquement.".to_string()))
-            .and_then(|r| r);
+        let reply = worker
+            .stdin
+            .write_all(&bytes)
+            .map_err(|_| "Communication avec le sidecar interrompue.".to_string())
+            .and_then(|_| receive_response(worker, &self.catalogue));
         match reply {
             Ok(response) if response["id"] == 1 => {
                 if response["ok"] == true {
@@ -221,6 +265,104 @@ fn show(app: &tauri::AppHandle) {
         let _ = window.unminimize();
         let _ = window.set_focus();
     }
+}
+
+// Feature-gated entrypoint in the compiled Tauri executable. Exercises the
+// production bridge and job lifecycle with an isolated profile and fixtures.
+#[cfg(feature = "process-tests")]
+pub fn run_process_test_host() {
+    let args: Vec<_> = std::env::args_os().skip(2).collect();
+    assert_eq!(
+        args.len(),
+        4,
+        "node, script, runtime, isolated profile required"
+    );
+    let bridge = AssistantBridge {
+        catalogue: Arc::new(applications::Catalogue::default()),
+        node: args[0].clone().into(),
+        script: args[1].clone().into(),
+        runtime: args[2].clone().into(),
+        config: args[3].clone().into(),
+        worker: Arc::new(Mutex::new(None)),
+        shortcut_error: String::new(),
+        started: AtomicBool::new(false),
+        stopped: AtomicBool::new(false),
+    };
+    for line in std::io::stdin().lock().lines() {
+        let request: Value = serde_json::from_str(&line.unwrap()).unwrap();
+        let method = request["method"].as_str().unwrap();
+        if method == "quit" {
+            break;
+        }
+        let result = if method == "create_fixture_shortcut" {
+            process_test_shortcut(&request["payload"])
+        } else if method == "discover_applications" {
+            bridge.catalogue.scan().map(|entries| json!(entries))
+        } else if method == "restart_sidecar" {
+            *bridge.worker.lock().unwrap() = None;
+            bridge.request("status", json!({}))
+        } else {
+            let mut payload = request["payload"].clone();
+            if matches!(method, "save_application" | "test_application") {
+                bridge
+                    .catalogue
+                    .prepare(&mut payload)
+                    .and_then(|_| bridge.request(method, payload))
+            } else {
+                bridge.request(method, payload)
+            }
+        };
+        let response = match result {
+            Ok(result) => json!({"ok":true,"result":result}),
+            Err(error) => json!({"ok":false,"error":error}),
+        };
+        println!("{response}");
+    }
+}
+
+#[cfg(all(windows, feature = "process-tests"))]
+fn process_test_shortcut(payload: &Value) -> Result<Value, String> {
+    use windows::{
+        core::{Interface, PCWSTR},
+        Win32::{
+            System::Com::{
+                CoCreateInstance, CoInitializeEx, CoUninitialize, IPersistFile,
+                CLSCTX_INPROC_SERVER, COINIT_APARTMENTTHREADED,
+            },
+            UI::Shell::{IShellLinkW, ShellLink},
+        },
+    };
+    let text = |field: &str| -> Result<Vec<u16>, String> {
+        let value = payload[field].as_str().ok_or("Fixture field missing")?;
+        if value.contains('\0') {
+            return Err("Invalid fixture field".into());
+        }
+        Ok(value.encode_utf16().chain(Some(0)).collect())
+    };
+    let target = text("target")?;
+    let arguments = text("arguments")?;
+    let destination = text("destination")?;
+    unsafe {
+        CoInitializeEx(None, COINIT_APARTMENTTHREADED)
+            .ok()
+            .map_err(|e| e.to_string())?;
+        let result = (|| -> windows::core::Result<()> {
+            let link: IShellLinkW = CoCreateInstance(&ShellLink, None, CLSCTX_INPROC_SERVER)?;
+            link.SetPath(PCWSTR(target.as_ptr()))?;
+            link.SetArguments(PCWSTR(arguments.as_ptr()))?;
+            let persist: IPersistFile = link.cast()?;
+            persist.Save(PCWSTR(destination.as_ptr()), true)?;
+            Ok(())
+        })();
+        CoUninitialize();
+        result.map_err(|e| e.to_string())?;
+    }
+    Ok(json!({"created":true}))
+}
+
+#[cfg(all(not(windows), feature = "process-tests"))]
+fn process_test_shortcut(_: &Value) -> Result<Value, String> {
+    Err("Windows required".into())
 }
 fn toggle_voice(app: &tauri::AppHandle) {
     show(app);
@@ -261,7 +403,7 @@ async fn assistant_request(
         let state = app.state::<AssistantBridge>();
         let mut payload = payload.unwrap_or(json!({}));
         if matches!(method.as_str(), "save_application" | "test_application") {
-            app.state::<applications::Catalogue>().prepare(&mut payload)?;
+            app.state::<Arc<applications::Catalogue>>().prepare(&mut payload)?;
         }
         let mut result = state.request(&method, payload)?;
         if method == "status" { result["desktop"] = json!({ "shortcut": "Ctrl + Maj + Espace", "shortcutAvailable": state.shortcut_error.is_empty(), "shortcutError": state.shortcut_error, "closeToTray": true }); }
@@ -302,7 +444,7 @@ fn desktop_action(window: tauri::WebviewWindow, action: String) -> Result<(), St
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
-        .manage(applications::Catalogue::default())
+        .manage(Arc::new(applications::Catalogue::default()))
         .plugin(tauri_plugin_single_instance::init(|app, _, _| show(app)))
         .plugin(tauri_plugin_dialog::init())
         .plugin(
@@ -391,6 +533,7 @@ pub fn run() {
                 app.path().app_config_dir()?
             };
             app.manage(AssistantBridge {
+                catalogue: app.state::<Arc<applications::Catalogue>>().inner().clone(),
                 node,
                 script,
                 runtime: runtime_path(&resources, "runtime"),
