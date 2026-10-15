@@ -28,6 +28,10 @@ export function useApplicationEditor(profile: Profile, rememberDialogTrigger: ()
   );
   const formError = ref('');
   const pickerOpen = ref(false);
+  const initial = ref('');
+  const snapshot = () =>
+    JSON.stringify([form, mediaSource.value, deezerPlugin.value, testInput.value]);
+  const dirty = computed(() => editorOpen.value && snapshot() !== initial.value);
 
   const discoveryError = ref('');
   const installedApplications = ref<InstalledApplication[]>([]);
@@ -99,6 +103,7 @@ export function useApplicationEditor(profile: Profile, rememberDialogTrigger: ()
     testResult.value = undefined;
     testInput.value = '';
     editorOpen.value = true;
+    initial.value = snapshot();
     void refreshMediaSessions();
   }
   async function addApplication() {
@@ -157,6 +162,7 @@ export function useApplicationEditor(profile: Profile, rememberDialogTrigger: ()
       mediaSource.value = 'Deezer.exe';
     }
     // The native bridge supplies the trusted launch target when saving or testing.
+    initial.value = snapshot();
   }
   function closePicker() {
     pickerOpen.value = false;
@@ -295,6 +301,7 @@ export function useApplicationEditor(profile: Profile, rememberDialogTrigger: ()
   );
   return {
     editorOpen,
+    dirty,
     editingId,
     form,
     mediaSource,

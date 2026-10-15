@@ -1,6 +1,8 @@
 // Frontend-only services: no sidecar, file picker, microphone or launched app.
 const config = { version: 2, commandAliases: [], applications: [{ id: '11111111-1111-4111-8111-111111111111', name: 'Fixture', description: 'Application simulée', executable: 'C:\\fixture.exe', arguments: [], aliases: [], enabled: true }], language: 'fr', autoExecute: false, confidenceThreshold: 0.7 };
 const availabilityScenario = new URLSearchParams(location.search).has('availability');
+const draftScenario = new URLSearchParams(location.search).has('drafts');
+if (draftScenario) window.pamDraftFixture = { config, calls: [], failSettings: true, failAlias: true };
 let available = !availabilityScenario;
 if (availabilityScenario) {
   config.applications[0].aliases = ['Mon test'];
@@ -26,6 +28,7 @@ async function handle(method, payload) {
   if (method === 'desktop_action') return null;
   if (method === 'discover_applications') return [{ name: 'Détectée', appId: 'Fixture.Detected', kind: 'desktop', icon: null }];
   if (availabilityScenario) window.pamAvailabilityFixture.calls.push({method,payload});
+  if (draftScenario) window.pamDraftFixture.calls.push({method,payload});
   if (method === 'status') return { config, ready: true, checks: [], manifest: null, configDirectory: 'C:\\fixture-profile', engine: null,
     ...(availabilityScenario ? {applicationAvailability:{[config.applications[0].id]:{available,reason:'Cible de test indisponible.'}}} : {}) };
   if (method === 'media_sessions') return [];
@@ -35,7 +38,7 @@ async function handle(method, payload) {
     return config;
   }
   if (method === 'save_application') {
-    if (!availabilityScenario && ++saveAttempts === 1) throw Error('Enregistrement simulé refusé. Corrigez puis réessayez.');
+    if (!availabilityScenario && !draftScenario && ++saveAttempts === 1) throw Error('Enregistrement simulé refusé. Corrigez puis réessayez.');
     if (availabilityScenario) available = payload.executable === 'C:\\repaired.exe' || !!payload.windowsApp;
     const app = { ...payload, id: payload.id || '22222222-2222-4222-8222-222222222222' };
     // Native launch resolution fills the executable for catalogue entries.
@@ -44,7 +47,16 @@ async function handle(method, payload) {
     return config;
   }
   if (method === 'process_text') return turn('33333333-3333-4333-8333-333333333333', payload.text);
+  if (draftScenario && method === 'settings') {
+    if(window.pamDraftFixture.failSettings) throw Error('Sauvegarde des préférences refusée.');
+    Object.assign(config,payload);return config;
+  }
+  if (draftScenario && method === 'save_command_alias') {
+    if(window.pamDraftFixture.failAlias) throw Error('Sauvegarde de formulation refusée.');
+    config.commandAliases=[{...payload,id:'55555555-5555-4555-8555-555555555555'}];return config;
+  }
   if (method === 'correct_request') {
+    if(draftScenario && payload.saveAlias) config.applications.find(app=>app.id===payload.applicationId).aliases.push(payload.alias);
     if (++correctionAttempts === 1) throw Error('Correction simulée refusée. Réessayez.');
     return turn('44444444-4444-4444-8444-444444444444', payload.text);
   }

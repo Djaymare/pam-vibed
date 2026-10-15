@@ -17,6 +17,8 @@ import { useRequests } from './composables/useRequests';
 import { useAudio } from './composables/useAudio';
 import { useApplicationEditor } from './composables/useApplicationEditor';
 import { useVoiceShortcuts } from './composables/useVoiceShortcuts';
+import { useDraftGuard } from './composables/useDraftGuard';
+import DiscardDraftDialog from './components/DiscardDraftDialog.vue';
 const page = ref<'assistant' | 'applications' | 'settings'>('assistant');
 const dialogReturnFocus = ref<HTMLElement | null>(null);
 function rememberDialogTrigger() {
@@ -61,6 +63,14 @@ const {
   selectInstalled,
 } = applicationEditor;
 const { correction } = proposals;
+const aliasDirty = ref(false);
+const guard = useDraftGuard();
+function navigate(next: typeof page.value) {
+  if (next === page.value) return;
+  guard.run(applicationEditor.dirty.value || proposals.correctionDirty.value, () => {
+    page.value = next;
+  });
+}
 const locked = computed(
   () => busy.value || recording.value || requestingMic.value || loading.value,
 );
@@ -69,6 +79,22 @@ const canRequest = computed(
 );
 const desktopTask = profile.scope.operation();
 async function desktop(action: 'hide' | 'quit') {
+  if (action === 'quit') {
+    guard.run(
+      applicationEditor.dirty.value ||
+        proposals.correctionDirty.value ||
+        profile.settingsDirty.value ||
+        aliasDirty.value ||
+        !!requests.text.value,
+      () => {
+        void performDesktop(action);
+      },
+    );
+    return;
+  }
+  await performDesktop(action);
+}
+async function performDesktop(action: 'hide' | 'quit') {
   const token = desktopTask.begin();
   if (!token) return;
   try {
@@ -84,13 +110,13 @@ async function desktop(action: 'hide' | 'quit') {
 }
 const ui = reactive({ profile, proposals, requests, audio, applicationEditor });
 function showApplications(add: boolean) {
-  page.value = 'applications';
+  navigate('applications');
   if (add) void applicationEditor.addApplication();
 }
 const shortcuts = useVoiceShortcuts(
   () => {
     if (editorOpen.value || pickerOpen.value || correction.value) return;
-    page.value = 'assistant';
+    navigate('assistant');
     if (recording.value) void audio.finishRecording();
     else if (canRequest.value) void audio.startRecording();
   },
@@ -114,7 +140,7 @@ const shortcutError = shortcuts.error;
           aria-label="Assistant"
           :disabled="recording || requestingMic"
           :class="{ selected: page === 'assistant' }"
-          @click="page = 'assistant'"
+          @click="navigate('assistant')"
         >
           <Icon name="mic" />Assistant
         </button>
@@ -122,7 +148,7 @@ const shortcutError = shortcuts.error;
           aria-label="Applications"
           :disabled="recording || requestingMic"
           :class="{ selected: page === 'applications' }"
-          @click="page = 'applications'"
+          @click="navigate('applications')"
         >
           <Icon name="apps" />Applications<span class="nav-count">{{
             config.applications.length
@@ -132,7 +158,7 @@ const shortcutError = shortcuts.error;
           aria-label="Préférences"
           :disabled="recording || requestingMic"
           :class="{ selected: page === 'settings' }"
-          @click="page = 'settings'"
+          @click="navigate('settings')"
         >
           <Icon name="settings" />Préférences
         </button>
@@ -176,6 +202,14 @@ const shortcutError = shortcuts.error;
         </button>
       </div>
       <div class="content">
+        <p
+          v-if="page !== 'settings' && (aliasDirty || ui.profile.settingsDirty)"
+          class="notice"
+          role="status"
+        >
+          Votre brouillon de préférences ou de formulation est conservé en mémoire.
+          <button @click="navigate('settings')">Reprendre dans Préférences</button>
+        </p>
         <ProfileRecovery :profile="ui.profile" :locked="locked" />
         <div v-if="shortcutError" class="notice error" role="alert">
           <span>{{ shortcutError }}</span>
@@ -211,7 +245,14 @@ const shortcutError = shortcuts.error;
           :application-editor="ui.applicationEditor"
           :locked="locked"
         />
-        <SettingsView v-else :profile="ui.profile" :locked="locked" @desktop="desktop" />
+        <div v-show="page === 'settings'">
+          <SettingsView
+            :profile="ui.profile"
+            :locked="locked"
+            @desktop="desktop"
+            @dirty="aliasDirty = $event"
+          />
+        </div>
         <footer class="content-footer">
           <Icon name="shield" :size="13" />Traitement local · aucun compte requis<span
             >PAM / PROTOTYPE</span
@@ -249,6 +290,7 @@ const shortcutError = shortcuts.error;
       :locked="locked"
       :dialog-return-focus="dialogReturnFocus"
     />
+    <DiscardDraftDialog :open="guard.pending.value" @keep="guard.keep" @discard="guard.discard" />
   </div>
 </template>
 <style src="./style.css"></style>

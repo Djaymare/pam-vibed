@@ -144,7 +144,7 @@ async function mountApp(t, { recoveryFailure = false, healthy = false, proposalS
     clearTimeout(id) { activeTimers.delete(id); },
   };
   new Function('require', 'exports', 'window', 'HTMLElement', 'Date', compiled)(injectedRequire, exports, timers, class {}, TestDate);
-  const node = (type, text = '') => ({ type, tagName: type.toUpperCase(), text, children: [], props: {}, parent: null, addEventListener() {}, removeEventListener() {}, getRootNode() { return globalThis.document; }, get options() { return this.children.filter(n => n.type === 'option'); } });
+  const node = (type, text = '') => ({ type, tagName: type.toUpperCase(), text, children: [], props: {}, style: {}, parent: null, addEventListener() {}, removeEventListener() {}, getRootNode() { return globalThis.document; }, get options() { return this.children.filter(n => n.type === 'option'); } });
   const renderer = vue.createRenderer({
     createElement: type => node(type), createText: text => node('#text', text), createComment: text => node('#comment', text),
     setText: (n, text) => n.text = text, setElementText: (n, text) => { n.text = text; n.children = []; },

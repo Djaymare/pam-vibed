@@ -16,6 +16,9 @@ export function useProposals(
   const turns = ref<Turn[]>([]);
   const correction = ref<Turn>();
   const correctionError = ref('');
+  const correctionStage = ref<'editing' | 'memorization' | 'inference'>('editing');
+  const correctionSaved = ref(false);
+  const correctionInitial = ref('');
   scope.onInvalidate(() => {
     correction.value = undefined;
     correctionError.value = '';
@@ -31,6 +34,9 @@ export function useProposals(
     saveCommandAlias: false,
     commandPhrase: '',
   });
+  const correctionDirty = computed(
+    () => !!correction.value && JSON.stringify(correctionForm) !== correctionInitial.value,
+  );
   const correctionApp = computed(() =>
     activeApps.value.find((app) => app.id === correctionForm.applicationId),
   );
@@ -48,6 +54,8 @@ export function useProposals(
     rememberDialogTrigger();
     correction.value = turn;
     correctionError.value = '';
+    correctionStage.value = 'editing';
+    correctionSaved.value = false;
     Object.assign(correctionForm, {
       text: turn.transcript,
       applicationId: turn.calls[0]?.applicationId || '',
@@ -66,6 +74,7 @@ export function useProposals(
         .trim()
         .slice(0, 40),
     });
+    correctionInitial.value = JSON.stringify(correctionForm);
   }
   async function correctTurn() {
     if (!correction.value || isLocked()) return;
@@ -75,7 +84,65 @@ export function useProposals(
     if (!token) return;
     const current = () => token.current() && correction.value === original;
     correctionError.value = '';
+    // These are observations of the persisted profile, not an alternative
+    // validation or write path. The sidecar retains all correction checks.
+    const normalize = (text: string) =>
+      text
+        .normalize('NFKD')
+        .replace(/\p{M}/gu, '')
+        .toLowerCase()
+        .replace(/’/g, "'")
+        .trim()
+        .replace(/[.!?]+$/u, '')
+        .trim()
+        .replace(/\s+/g, ' ');
+    const learnAlias =
+      correctionForm.saveAlias &&
+      !!correctionApp.value &&
+      (!correctionForm.action || correctionForm.action === 'open');
+    const learnCommand =
+      correctionForm.saveCommandAlias && !!correctionApp.value && !!correctionForm.action;
+    function observedLearning() {
+      const app = config.value.applications.find((app) => app.id === correctionForm.applicationId);
+      const alias =
+        !!app &&
+        [app.name, ...app.aliases].some(
+          (value) => normalize(value) === normalize(correctionForm.alias),
+        );
+      const existing = (config.value.commandAliases || []).find(
+        (alias) => normalize(alias.phrase) === normalize(correctionForm.commandPhrase),
+      );
+      const args = correctionChoice.value?.action.startsWith('deezer_')
+        ? choiceArguments(correctionChoice.value, correctionForm.arguments)
+        : {};
+      const sameArgs = (a: Record<string, string> = {}, b: Record<string, string> = {}) =>
+        Object.keys({ ...a, ...b }).every((key) => a[key] === b[key]);
+      const command =
+        !!existing &&
+        existing.applicationId === app?.id &&
+        existing.action === correctionChoice.value?.action &&
+        sameArgs(existing.arguments, args);
+      correctionSaved.value = (learnAlias && alias) || (learnCommand && command);
+      return { alias, command };
+    }
+    async function reconcileLearning() {
+      const fresh = await request('status');
+      if (!current()) return;
+      config.value = fresh.config;
+      status.value = fresh;
+      return observedLearning();
+    }
     try {
+      let saveAlias = learnAlias,
+        saveCommandAlias = learnCommand;
+      if (learnAlias || learnCommand) {
+        correctionStage.value = 'memorization';
+        const observed = await reconcileLearning();
+        if (!observed || !current()) return;
+        saveAlias = learnAlias && !observed.alias;
+        saveCommandAlias = learnCommand && !observed.command;
+      }
+      correctionStage.value = saveAlias || saveCommandAlias ? 'memorization' : 'inference';
       const turn = await request('correct_request', {
         id: original.id,
         text: correctionForm.text.trim(),
@@ -85,16 +152,16 @@ export function useProposals(
         arguments: correctionChoice.value
           ? choiceArguments(correctionChoice.value, correctionForm.arguments)
           : undefined,
-        saveAlias:
-          correctionForm.saveAlias &&
-          !!correctionApp.value &&
-          (!correctionForm.action || correctionForm.action === 'open'),
+        saveAlias,
         alias: correctionForm.alias,
-        saveCommandAlias:
-          correctionForm.saveCommandAlias && !!correctionApp.value && !!correctionForm.action,
+        saveCommandAlias,
         commandPhrase: correctionForm.commandPhrase,
       });
       if (!current()) return;
+      if (turn.status === 'failed' || turn.status === 'partial')
+        throw new Error(
+          turn.error ? describeError(turn.error) : turn.message || 'La préparation a échoué.',
+        );
       prepared = true;
       try {
         const next = await request('status');
@@ -122,6 +189,16 @@ export function useProposals(
       if (current()) {
         token.fail();
         correctionError.value = describeError(caught);
+        if (learnAlias || learnCommand) {
+          try {
+            await reconcileLearning();
+          } catch {
+            if (current())
+              correctionError.value +=
+                ' La mémorisation reste à vérifier ; toute reprise relira le profil avant de poursuivre.';
+          }
+        }
+        if (current()) correctionStage.value = correctionSaved.value ? 'inference' : 'editing';
       }
     } finally {
       if (prepared && current()) correction.value = undefined;
@@ -211,6 +288,9 @@ export function useProposals(
     turns,
     correction,
     correctionError,
+    correctionStage,
+    correctionSaved,
+    correctionDirty,
     correctionForm,
     correctionApp,
     correctionActions,

@@ -6,6 +6,7 @@ const props = defineProps<{
   action?: CommandAction;
   modelValue: Record<string, string>;
   disabled: boolean;
+  errorId?: string;
 }>();
 const emit = defineEmits<{ 'update:modelValue': [Record<string, string>] }>();
 const fields = computed(() => correctionFields(props.action));
@@ -24,6 +25,7 @@ function update(key: string, event: Event) {
         v-if="field.values"
         :value="modelValue[field.key] || field.default || ''"
         :disabled="disabled"
+        :aria-describedby="errorId"
         @change="update(field.key, $event)"
       >
         <option v-for="(label, value) in field.values" :key="value" :value="value">
@@ -38,6 +40,7 @@ function update(key: string, event: Event) {
         :maxlength="field.maxLength"
         :inputmode="field.inputmode"
         :disabled="disabled"
+        :aria-describedby="errorId"
         @input="update(field.key, $event)"
       />
       <small v-if="field.help">{{ field.help }}</small>

@@ -4,6 +4,8 @@ import Icon from '../components/Icon.vue';
 import type { Profile } from '../composables/useProfile';
 import type { ApplicationEditor } from '../composables/useApplicationEditor';
 import ModalDialog from '../components/ModalDialog.vue';
+import DiscardDraftDialog from '../components/DiscardDraftDialog.vue';
+import { useDraftGuard } from '../composables/useDraftGuard';
 const props = defineProps<{
   profile: UnwrapNestedRefs<Profile>;
   applicationEditor: UnwrapNestedRefs<ApplicationEditor>;
@@ -14,6 +16,7 @@ const props = defineProps<{
 const { busy } = toRefs(props.profile);
 const {
   editorOpen,
+  dirty,
   editingId,
   form,
   mediaSource,
@@ -35,6 +38,11 @@ const {
   saveApplication,
 } = toRefs(props.applicationEditor);
 const { dialogReturnFocus } = toRefs(props);
+const guard = useDraftGuard();
+const closeEditor = () =>
+  guard.run(dirty.value, () => {
+    editorOpen.value = false;
+  });
 </script>
 <template>
   <ModalDialog
@@ -43,7 +51,7 @@ const { dialogReturnFocus } = toRefs(props);
     :return-focus="dialogReturnFocus"
     fallback-focus=".sidebar nav button.selected"
     :close-disabled="busy"
-    @close="editorOpen = false"
+    @close="closeEditor"
   >
     <template #default="{ requestClose }">
       <div class="modal-heading">
@@ -55,6 +63,7 @@ const { dialogReturnFocus } = toRefs(props);
         </div>
         <button
           class="icon-button"
+          :aria-describedby="formError ? 'application-form-error' : undefined"
           :disabled="busy"
           aria-label="Fermer"
           @click="requestClose('explicit')"
@@ -62,7 +71,10 @@ const { dialogReturnFocus } = toRefs(props);
           <Icon name="close" />
         </button>
       </div>
-      <form @submit.prevent="saveApplication">
+      <form
+        :aria-describedby="formError ? 'application-form-error' : undefined"
+        @submit.prevent="saveApplication"
+      >
         <p v-if="editingAvailability?.available === false" class="notice error" role="status">
           {{ editingAvailability.reason }} Vos formulations sont conservées lors de la
           désactivation.
@@ -71,6 +83,7 @@ const { dialogReturnFocus } = toRefs(props);
           v-if="editingId"
           type="button"
           class="secondary small"
+          :aria-describedby="formError ? 'application-form-error' : undefined"
           :disabled="busy"
           @click="replaceTarget"
         >
@@ -91,7 +104,13 @@ const { dialogReturnFocus } = toRefs(props);
               · lancement géré par Windows</small
             >
           </div>
-          <button type="button" class="text-button" :disabled="busy" @click="useExecutable">
+          <button
+            type="button"
+            class="text-button"
+            :aria-describedby="formError ? 'application-form-error' : undefined"
+            :disabled="busy"
+            @click="useExecutable"
+          >
             Choisir un .exe
           </button>
         </div>
@@ -102,6 +121,7 @@ const { dialogReturnFocus } = toRefs(props);
             required
             maxlength="60"
             placeholder="Ex. : Visual Studio Code"
+            :aria-describedby="formError ? 'application-form-error' : undefined"
             :disabled="busy"
         /></label>
         <label
@@ -111,6 +131,7 @@ const { dialogReturnFocus } = toRefs(props);
             maxlength="240"
             rows="2"
             placeholder="Ex. : Ouvrir l’éditeur de code et travailler sur un projet."
+            :aria-describedby="formError ? 'application-form-error' : undefined"
             :disabled="busy"
           /><small>Cette description aide Needle à choisir la bonne application.</small></label
         >
@@ -121,8 +142,15 @@ const { dialogReturnFocus } = toRefs(props);
               v-model="form.executable"
               required
               placeholder="C:\…\application.exe"
+              :aria-describedby="formError ? 'application-form-error' : undefined"
               :disabled="busy"
-            /><button type="button" class="secondary" :disabled="busy" @click="browse">
+            /><button
+              type="button"
+              class="secondary"
+              :aria-describedby="formError ? 'application-form-error' : undefined"
+              :disabled="busy"
+              @click="browse"
+            >
               <Icon name="folder" :size="18" />Parcourir
             </button>
           </div></label
@@ -132,6 +160,7 @@ const { dialogReturnFocus } = toRefs(props);
           ><input
             v-model="form.aliases"
             placeholder="Ex. : VS Code, éditeur de code"
+            :aria-describedby="formError ? 'application-form-error' : undefined"
             :disabled="busy"
           /><small>Séparez les noms par des virgules.</small></label
         >
@@ -159,7 +188,13 @@ const { dialogReturnFocus } = toRefs(props);
             suivante. Les capacités sont vérifiées à chaque commande.</small
           ></label
         >
-        <button type="button" class="text-button" :disabled="busy" @click="refreshMediaSessions">
+        <button
+          type="button"
+          class="text-button"
+          :aria-describedby="formError ? 'application-form-error' : undefined"
+          :disabled="busy"
+          @click="refreshMediaSessions"
+        >
           Actualiser les sessions
         </button>
         <p v-if="mediaError" class="result-error">{{ mediaError }}</p>
@@ -167,6 +202,7 @@ const { dialogReturnFocus } = toRefs(props);
           ><input
             v-model="deezerPlugin"
             type="checkbox"
+            :aria-describedby="formError ? 'application-form-error' : undefined"
             :disabled="busy"
             @change="deezerPlugin && (mediaSource = 'Deezer.exe')"
           /><span>Activer le plugin Deezer Music : contenus, recherche et Flow</span></label
@@ -178,6 +214,7 @@ const { dialogReturnFocus } = toRefs(props);
               v-model="form.arguments"
               class="code-input"
               rows="3"
+              :aria-describedby="formError ? 'application-form-error' : undefined"
               :disabled="busy"
             />
           </label>
@@ -192,6 +229,7 @@ const { dialogReturnFocus } = toRefs(props);
             >Texte, fichier ou URL pour le test<input
               v-model="testInput"
               maxlength="2048"
+              :aria-describedby="formError ? 'application-form-error' : undefined"
               :disabled="busy"
               placeholder="Ex. : C:\projets\mon-projet" /></label
           ><button
@@ -213,16 +251,23 @@ const { dialogReturnFocus } = toRefs(props);
         >
           {{ testResult.message }}
         </div>
-        <div v-if="formError" class="notice error" role="alert">{{ formError }}</div>
+        <div v-if="formError" id="application-form-error" class="notice error" role="alert">
+          {{ formError }} La saisie est conservée ; vérifiez les champs puis réessayez.
+        </div>
         <div class="modal-footer">
           <button
             type="button"
             class="secondary"
+            :aria-describedby="formError ? 'application-form-error' : undefined"
             :disabled="busy"
             @click="requestClose('explicit')"
           >
             Annuler</button
-          ><button class="primary" :disabled="busy">
+          ><button
+            class="primary"
+            :aria-describedby="formError ? 'application-form-error' : undefined"
+            :disabled="busy"
+          >
             <Icon name="check" :size="17" />{{
               busy ? (testing ? 'Test en cours…' : 'Enregistrement…') : 'Enregistrer'
             }}
@@ -231,4 +276,5 @@ const { dialogReturnFocus } = toRefs(props);
       </form>
     </template>
   </ModalDialog>
+  <DiscardDraftDialog :open="guard.pending.value" @keep="guard.keep" @discard="guard.discard" />
 </template>

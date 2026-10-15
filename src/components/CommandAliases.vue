@@ -3,6 +3,8 @@ import { describeError } from '../errors';
 import { computed, reactive, ref, watch } from 'vue';
 import { useAsyncScope } from '../composables/useAsyncScope';
 import Icon from './Icon.vue';
+import DiscardDraftDialog from './DiscardDraftDialog.vue';
+import { useDraftGuard } from '../composables/useDraftGuard';
 import CommandArguments from './CommandArguments.vue';
 import { commandActions, commandChoiceKey, choiceArguments, commandLabel } from '../actions';
 import type { Application, CommandAlias } from '../types';
@@ -23,6 +25,11 @@ const form = reactive({
   action: 'open',
   arguments: {} as Record<string, string>,
 });
+const initial = ref('');
+const dirty = computed(() => editing.value && JSON.stringify(form) !== initial.value);
+const emit = defineEmits<{ dirty: [value: boolean] }>();
+watch(dirty, (value) => emit('dirty', value));
+const guard = useDraftGuard();
 const active = computed(() => props.applications.filter((app) => app.enabled));
 const application = computed(() => props.applications.find((app) => app.id === form.applicationId));
 const actions = computed(() => commandActions(application.value));
@@ -32,6 +39,9 @@ watch(actions, (values) => {
 });
 function edit(alias?: CommandAlias) {
   if (props.locked || task.pending.value) return;
+  guard.run(dirty.value, () => startEdit(alias));
+}
+function startEdit(alias?: CommandAlias) {
   editingId.value = alias?.id;
   error.value = '';
   editing.value = true;
@@ -41,6 +51,7 @@ function edit(alias?: CommandAlias) {
       ? { ...alias, action: commandChoiceKey(alias), arguments: { ...alias.arguments } }
       : { phrase: '', applicationId: active.value[0]?.id || '', action: 'open', arguments: {} },
   );
+  initial.value = JSON.stringify(form);
 }
 async function saveAlias() {
   if (props.locked || !selected.value) return;
@@ -69,6 +80,11 @@ async function saveAlias() {
 }
 async function removeAlias(alias: CommandAlias) {
   if (props.locked) return;
+  guard.run(dirty.value && editingId.value === alias.id, () => {
+    void performRemove(alias);
+  });
+}
+async function performRemove(alias: CommandAlias) {
   const token = task.begin();
   if (!token) return;
   error.value = '';
@@ -120,6 +136,7 @@ function appName(alias: CommandAlias) {
         <div class="alias-buttons">
           <button
             class="icon-button"
+            :aria-describedby="error ? 'command-alias-error' : undefined"
             :disabled="locked"
             :aria-label="'Modifier la formulation ' + alias.phrase"
             @click="edit(alias)"
@@ -127,6 +144,7 @@ function appName(alias: CommandAlias) {
             <Icon name="edit" :size="17" /></button
           ><button
             class="icon-button danger"
+            :aria-describedby="error ? 'command-alias-error' : undefined"
             :disabled="locked"
             :aria-label="'Supprimer la formulation ' + alias.phrase"
             @click="removeAlias(alias)"
@@ -136,12 +154,18 @@ function appName(alias: CommandAlias) {
         </div>
       </li>
     </ul>
-    <form v-if="editing" class="command-alias-editor" @submit.prevent="saveAlias">
+    <form
+      v-if="editing"
+      class="command-alias-editor"
+      :aria-describedby="error ? 'command-alias-error' : undefined"
+      @submit.prevent="saveAlias"
+    >
       <label class="alias-phrase"
         >Formulation à reconnaître<input
           v-model="form.phrase"
           required
           maxlength="200"
+          :aria-describedby="error ? 'command-alias-error' : undefined"
           :disabled="locked"
           placeholder="Ex. : mais le film en pose"
         /><small
@@ -149,7 +173,12 @@ function appName(alias: CommandAlias) {
         ></label
       >
       <label
-        >Application<select v-model="form.applicationId" required :disabled="locked">
+        >Application<select
+          v-model="form.applicationId"
+          required
+          :aria-describedby="error ? 'command-alias-error' : undefined"
+          :disabled="locked"
+        >
           <option v-if="application && !application.enabled" :value="application.id" disabled>
             {{ application.name }} · désactivée
           </option>
@@ -157,15 +186,35 @@ function appName(alias: CommandAlias) {
         </select></label
       >
       <label
-        >Action<select v-model="form.action" required :disabled="locked">
+        >Action<select
+          v-model="form.action"
+          required
+          :aria-describedby="error ? 'command-alias-error' : undefined"
+          :disabled="locked"
+        >
           <option v-for="choice in actions" :key="choice.key" :value="choice.key">
             {{ choice.label }}
           </option>
         </select></label
       >
-      <CommandArguments v-model="form.arguments" :action="selected?.action" :disabled="locked" />
+      <CommandArguments
+        v-model="form.arguments"
+        :action="selected?.action"
+        :error-id="error ? 'command-alias-error' : undefined"
+        :disabled="locked"
+      />
       <div class="alias-form-footer">
-        <button type="button" class="secondary small" :disabled="locked" @click="editing = false">
+        <button
+          type="button"
+          class="secondary small"
+          :aria-describedby="error ? 'command-alias-error' : undefined"
+          :disabled="locked"
+          @click="
+            guard.run(dirty, () => {
+              editing = false;
+            })
+          "
+        >
           Annuler</button
         ><button
           class="primary small"
@@ -175,13 +224,19 @@ function appName(alias: CommandAlias) {
         </button>
       </div>
     </form>
-    <p v-if="error" class="result-error" role="alert">{{ error }}</p>
+    <p v-if="error" id="command-alias-error" class="result-error" role="alert">
+      {{ error }} La saisie est conservée.
+    </p>
+    <p v-if="dirty" class="muted" role="status">
+      Brouillon non enregistré, conservé lors des changements d’écran.
+    </p>
     <p class="muted alias-footnote">
       Seule la formulation complète est associée à cette action. « Mais » et « pose » restent
       inchangés dans vos autres textes. Le seuil de confiance et les capacités du lecteur restent
       appliqués.
     </p>
   </section>
+  <DiscardDraftDialog :open="guard.pending.value" @keep="guard.keep" @discard="guard.discard" />
 </template>
 <style scoped>
 .command-aliases h2 {

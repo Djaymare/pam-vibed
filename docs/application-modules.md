@@ -66,6 +66,29 @@ en cours peuvent terminer côté natif ; leurs réponses ne réécrivent pas le 
 la sérialisation Node/Rust restent inchangés. Le détail matériel du microphone
 reste le périmètre de PAM-24.
 
+## Brouillons (PAM-19)
+
+Applications et corrections comparent le formulaire à sa valeur initiale.
+`useDraftGuard` conserve la continuation de fermeture jusqu’au choix explicite
+d’abandon ; Échap ou « Continuer la saisie » garde le formulaire. Le dialogue
+partagé prend en charge la confirmation au-dessus d’un formulaire modal, avec
+confinement du focus dans le dernier dialogue et retour au formulaire.
+
+Préférences possède un brouillon distinct du profil enregistré. Les réponses de
+santé et les sauvegardes échouées ne l’écrasent pas. SettingsView reste montée,
+masquée hors de son écran : formulations, erreurs et valeurs saisies survivent
+à la navigation. Une notice permet de les reprendre. Quitter PAM demande un
+choix explicite si une saisie reste à enregistrer ; réduire PAM conserve la mémoire.
+
+La correction distingue préparation/mémorisation et nouvelle inférence. Elle
+relit le profil avant une tentative et après une erreur pour constater les alias
+déjà enregistrés ; seules les mémorisations encore absentes sont demandées à
+`correct_request`. Toutes ses validations côté sidecar sont conservées. Une
+réussite partielle reste visible, sans fermer le formulaire ni rejouer une
+mémorisation constatée. Si la lecture échoue, l’état reste non confirmé et la
+reprise exige une nouvelle lecture. Aucun brouillon n’est journalisé ni écrit
+sur disque ; la conservation dure jusqu’à l’abandon explicite ou la fin du processus.
+
 ## Node
 
 | Module sous `sidecar/assistant/` | Contrat |

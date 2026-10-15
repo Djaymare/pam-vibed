@@ -1,4 +1,4 @@
-import { computed, ref, onMounted, onBeforeUnmount } from 'vue';
+import { computed, ref, reactive, watch, onMounted, onBeforeUnmount } from 'vue';
 import type { Application, CommandAlias, Config, RuntimeStatus } from '../types';
 import type { Method, Methods } from '../contracts.generated';
 import { isTauri } from '@tauri-apps/api/core';
@@ -31,6 +31,21 @@ export function useProfile(
     diagnosticExport = ref(''),
     recoveryOpen = ref(false),
     recoveryBackup = ref('');
+  const settingsOf = (value: Config) => ({
+    language: value.language,
+    autoExecute: value.autoExecute,
+    confidenceThreshold: Number(value.confidenceThreshold),
+  });
+  const settingsDraft = reactive(settingsOf(config.value));
+  const settingsInitial = ref(JSON.stringify(settingsDraft));
+  const settingsDirty = computed(() => JSON.stringify(settingsDraft) !== settingsInitial.value);
+  const settingsError = ref('');
+  watch(config, (value) => {
+    if (!settingsDirty.value) {
+      Object.assign(settingsDraft, settingsOf(value));
+      settingsInitial.value = JSON.stringify(settingsDraft);
+    }
+  });
   const recoveryChoice = ref<RuntimeStatus['profileBackup']>();
   scope.onInvalidate(() => {
     recoveryOpen.value = false;
@@ -183,7 +198,10 @@ export function useProfile(
     error.value = '';
     try {
       const next = await request(method, payload);
-      if (token.current()) config.value = next;
+      if (token.current()) {
+        config.value = next;
+        return true;
+      }
     } catch (caught) {
       if (!token.current()) return;
       token.fail();
@@ -201,15 +219,34 @@ export function useProfile(
     changeConfig('set_application_enabled', { id: application.id, enabled: !application.enabled });
   const deleteApplication = (application: Application) =>
     changeConfig('delete_application', { id: application.id });
-  const saveSettings = () =>
-    changeConfig('settings', {
-      language: config.value.language,
-      autoExecute: config.value.autoExecute,
-      confidenceThreshold: Number(config.value.confidenceThreshold),
-    });
-  const saveCommandAlias = (alias: Omit<CommandAlias, 'id'> & { id?: string }) =>
-    changeConfig('save_command_alias', alias, true);
-  const deleteCommandAlias = (id: string) => changeConfig('delete_command_alias', { id }, true);
+  async function saveSettings() {
+    if (isLocked()) return;
+    settingsError.value = '';
+    const values = {
+      ...settingsDraft,
+      confidenceThreshold: Number(settingsDraft.confidenceThreshold),
+    };
+    try {
+      if (await changeConfig('settings', values, true))
+        settingsInitial.value = JSON.stringify(values);
+    } catch (caught) {
+      settingsError.value = describeError(caught);
+    }
+  }
+  function discardSettings() {
+    Object.assign(settingsDraft, settingsOf(config.value));
+    settingsInitial.value = JSON.stringify(settingsDraft);
+    settingsError.value = '';
+  }
+  const saveCommandAlias = async (alias: Omit<CommandAlias, 'id'> & { id?: string }) => {
+    if (!(await changeConfig('save_command_alias', alias, true)))
+      throw new Error(
+        'La réponse a été interrompue. Votre brouillon est conservé ; vérifiez les formulations enregistrées avant de réessayer.',
+      );
+  };
+  const deleteCommandAlias = async (id: string) => {
+    await changeConfig('delete_command_alias', { id }, true);
+  };
   const activeApps = computed(() => config.value.applications.filter((app) => app.enabled));
   function unavailable(application: Application) {
     return status.value?.applicationAvailability?.[application.id]?.available === false;
@@ -250,6 +287,10 @@ export function useProfile(
     toggleApplication,
     deleteApplication,
     saveSettings,
+    settingsDraft,
+    settingsDirty,
+    settingsError,
+    discardSettings,
     saveCommandAlias,
     deleteCommandAlias,
     activeApps,

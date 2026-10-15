@@ -15,10 +15,14 @@ const {
   profileRequest,
   restartEngine,
   saveSettings,
+  settingsDraft,
+  settingsDirty,
+  settingsError,
+  discardSettings,
   saveCommandAlias,
   deleteCommandAlias,
 } = toRefs(props.profile);
-const emit = defineEmits<{ desktop: [action: 'hide' | 'quit'] }>();
+const emit = defineEmits<{ desktop: [action: 'hide' | 'quit']; dirty: [value: boolean] }>();
 const desktop = (action: 'hide' | 'quit') => emit('desktop', action);
 </script>
 <template>
@@ -33,12 +37,18 @@ const desktop = (action: 'hide' | 'quit') => emit('desktop', action);
     :locked="locked"
     :save="saveCommandAlias"
     :remove="deleteCommandAlias"
+    @dirty="emit('dirty', $event)"
   />
   <ProfileTransfer :locked="locked" :request="profileRequest" />
   <section v-if="status?.profileBackup" class="settings-card">
     <h2>Dernière copie valide</h2>
     <p>Conservée avant chaque modification du profil.</p>
-    <button class="secondary small" :disabled="locked" @click="beginRecovery">
+    <button
+      class="secondary small"
+      :aria-describedby="settingsError ? 'settings-error' : undefined"
+      :disabled="locked"
+      @click="beginRecovery"
+    >
       Préparer une restauration
     </button>
   </section>
@@ -50,7 +60,8 @@ const desktop = (action: 'hide' | 'quit') => emit('desktop', action);
         <p>Whistle comprend sept langues, ou détecte la langue.</p>
       </div>
       <select
-        v-model="config.language"
+        v-model="settingsDraft.language"
+        :aria-describedby="settingsError ? 'settings-error' : undefined"
         :disabled="locked"
         aria-label="Langue de transcription"
         @change="saveSettings"
@@ -75,13 +86,14 @@ const desktop = (action: 'hide' | 'quit') => emit('desktop', action);
       </div>
       <button
         class="toggle"
-        :class="{ on: config.autoExecute }"
+        :class="{ on: settingsDraft.autoExecute }"
+        :aria-describedby="settingsError ? 'settings-error' : undefined"
         :disabled="locked"
         role="switch"
-        :aria-checked="config.autoExecute"
+        :aria-checked="settingsDraft.autoExecute"
         aria-label="Exécuter automatiquement"
         @click="
-          config.autoExecute = !config.autoExecute;
+          settingsDraft.autoExecute = !settingsDraft.autoExecute;
           saveSettings();
         "
       >
@@ -95,16 +107,37 @@ const desktop = (action: 'hide' | 'quit') => emit('desktop', action);
       </div>
       <div class="range-control">
         <input
-          v-model="config.confidenceThreshold"
+          v-model.number="settingsDraft.confidenceThreshold"
           type="range"
           min="0.1"
           max="1"
           step="0.05"
+          :aria-describedby="settingsError ? 'settings-error' : undefined"
           :disabled="locked"
           aria-label="Seuil de confiance"
           @change="saveSettings"
-        /><span>{{ Math.round(config.confidenceThreshold * 100) }} %</span>
+        /><span>{{ Math.round(settingsDraft.confidenceThreshold * 100) }} %</span>
       </div>
+    </div>
+    <p v-if="settingsError" id="settings-error" class="result-error" role="alert">
+      {{ settingsError }} Vos valeurs sont conservées.
+    </p>
+    <div v-if="settingsDirty" class="alias-form-footer">
+      <span role="status">Préférences non enregistrées</span>
+      <button
+        :aria-describedby="settingsError ? 'settings-error' : undefined"
+        :disabled="locked"
+        @click="discardSettings"
+      >
+        Rétablir les valeurs enregistrées
+      </button>
+      <button
+        :aria-describedby="settingsError ? 'settings-error' : undefined"
+        :disabled="locked"
+        @click="saveSettings"
+      >
+        Réessayer l’enregistrement
+      </button>
     </div>
   </section>
   <section class="settings-card">
@@ -171,7 +204,12 @@ const desktop = (action: 'hide' | 'quit') => emit('desktop', action);
         }}</strong>
         <p>Les modèles sont conservés entre vos demandes et repris après une panne.</p>
       </div>
-      <button class="secondary small" :disabled="locked" @click="restartEngine">
+      <button
+        class="secondary small"
+        :aria-describedby="settingsError ? 'settings-error' : undefined"
+        :disabled="locked"
+        @click="restartEngine"
+      >
         Recharger les moteurs
       </button>
     </div>
