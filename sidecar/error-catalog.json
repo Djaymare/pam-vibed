@@ -1,0 +1,16 @@
+{
+  "model_failure": { "stage": "inference", "retryable": true, "message": "Le modèle local a échoué. Rechargez les moteurs puis réessayez." },
+  "microphone_denied": { "stage": "microphone", "retryable": true, "message": "Accès au microphone refusé. Autorisez le microphone pour PAM dans les paramètres de confidentialité de Windows." },
+  "microphone_missing": { "stage": "microphone", "retryable": true, "message": "Aucun microphone détecté. Branchez un microphone puis réessayez." },
+  "target_missing": { "stage": "target", "retryable": false, "message": "La cible est indisponible. Réparez ou désactivez l’application dans les paramètres." },
+  "action_failure": { "stage": "target", "retryable": false, "message": "L’action a échoué. Vérifiez l’application et ses autorisations avant une nouvelle demande." },
+  "request_timeout": { "stage": "transport", "retryable": false, "message": "Le délai global de la demande est dépassé. Vérifiez les résultats avant de reformuler ; aucun effet ne sera rejoué automatiquement." },
+  "invalid_profile": { "stage": "profile", "retryable": false, "message": "Profil invalide. Restaurez la sauvegarde, importez un profil valide ou utilisez la récupération proposée." },
+  "profile_io": { "stage": "profile", "retryable": true, "message": "Le profil local est inaccessible. Vérifiez les droits et l’espace disque puis réessayez." },
+  "transport_unavailable": { "stage": "transport", "retryable": true, "message": "Le service local est indisponible. Rechargez les moteurs puis réessayez." },
+  "transport_protocol": { "stage": "transport", "retryable": true, "message": "La réponse du service local est invalide. Rechargez les moteurs puis réessayez." },
+  "transport_busy": { "stage": "queue", "retryable": true, "message": "Le service local est occupé. Attendez la fin de la demande puis réessayez." },
+  "invalid_request": { "stage": "validation", "retryable": false, "message": "La demande est invalide. Vérifiez les champs saisis puis réessayez." },
+  "sidecar_stderr": { "stage": "sidecar", "retryable": false, "message": "Le service local a produit un diagnostic technique." },
+  "diagnostic_io": { "stage": "diagnostics", "retryable": true, "message": "Le journal local est inaccessible. Vérifiez les droits et l’espace disque." }
+}

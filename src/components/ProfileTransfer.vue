@@ -1,13 +1,14 @@
 <script setup lang="ts">
 import { ref, watch } from 'vue';
 import type { Config, ImportPreview } from '../types';
+import { describeError } from '../errors';
 const props = defineProps<{ locked: boolean; request: <T>(method: string, payload?: unknown) => Promise<T> }>();
 const content = ref(''), exported = ref(''), preview = ref<ImportPreview>(), busy = ref(false), message = ref(''), error = ref('');
 watch(content, () => { preview.value = undefined; });
 async function run(action: () => Promise<void>) {
   if (props.locked || busy.value) return;
   busy.value = true; error.value = ''; message.value = '';
-  try { await action(); } catch (caught) { error.value = caught instanceof Error ? caught.message : String(caught); preview.value = undefined; }
+  try { await action(); } catch (caught) { error.value = describeError(caught); preview.value = undefined; }
   finally { busy.value = false; }
 }
 function exportProfile() { return run(async () => { exported.value = await props.request<string>('export_config'); }); }

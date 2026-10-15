@@ -92,6 +92,102 @@ fn audio() -> Value {
 }
 
 #[test]
+fn diagnostics_correlate_node_rust_and_stderr_without_personal_content() {
+    let fixture = Fixture::new("diagnostic", Duration::from_secs(3), 4);
+    let error = fixture
+        .bridge
+        .request("process_audio", json!({"audio":"SENTINEL_AUDIO"}))
+        .unwrap_err()
+        .envelope();
+    assert_eq!(error.code, "model_failure");
+    assert_eq!(error.stage, "transcription");
+    fixture.wait_for(|| {
+        fixture.bridge.export_diagnostics().unwrap()["events"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .any(|v| v["event"] == "stderr")
+    });
+    let export = fixture.bridge.export_diagnostics().unwrap();
+    let events = export["events"].as_array().unwrap();
+    for source in ["rust", "node"] {
+        assert!(events.iter().any(|v| v["source"] == source
+            && v["error"]["requestId"] == error.request_id
+            && v["error"]["code"] == "model_failure"));
+    }
+    let text = export.to_string();
+    assert!(!text.contains("SENTINEL"));
+    assert!(!text.contains("Private"));
+    assert!(!text.contains("Users"));
+}
+
+#[test]
+fn real_node_main_propagates_corrupt_profile_without_voice_content() {
+    let root = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+    let profile = std::env::temp_dir().join(diagnostics::request_id());
+    fs::create_dir(&profile).unwrap();
+    fs::write(
+        profile.join("applications.json"),
+        "SENTINEL_PRIVATE_PROFILE",
+    )
+    .unwrap();
+    let bridge = Bridge::with_limits(
+        Config {
+            node: root.join("binaries/pam-node-x86_64-pc-windows-msvc.exe"),
+            script: root.join("../sidecar/main.cjs"),
+            runtime: root.join("runtime"),
+            profile: profile.clone(),
+            catalogue: Arc::new(Catalogue::default()),
+        },
+        Duration::from_secs(5),
+        4,
+    )
+    .unwrap();
+    let fixture = Fixture {
+        bridge: Arc::new(bridge),
+        profile,
+    };
+    let error = fixture
+        .bridge
+        .request(
+            "process_text",
+            json!({"text":"SENTINEL_PRIVATE_VOICE","arguments":["SENTINEL_ARGS"]}),
+        )
+        .unwrap_err()
+        .envelope();
+    assert_eq!(error.code, "invalid_profile");
+    assert_eq!(error.stage, "profile");
+    let exported = fixture.bridge.export_diagnostics().unwrap();
+    for source in ["rust", "node"] {
+        assert!(exported["events"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .any(|v| v["source"] == source && v["error"]["requestId"] == error.request_id));
+    }
+    for entry in fs::read_dir(fixture.profile.join("diagnostics")).unwrap() {
+        let bytes = fs::read_to_string(entry.unwrap().path()).unwrap();
+        assert!(!bytes.contains("SENTINEL"));
+    }
+    assert!(!exported.to_string().contains("SENTINEL"));
+}
+
+#[test]
+fn missing_host_target_has_a_safe_stable_error() {
+    let fixture = Fixture::new("host-missing", Duration::from_secs(3), 4);
+    let error = fixture
+        .bridge
+        .request("test_application", json!({}))
+        .unwrap_err()
+        .envelope();
+    assert_eq!(error.code, "target_missing");
+    assert_eq!(error.stage, "host");
+    let export = fixture.bridge.export_diagnostics().unwrap().to_string();
+    assert!(!export.contains("SENTINEL"));
+    assert!(!export.contains(".exe"));
+}
+
+#[test]
 fn unread_audio_pipe_has_a_deadline_and_recovers() {
     let fixture = Fixture::new("never-read", Duration::from_millis(600), 4);
     let start = Instant::now();

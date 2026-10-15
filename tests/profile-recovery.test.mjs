@@ -9,7 +9,7 @@ import * as vue from 'vue';
 
 // Compile and mount the real App SFC with Vue's renderer. Only native services,
 // timers and unrelated child components are substituted; no WebView2 claim.
-async function mountApp(t, { recoveryFailure = false, healthy = false, proposalScenario = false, correctionSuccess = false, transferScenario = false, transferFailure = false, backupScenario = false } = {}) {
+async function mountApp(t, { recoveryFailure = false, healthy = false, proposalScenario = false, correctionSuccess = false, transferScenario = false, transferFailure = false, backupScenario = false, diagnosticScenario = false, microphoneFailure = false } = {}) {
   const previousDocument = globalThis.document;
   globalThis.document = { activeElement: null };
   for (const name of ['Document', 'ShadowRoot']) {
@@ -31,6 +31,9 @@ async function mountApp(t, { recoveryFailure = false, healthy = false, proposalS
   const invoke = async (command, input) => {
     if (command !== 'assistant_request') return;
     calls.push(input);
+    if (diagnosticScenario && input.method === 'export_diagnostics') return {format:1,events:[{error:{code:'model_failure',stage:'transcription',requestId:'pam-1-2-3'}}]};
+    if (diagnosticScenario && input.method === 'process_text') throw {code:'model_failure',stage:'transcription',requestId:'pam-1-2-3',message:'C:\\Users\\Private\\SENTINEL',technical:{raw:'SENTINEL'}};
+    if (microphoneFailure && input.method === 'diagnostic_event') return {code:input.payload.code,stage:'microphone',requestId:'pam-1-2-4'};
     if (input.method === 'status') return { ready: !profileError, config: structuredClone(empty), proposals: proposalScenario ? structuredClone(proposals) : [], configError: profileError, profileBackup, checks: [], engine: null };
     if (transferScenario && input.method === 'export_config') return JSON.stringify(empty, null, 2);
     if (transferScenario && input.method === 'preview_import') return { fingerprint: 'before', importFingerprint: 'import-digest', summary: { applications: ['Application importée'], formulations: 2, language: 'en', autoExecute: false, confidenceThreshold: 0.8 } };
@@ -76,6 +79,11 @@ async function mountApp(t, { recoveryFailure = false, healthy = false, proposalS
   const localRequire = createRequire(import.meta.url);
   const stub = vue.defineComponent({ render: () => vue.h('span') });
   const injectedRequire = name => {
+    if (name === './errors' || name === '../errors') {
+      const result = {};
+      const code = ts.transpileModule(readFileSync(new URL('../src/errors.ts', import.meta.url), 'utf8'), { compilerOptions: { module: ts.ModuleKind.CommonJS, esModuleInterop: true } }).outputText;
+      new Function('require','exports',code)(localRequire,result); return result;
+    }
     if (name === 'vue') return vue;
     if (transferScenario && name.endsWith('/ProfileTransfer.vue')) {
       const component = parse(readFileSync(new URL('../src/components/ProfileTransfer.vue', import.meta.url), 'utf8')).descriptor;
@@ -95,7 +103,7 @@ async function mountApp(t, { recoveryFailure = false, healthy = false, proposalS
       const code = ts.transpileModule(readFileSync(new URL('../src/proposals.ts', import.meta.url), 'utf8'), { compilerOptions: { module: ts.ModuleKind.CommonJS } }).outputText;
       new Function('exports', 'Date', code)(result, TestDate); return result;
     }
-    if (name === './audio/recorder') return { VoiceRecorder: class {} };
+    if (name === './audio/recorder') return { VoiceRecorder: class { async start() {if(microphoneFailure)throw new DOMException('SENTINEL','NotAllowedError');} async dispose() {} } };
     return localRequire(name);
   };
   const exports = {};
@@ -137,6 +145,24 @@ async function mountApp(t, { recoveryFailure = false, healthy = false, proposalS
     },
   };
 }
+test('PAM-12 Vue : message structuré corrélable et export uniquement après clic volontaire', async t => {
+  const f=await mountApp(t,{healthy:true,diagnosticScenario:true});
+  assert.equal(f.calls.some(c=>c.method==='export_diagnostics'),false);
+  await f.send('SENTINEL');
+  const alerts=f.all().filter(n=>n.props.role==='alert').map(n=>n.text+n.children.map(c=>c.text).join('')).join('');
+  assert.match(alerts,/Rechargez les moteurs/);assert.match(alerts,/pam-1-2-3/);assert.doesNotMatch(alerts,/SENTINEL|Users|Private|object Object/);
+  await f.all().find(n=>n.props['aria-label']==='Préférences').props.onClick();await f.settle();
+  await f.click('Préparer un export de diagnostic');
+  assert.equal(f.calls.filter(c=>c.method==='export_diagnostics').length,1);
+  const output=f.all().find(n=>n.props['aria-label']==='Export de diagnostic filtré');assert.match(output.props.value,/model_failure/);assert.ok(output.props.readonly!==undefined);
+  await f.click('Fermer l’export');assert.equal(f.all().some(n=>n.props['aria-label']==='Export de diagnostic filtré'),false);
+});
+test('PAM-12 Vue : refus du microphone envoyé sans données personnelles et affiché avec sa référence',async t=>{
+  const f=await mountApp(t,{healthy:true,microphoneFailure:true});
+  await f.all().find(n=>n.props['aria-label']==='Commencer l’enregistrement').props.onClick();await f.settle();
+  assert.deepEqual(f.calls.find(c=>c.method==='diagnostic_event').payload,{code:'microphone_denied'});
+  assert.match(f.text(),/microphone refusé/);assert.match(f.text(),/pam-1-2-4/);assert.doesNotMatch(f.text(),/SENTINEL/);
+});
 test('le profil invalide bloque la demande et l’annulation de récupération ne produit aucun effet', async t => {
   const f = await mountApp(t);
   assert.match(f.text(), /Profil invalide/);

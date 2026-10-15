@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { describeError } from '../errors';
 import {computed, reactive, ref, watch} from 'vue';
 import Icon from './Icon.vue';
 import CommandArguments from './CommandArguments.vue';
@@ -22,12 +23,12 @@ async function save() {
   if(!selected.value)return;
   try {await props.save({id:editingId.value,phrase:form.phrase.trim(),applicationId:form.applicationId,action:selected.value.action,
     ...(selected.value.action.startsWith('deezer_')?{arguments:choiceArguments(selected.value,form.arguments)}:{})});editing.value=false;}
-  catch(caught) {error.value=caught instanceof Error?caught.message:String(caught);}
+  catch(caught) {error.value=describeError(caught);}
 }
 async function remove(alias:CommandAlias) {
   error.value='';
   try {await props.remove(alias.id);if(editingId.value===alias.id)editing.value=false;}
-  catch(caught) {error.value=caught instanceof Error?caught.message:String(caught);}
+  catch(caught) {error.value=describeError(caught);}
 }
 function appName(alias:CommandAlias) {return props.applications.find(app=>app.id===alias.applicationId)?.name || 'Application supprimée';}
 </script>

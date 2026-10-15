@@ -21,6 +21,7 @@ test('le sidecar garde un seul processus, corrige les demandes et s’arrête à
   const reader = createInterface({ input: child.stdout });
   reader.on('line', line => {
     const reply = JSON.parse(line); const waiter = pending.get(reply.id);
+    if (reply.type === 'diagnostic') return;
     if (waiter) { pending.delete(reply.id); waiter(reply); }
   });
   const request = (method, payload = {}, transport = {}) => new Promise(resolve => {

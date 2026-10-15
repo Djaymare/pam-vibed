@@ -1,5 +1,5 @@
 //! One transport actor serializes effects. Callers never own the pipe or its lock.
-use crate::{applications::Catalogue, launch};
+use crate::{applications::Catalogue, diagnostics, launch};
 use serde_json::{json, Value};
 use std::{
     collections::HashSet,
@@ -28,13 +28,42 @@ const HOST_EFFECT: u8 = 4;
 pub(crate) struct Error {
     pub code: &'static str,
     detail: String,
+    diagnostic: Option<Box<diagnostics::Error>>,
 }
 impl Error {
     fn new(code: &'static str, detail: impl Into<String>) -> Self {
         Self {
             code,
             detail: detail.into(),
+            diagnostic: None,
         }
+    }
+    pub fn envelope(&self) -> diagnostics::Error {
+        self.diagnostic.as_deref().cloned().unwrap_or_else(|| {
+            let code = if self.code.contains("timeout") {
+                "request_timeout"
+            } else if self.code == "bridge_queue_full" {
+                "transport_busy"
+            } else if self.code == "bridge_protocol" {
+                "transport_protocol"
+            } else {
+                "transport_unavailable"
+            };
+            let stage = if self.code.contains("start") {
+                "start"
+            } else if self.code.contains("write") {
+                "write"
+            } else if self.code.contains("response") {
+                "response"
+            } else if self.code.contains("host") {
+                "host"
+            } else if self.code.contains("queue") {
+                "queue"
+            } else {
+                "transport"
+            };
+            diagnostics::Error::new(code, "", stage)
+        })
     }
 }
 impl fmt::Display for Error {
@@ -53,6 +82,7 @@ pub(crate) struct Config {
 
 struct Attempt {
     id: u64,
+    request_id: String,
     deadline: Instant,
     stage: AtomicU8,
     cancelled: AtomicBool,
@@ -66,7 +96,13 @@ impl Attempt {
             .unwrap_or_else(|e| e.into_inner())
             .clone()?;
         turn["status"] = json!("partial");
-        turn["message"] = json!(format!("{error} Vérifiez les actions dont le résultat est inconnu avant toute nouvelle demande."));
+        let safe = error.envelope();
+        let diagnostic = diagnostics::Error::new(&safe.code, &self.request_id, &safe.stage);
+        turn["message"] = json!(format!(
+            "{} Vérifiez les actions dont le résultat est inconnu avant toute nouvelle demande.",
+            diagnostic.message
+        ));
+        turn["error"] = json!(diagnostic);
         if let Some(results) = turn["results"].as_array_mut() {
             for result in results {
                 if result["outcome"] == "unknown" {
@@ -139,6 +175,7 @@ struct Control {
     stopped: AtomicBool,
     started: AtomicBool,
     pending: AtomicUsize,
+    journal: Mutex<Option<Arc<diagnostics::Journal>>>,
 }
 impl Control {
     fn cancel(&self, attempt: &Attempt) {
@@ -176,6 +213,8 @@ impl Bridge {
     fn with_limits(config: Config, timeout: Duration, capacity: usize) -> Result<Self, String> {
         let (sender, receiver) = mpsc::sync_channel(capacity);
         let control = Arc::new(Control::default());
+        *control.journal.lock().unwrap() =
+            Some(Arc::new(diagnostics::Journal::new(config.profile.clone())));
         let actor_control = control.clone();
         let actor = thread::Builder::new()
             .name("pam-bridge".into())
@@ -192,14 +231,76 @@ impl Bridge {
     pub fn request(&self, method: &str, payload: Value) -> Result<Value, Error> {
         self.request_until(method, payload, Instant::now() + self.timeout)
     }
+    pub fn export_diagnostics(&self) -> Result<Value, diagnostics::Error> {
+        self.control
+            .journal
+            .lock()
+            .unwrap()
+            .as_ref()
+            .unwrap()
+            .export()
+            .map_err(|_| diagnostics::Error::new("diagnostic_io", "", "diagnostics"))
+    }
+    pub fn record_diagnostic(&self, error: &diagnostics::Error, source: &str) {
+        if let Some(journal) = self.control.journal.lock().unwrap().as_ref() {
+            let _ = journal.record(error, source, "failure");
+        }
+    }
     fn request_until(
         &self,
         method: &str,
         payload: Value,
         deadline: Instant,
     ) -> Result<Value, Error> {
+        let request_id = diagnostics::request_id();
+        self.request_inner(method, payload, deadline, &request_id)
+            .map(|mut result| {
+                if result["error"].is_object() {
+                    let diagnostic = diagnostics::Error::from_value(&result["error"], &request_id);
+                    self.record_diagnostic(&diagnostic, "rust");
+                    result["error"] = json!(diagnostic);
+                }
+                result
+            })
+            .map_err(|mut error| {
+                let stage = if error.code.contains("start") {
+                    "start"
+                } else if error.code.contains("write") {
+                    "write"
+                } else if error.code.contains("response") {
+                    "response"
+                } else if error.code.contains("host") {
+                    "host"
+                } else if error.code.contains("queue") {
+                    "queue"
+                } else {
+                    "transport"
+                };
+                let safe = error.envelope();
+                let diagnostic = diagnostics::Error::new(
+                    &safe.code,
+                    &request_id,
+                    if error.diagnostic.is_some() {
+                        &safe.stage
+                    } else {
+                        stage
+                    },
+                );
+                self.record_diagnostic(&diagnostic, "rust");
+                error.diagnostic = Some(Box::new(diagnostic));
+                error
+            })
+    }
+    fn request_inner(
+        &self,
+        method: &str,
+        payload: Value,
+        deadline: Instant,
+        request_id: &str,
+    ) -> Result<Value, Error> {
         let attempt = Arc::new(Attempt {
             id: self.next_id.fetch_add(1, Ordering::Relaxed),
+            request_id: request_id.into(),
             deadline,
             stage: AtomicU8::new(QUEUED),
             cancelled: AtomicBool::new(false),
@@ -207,7 +308,7 @@ impl Bridge {
         });
         attempt.check(&self.control)?;
         let mut bytes =
-            serde_json::to_vec(&json!({"id": attempt.id, "method": method, "payload": payload}))
+            serde_json::to_vec(&json!({"id": attempt.id, "requestId":request_id, "method": method, "payload": payload}))
                 .map_err(|e| Error::new("bridge_protocol", e.to_string()))?;
         if bytes.len() > REQUEST_LIMIT {
             return Err(Error::new(
@@ -390,6 +491,7 @@ struct Worker {
     stdin: ChildStdin,
     replies: Option<Receiver<Result<Value, Error>>>,
     reader: Option<JoinHandle<()>>,
+    stderr_reader: Option<JoinHandle<()>>,
     control: Arc<Control>,
 }
 impl Worker {
@@ -419,7 +521,7 @@ impl Worker {
             )
             .stdin(Stdio::piped())
             .stdout(Stdio::piped())
-            .stderr(Stdio::null());
+            .stderr(Stdio::piped());
         #[cfg(windows)]
         {
             use std::os::windows::process::CommandExt;
@@ -446,6 +548,40 @@ impl Worker {
             let _ = child.wait();
             return Err(Error::new("bridge_start", "Pipes du sidecar absents."));
         };
+        let stderr_reader = if let Some(mut stderr) = child.stderr.take() {
+            let stderr_control = control.clone();
+            Some(thread::spawn(move || {
+                let mut bytes = [0u8; 4096];
+                while let Ok(count) = stderr.read(&mut bytes) {
+                    if count == 0 {
+                        break;
+                    }
+                    let id = stderr_control
+                        .state
+                        .lock()
+                        .unwrap_or_else(|e| e.into_inner())
+                        .active
+                        .as_ref()
+                        .map(|a| a.request_id.clone())
+                        .unwrap_or_default();
+                    if let Some(journal) = stderr_control
+                        .journal
+                        .lock()
+                        .unwrap_or_else(|e| e.into_inner())
+                        .as_ref()
+                    {
+                        let _ = journal.record(
+                            &diagnostics::Error::new("sidecar_stderr", &id, "sidecar"),
+                            "node",
+                            "stderr",
+                        );
+                    }
+                    // Raw bytes are intentionally discarded, without decoding.
+                }
+            }))
+        } else {
+            None
+        };
         {
             let mut state = control.state.lock().unwrap_or_else(|e| e.into_inner());
             if let Err(error) = attempt.check(&control) {
@@ -466,6 +602,7 @@ impl Worker {
             stdin,
             replies: Some(replies),
             reader: None,
+            stderr_reader,
             control,
         };
         worker.reader = Some(
@@ -563,6 +700,19 @@ impl Worker {
                     ))
                 }
             };
+            if response["type"] == "diagnostic" {
+                if response["id"] != attempt.id {
+                    return Err(Error::new(
+                        "bridge_protocol",
+                        "Diagnostic d’une autre demande.",
+                    ));
+                }
+                let error = diagnostics::Error::from_value(&response["error"], &attempt.request_id);
+                if let Some(journal) = self.control.journal.lock().unwrap().as_ref() {
+                    let _ = journal.record(&error, "node", "failure");
+                }
+                continue;
+            }
             if response["type"] == "turn_progress" {
                 if response["id"] != attempt.id || !valid_progress(&response["turn"]) {
                     return Err(Error::new(
@@ -584,12 +734,11 @@ impl Worker {
                 return if response["ok"] == true {
                     Ok(response["result"].clone())
                 } else {
-                    Err(Error::new(
-                        "sidecar_error",
-                        response["error"]
-                            .as_str()
-                            .unwrap_or("Erreur inconnue du sidecar."),
-                    ))
+                    let diagnostic =
+                        diagnostics::Error::from_value(&response["error"], &attempt.request_id);
+                    let mut error = Error::new("sidecar_error", diagnostic.message.clone());
+                    error.diagnostic = Some(Box::new(diagnostic));
+                    Err(error)
                 };
             }
             let id = response["id"]
@@ -621,7 +770,25 @@ impl Worker {
             attempt.check(&self.control)?;
             let reply = match result {
                 Ok(result) => json!({"type":"host_response","id":id,"ok":true,"result":result}),
-                Err(error) => json!({"type":"host_response","id":id,"ok":false,"error":error}),
+                Err(text) => {
+                    let missing = response["payload"]["executable"]
+                        .as_str()
+                        .is_some_and(|p| !std::path::Path::new(p).is_file())
+                        || text.contains("absente du catalogue");
+                    let error = diagnostics::Error::new(
+                        if missing {
+                            "target_missing"
+                        } else {
+                            "action_failure"
+                        },
+                        &attempt.request_id,
+                        "host",
+                    );
+                    if let Some(journal) = self.control.journal.lock().unwrap().as_ref() {
+                        let _ = journal.record(&error, "rust", "failure");
+                    }
+                    json!({"type":"host_response","id":id,"ok":false,"error":error})
+                }
             };
             let mut bytes = serde_json::to_vec(&reply)
                 .map_err(|e| Error::new("bridge_protocol", e.to_string()))?;
@@ -662,6 +829,9 @@ impl Drop for Worker {
         }
         drop(self.replies.take()); // Unblock a bounded stdout sender before joining.
         if let Some(reader) = self.reader.take() {
+            let _ = reader.join();
+        }
+        if let Some(reader) = self.stderr_reader.take() {
             let _ = reader.join();
         }
     }

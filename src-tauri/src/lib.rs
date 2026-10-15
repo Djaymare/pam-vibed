@@ -8,6 +8,7 @@ use tauri::{Emitter, Manager};
 use tauri_plugin_global_shortcut::{Code, GlobalShortcutExt, Modifiers, Shortcut, ShortcutState};
 mod applications;
 mod bridge;
+mod diagnostics;
 mod launch;
 pub mod media;
 
@@ -35,7 +36,7 @@ impl AssistantBridge {
         }
         self.transport
             .request(method, payload)
-            .map_err(|error| error.to_string())
+            .map_err(|error| serde_json::to_string(&error.envelope()).expect("error envelope"))
     }
 }
 
@@ -197,13 +198,15 @@ async fn assistant_request(
     window: tauri::WebviewWindow,
     method: String,
     payload: Option<Value>,
-) -> Result<Value, String> {
+) -> Result<Value, diagnostics::Error> {
     if window.label() != "main" {
-        return Err("Fenêtre non autorisée.".into());
+        return Err(diagnostics::Error::new("invalid_request", "", "validation"));
     }
     if !matches!(
         method.as_str(),
         "status"
+            | "export_diagnostics"
+            | "diagnostic_event"
             | "recover_config"
             | "export_config"
             | "preview_import"
@@ -224,16 +227,28 @@ async fn assistant_request(
             | "save_command_alias"
             | "delete_command_alias"
     ) {
-        return Err("Méthode inconnue.".into());
+        return Err(diagnostics::Error::new("invalid_request", "", "validation"));
     }
     let app = window.app_handle().clone();
     tauri::async_runtime::spawn_blocking(move || {
         let state = app.state::<AssistantBridge>();
         let mut payload = payload.unwrap_or(json!({}));
-        let mut result = catalogue_request(&state, &app.state::<Arc<applications::Catalogue>>(), &method, &mut payload)?;
+        if method == "export_diagnostics" { return state.transport.export_diagnostics(); }
+        if method == "diagnostic_event" {
+            let code = payload["code"].as_str().unwrap_or("");
+            if !matches!(code,"microphone_denied"|"microphone_missing") { return Err(diagnostics::Error::new("invalid_request", "", "validation")); }
+            let error = diagnostics::Error::new(code, "", "microphone");
+            state.transport.record_diagnostic(&error, "webview");
+            return Ok(json!(error));
+        }
+        let mut result = catalogue_request(&state, &app.state::<Arc<applications::Catalogue>>(), &method, &mut payload).map_err(|text| {
+            let error = serde_json::from_str::<Value>(&text).ok().filter(|v| v["code"].is_string()).map(|v| diagnostics::Error::from_value(&v,v["requestId"].as_str().unwrap_or("")))
+                .unwrap_or_else(|| diagnostics::Error::new("target_missing", "", "target"));
+            state.transport.record_diagnostic(&error,"rust"); error
+        })?;
         if method == "status" { result["desktop"] = json!({ "shortcut": "Ctrl + Maj + Espace", "shortcutAvailable": state.shortcut_error.is_empty(), "shortcutError": state.shortcut_error, "closeToTray": true }); }
         Ok(result)
-    }).await.map_err(|e| e.to_string())?
+    }).await.map_err(|_| diagnostics::Error::new("transport_unavailable", "", "transport"))?
 }
 #[tauri::command]
 fn desktop_action(window: tauri::WebviewWindow, action: String) -> Result<(), String> {

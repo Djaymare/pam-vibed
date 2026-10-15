@@ -14,6 +14,7 @@ const { createTemporaryFiles } = require('./temporary-files.cjs');
 const { createBudget, interruptedTurn } = require('./budget.cjs');
 const { executionStore } = require('./execution.cjs');
 const { proposalStore } = require('./proposals.cjs');
+const { requestId, failure, annotate, maskMessage } = require('./diagnostics.cjs');
 
 const { validateConfig, validateApplicationStructure, LANGUAGES, DEFAULT_CONFIG } = require('./config-schema.cjs');
 const { createConfigStore } = require('./config-store.cjs');
@@ -282,11 +283,16 @@ function createAssistant({ runtimeDirectory, configDirectory, runEngine = execut
         const result = await budget.run(() => call.action && call.action !== 'open'
           ? media.execute(application,call.action,call.arguments,{budget,beforeEffect})
           : launchApplication(application,call.arguments,{budget,beforeEffect}), 'exécution');
+        if (!result.success) {
+          const diagnostic=failure(new Error(result.message),context,'action_failure');
+          result.message=diagnostic.message; result.error=diagnostic;
+        }
         turn.results[index] = {...turn.results[index],...result,outcome:result.success ? 'performed' : 'failed'};
       } catch (error) {
         const timedOut = error.code === 'budget_expired' || error.outcome === 'unknown';
+        const diagnostic = failure(error, context, 'action_failure', timedOut ? 'host' : 'target');
         turn.results[index] = {...turn.results[index],success:false,
-          outcome:timedOut ? (emitted ? 'unknown' : 'not_started') : 'failed',message:error.message};
+          outcome:timedOut ? (emitted ? 'unknown' : 'not_started') : 'failed',message:diagnostic.message,error:diagnostic};
       }
       await publish();
       if (budget.remaining() <= 0 || turn.results[index].outcome === 'unknown') break;
@@ -310,11 +316,12 @@ function createAssistant({ runtimeDirectory, configDirectory, runEngine = execut
       const result = await budget.run(() => method === 'recover_config' ? profiles.recover(payload, options) : profiles.importConfig(payload, options), 'remplacement du profil');
       return result;
     }
-    let config, configError, loadedFingerprint;
+    let config, configError, loadedFingerprint, profileDiagnostic;
     try { ({ config, fingerprint: loadedFingerprint } = await budget.run(() => profiles.readState(), 'configuration')); }
     catch (error) {
       if (method !== 'status' || error.code !== 'invalid_profile') throw error;
-      config = structuredClone(DEFAULT_CONFIG); configError = error.details;
+      const diagnostic = failure(error,context,'invalid_profile','profile');
+      config = structuredClone(DEFAULT_CONFIG); configError = {...error.details,message:maskMessage(error.details.message)}; profileDiagnostic=diagnostic;
     }
     const saveConfig = async value => {
       const validated = validateConfig(value);
@@ -330,13 +337,18 @@ function createAssistant({ runtimeDirectory, configDirectory, runEngine = execut
       let manifest = null;
       try { manifest = JSON.parse(await fs.readFile(path.join(runtimeDirectory, 'manifest.json'), 'utf8')); } catch {}
       const ready = !configError && checks.every(check => check.available);
-      if (ready && engine) await budget.run(() => engine.warm({timeout:budget.timeout()}), 'chargement des moteurs');
+      if (ready && engine) {
+        try { await budget.run(() => engine.warm({timeout:budget.timeout()}), 'chargement des moteurs'); }
+        catch(error) { throw annotate(error,context,'model_failure','inference'); }
+      }
       const applicationAvailabilityEntries = await Promise.all(config.applications.map(async app => [app.id, await applicationAvailability(app)]));
-      return { ready, checks, manifest, config, profileBackup: await profiles.recoveryInfo().catch(() => null), proposals: await proposals.reconcile(configError ? null : configDigest(config)), applicationAvailability: Object.fromEntries(applicationAvailabilityEntries), configDirectory, ...(configError ? { configError } : {}), temporaryCleanup, engine: engine?.status() ?? null };
+      return { ready, checks, manifest, config, profileBackup: await profiles.recoveryInfo().catch(() => null), proposals: await proposals.reconcile(configError ? null : configDigest(config)), applicationAvailability: Object.fromEntries(applicationAvailabilityEntries), configDirectory, ...(configError ? { configError, error:profileDiagnostic } : {}), temporaryCleanup, engine: engine?.status() ?? null };
     }
     if (method === 'restart_engine') {
       ensure(engine, 'Le moteur persistant est indisponible.');
-      await engine.close(); await budget.run(() => engine.warm({timeout:budget.timeout()}), 'chargement des moteurs');
+      await engine.close();
+      try { await budget.run(() => engine.warm({timeout:budget.timeout()}), 'chargement des moteurs'); }
+      catch(error) { throw annotate(error,context,'model_failure','inference'); }
       return engine.status();
     }
     if (method === 'media_sessions') return budget.run(() => media.sessions({budget}), 'sessions');
@@ -384,7 +396,7 @@ function createAssistant({ runtimeDirectory, configDirectory, runEngine = execut
       try {
         const result = await budget.run(() => launchApplication(application, needsInput ? { input: payload.input } : {}, {budget}), 'test de lancement');
         return { ...result, message: `Commande de lancement envoyée à ${application.name}. Vérifiez que l’application s’est ouverte.` };
-      } catch (error) { return { applicationName: application.name, success: false, message: error.message }; }
+      } catch (error) { const diagnostic=failure(error,context,'action_failure'); return { applicationName: application.name, success: false, message: diagnostic.message,error:diagnostic }; }
     }
     if (method === 'delete_application') {
       ensure(config.applications.some(app => app.id === payload.id), 'Application introuvable.');
@@ -471,6 +483,7 @@ function createAssistant({ runtimeDirectory, configDirectory, runEngine = execut
     const lease = await temporaryFiles.createTurn();
     const temporary = lease.directory;
     async function infer(args) {
+      try {
       const timeout = budget.timeout();
       const { stdout } = await budget.run(() => runEngine(path.join(runtimeDirectory, 'needle.exe'), args, {
         timeout, maxBuffer: 1024 * 1024, windowsHide: true, encoding: 'utf8', shell: false,
@@ -479,6 +492,7 @@ function createAssistant({ runtimeDirectory, configDirectory, runEngine = execut
       const response = parseEngineOutput(stdout);
       ensure(response.success !== false, response.error || 'Le moteur a refusé la demande.');
       return response;
+      } catch(error) { throw annotate(error,context,'model_failure',args.includes('--audio') && !args.includes('--tools') ? 'transcription' : 'inference'); }
     }
     try {
       let transcript = '';
@@ -630,12 +644,14 @@ function createAssistant({ runtimeDirectory, configDirectory, runEngine = execut
     }
   }
   return async (method, payload = {}, context = {}) => {
+    context = {...context,requestId:requestId(context.requestId)};
     const budget = context.budget || createBudget({milliseconds:budgetMs, ...(now ? {now} : {}), ...(setTimer ? {setTimer,clearTimer} : {})});
     try { return await handle(method,payload,{...context,budget}); }
     catch (error) {
-      if(error.code!=='budget_expired')throw error;
-      return interruptedTurn({id:randomUUID(),transcript:typeof payload.text==='string'?payload.text:'',language:'fr',confidence:null,
-        reasoning:'',durationMs:budget.elapsed(),calls:[],results:[]},error.message);
+      if(error.code!=='budget_expired')throw annotate(error,context);
+      const diagnostic = failure(error,context);
+      return {...interruptedTurn({id:randomUUID(),transcript:typeof payload.text==='string'?payload.text:'',language:'fr',confidence:null,
+        reasoning:'',durationMs:budget.elapsed(),calls:[],results:[]},diagnostic.message),error:diagnostic};
     }
   };
 }

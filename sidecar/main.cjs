@@ -4,6 +4,7 @@ const { createMedia } = require('./media.cjs');
 const { nativeRequest } = require('./native.cjs');
 const { createBudget } = require('./budget.cjs');
 const { performance } = require('node:perf_hooks');
+const { requestId, failure } = require('./diagnostics.cjs');
 
 const { createEngine } = require('./engine.cjs');
 const [runtimeDirectory, configDirectory] = process.argv.slice(2);
@@ -26,11 +27,12 @@ function enqueue(input) {
       const remaining = Number.isFinite(request.remainingMs) ? request.remainingMs : 40_000;
       const transportRemaining = Number.isFinite(request.deadlineUnixMs) ? request.deadlineUnixMs-Date.now() : remaining;
       const budget = createBudget({milliseconds:Math.max(0,Math.min(transportRemaining,remaining-(performance.now()-admittedAt)))});
-      const result = await handle(request.method, request.payload, {budget,
+      const result = await handle(request.method, request.payload, {budget, requestId:requestId(request.requestId),
+        onDiagnostic: error => process.stdout.write(JSON.stringify({type:'diagnostic',id:request.id,error})+'\n'),
         onProgress: turn => process.stdout.write(JSON.stringify({type:'turn_progress',id:request.id,turn})+'\n')});
       process.stdout.write(JSON.stringify({ id: request.id, ok: true, result }) + '\n');
     } catch (error) {
-      process.stdout.write(JSON.stringify({ id: request?.id, ok: false, error: error.message }) + '\n');
+      process.stdout.write(JSON.stringify({ id: request?.id, ok: false, error: failure(error,{requestId:request?.requestId}) }) + '\n');
     } finally { clearTimeout(timer); }
   });
 }

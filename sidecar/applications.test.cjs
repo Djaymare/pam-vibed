@@ -92,7 +92,8 @@ test('un échec du test est affichable et ne modifie pas la configuration', asyn
   const f = await fixture(t, true);
   const result = await f.handle('test_application', draft());
   assert.equal(result.success, false);
-  assert.equal(result.message, 'L’exécutable a disparu.');
+  assert.equal(result.error.code, 'target_missing');
+  assert.match(result.message, /Réparez ou désactivez/);
   assert.deepEqual((await f.config()).applications, []);
 });
 

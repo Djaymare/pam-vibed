@@ -1,3 +1,4 @@
+import type { PamError } from './errors';
 export interface WindowsApplication {
   appId: string;
   kind: 'desktop' | 'store';
@@ -39,6 +40,7 @@ export type CommandAction = 'open' | 'media_play' | 'media_pause' | 'media_next'
   'deezer_start' | 'deezer_page' | 'deezer_search' | 'deezer_content' | 'deezer_reload' | 'deezer_smarttracklist';
 export interface CommandAlias { id: string; phrase: string; applicationId: string; action: CommandAction; arguments?: Record<string,string> }
 export interface RuntimeStatus {
+  error?: PamError;
   ready: boolean;
   checks: { file: string; available: boolean }[];
   manifest: { node: string; npm: string; target: string } | null;
@@ -63,6 +65,7 @@ export interface Proposal {
 }
 export interface ProposalSnapshot extends Proposal { id: string; message?: string }
 export interface Turn {
+  error?: PamError;
   proposal?: Proposal;
   message?: string;
   id: string;
@@ -75,6 +78,6 @@ export interface Turn {
   correctedFrom?: string;
   commandAliasId?: string;
   results: { index?: number; name?: string; applicationId?: string; applicationName: string; success: boolean; message: string;
-    outcome?: 'not_started' | 'performed' | 'failed' | 'unknown' }[];
+    outcome?: 'not_started' | 'performed' | 'failed' | 'unknown'; error?: PamError }[];
   status: 'executed' | 'pending' | 'unsupported' | 'silence' | 'failed' | 'cancelled' | 'partial' | 'expired' | 'invalidated' | 'consumed';
 }

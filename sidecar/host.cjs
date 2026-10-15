@@ -25,7 +25,11 @@ function createHostChannel(write, { timeout = 12_000 } = {}) {
       if (request) {
         pending.delete(response.id); clearTimeout(request.timer);
         if (response.ok === true) request.resolve(response.result);
-        else request.reject(new Error(response.error || 'Le lancement a échoué.'));
+        else {
+          const error=new Error(typeof response.error==='object' ? response.error.message : response.error || 'Le lancement a échoué.');
+          if(response.error && typeof response.error==='object')error.diagnostic=response.error;
+          request.reject(error);
+        }
       }
       return true;
     },

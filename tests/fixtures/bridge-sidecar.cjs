@@ -19,6 +19,19 @@ if (mode === 'never-read-child') {
   const lines = readline.createInterface({ input: process.stdin });
   lines.on('line', line => {
     const request = JSON.parse(line);
+    if (mode === 'host-missing') {
+      if (request.type === 'host_response') process.stdout.write(JSON.stringify({id:1,ok:false,error:request.error})+'\n');
+      else process.stdout.write(JSON.stringify({type:'host_request',id:'11111111-1111-4111-8111-111111111111',method:'launch_application',payload:{executable:path.join(profile,'absent-SENTINEL.exe'),arguments:[]}})+'\n');
+      return;
+    }
+    if (mode === 'diagnostic') {
+      const secret='SENTINEL_AUDIO_TRANSCRIPTION_ARGS_C:\\Users\\Private';
+      process.stderr.write(secret);
+      const error={code:'model_failure',stage:'transcription',requestId:request.requestId,message:secret,technical:{raw:secret},audio:secret};
+      process.stdout.write(JSON.stringify({type:'diagnostic',id:request.id,error})+'\n');
+      process.stdout.write(JSON.stringify({id:request.id,ok:false,error})+'\n');
+      return;
+    }
     fs.appendFileSync(path.join(profile, 'budgets'), `${request.remainingMs}\n`);
     if (mode === 'eof') process.exit(0); // Read the request, then close the pipe.
     fs.appendFileSync(path.join(profile, 'executions'), `${request.payload?.label ?? request.method}\n`);

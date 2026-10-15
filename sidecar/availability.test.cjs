@@ -60,7 +60,9 @@ test('contournement UI : test et confirmation refusent la cible supprimée avant
   await assert.rejects(f.handle('test_application', f.app), /indisponible/);
   const confirmed = await f.handle('confirm', { id:turn.id });
   assert.equal(confirmed.results[0].success, false);
-  assert.match(confirmed.results[0].message, /ENOENT|introuvable/);
+  assert.equal(confirmed.results[0].error.code, 'target_missing');
+  assert.match(confirmed.results[0].message, /Réparez ou désactivez/);
+  assert.doesNotMatch(confirmed.results[0].message, /ENOENT|[A-Z]:\\/);
   assert.equal(confirmed.status, 'failed');
   assert.equal((await f.handle('confirm', { id:turn.id })).status, 'consumed');
   assert.equal((await f.read()).applications[0].enabled, true);
@@ -79,6 +81,7 @@ test('le lanceur Node sans hôte refuse une cible Windows même si explorer.exe 
   const appId = 'PAM.MissingFixture!App';
   const missing = {...f.app,executable:explorer,arguments:[`shell:AppsFolder\\${appId}`],windowsApp:{appId,kind:'store',icon:null}};
   const result = await f.handle('test_application',missing);
-  assert.equal(result.success,false); assert.match(result.message,/hôte natif/);
+  assert.equal(result.success,false); assert.equal(result.error.code,'transport_unavailable');
+  assert.match(result.message,/Rechargez les moteurs/);
   assert.deepEqual((await f.read()).applications[0],f.app);
 });

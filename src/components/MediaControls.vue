@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { describeError } from '../errors';
 import { computed, onMounted, ref, watch } from 'vue';
 import { invoke } from '@tauri-apps/api/core';
 import type { Application, MediaSession } from '../types';
@@ -24,7 +25,7 @@ const actions = { play:'Lecture', pause:'Pause', next:'Piste suivante', previous
 async function refresh() {
   loading.value = true; error.value = '';
   try { sessions.value = await invoke('assistant_request',{method:'media_sessions',payload:{}}); }
-  catch (caught) { error.value = String(caught); }
+  catch (caught) { error.value = describeError(caught); }
   finally { loading.value = false; }
 }
 function prepare(action:string,args:Record<string,string>,label:string) {

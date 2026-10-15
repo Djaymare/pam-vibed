@@ -217,6 +217,36 @@ Les régressions Rust Windows utilisent `tests/fixtures/bridge-sidecar.cjs` et d
 
 `prepare:runtime` extrait la DLL officielle depuis le wheel Cactus : Python n’est ni installé ni exécuté. Il extrait également Koffi 3.3.2 et son module Windows x64, avec versions et empreintes SHA-256 fixées. PAM vérifie la totalité du plan avant de lancer un exécutable. Les chemins/arguments non déclarés et les outils inconnus sont refusés. npm est fourni dans `runtime/npm` ; aucune installation ni aucun téléchargement ne sont lancés chez l’utilisateur.
 
+## Erreurs et diagnostics locaux
+
+Les pannes exposent une enveloppe minimale `code`, `stage`, `requestId`,
+`retryable`, `message` et `technical`. Le message propose une action ; les
+détails techniques se limitent à une catégorie connue. Les chemins des erreurs
+ne sont pas affichés. Les codes principaux sont `model_failure` (étape
+`transcription` ou `inference`), `microphone_denied`, `microphone_missing`,
+`target_missing`, `action_failure`, `request_timeout`, `invalid_profile`,
+`profile_io` et `transport_unavailable`/`transport_protocol`/`transport_busy`.
+Les erreurs de transport précisent aussi `queue`, `start`, `write`, `response`
+ou `host`. Réessayer demande une action explicite ; aucun effet incertain n’est
+rejoué. Les références sont communes à Rust et Node pour la même demande.
+
+Le sous-dossier `diagnostics` du profil contient au plus trois fichiers JSONL
+de 64 Kio, avec rotation. Les fichiers contenant un événement de plus de sept
+jours sont purgés au prochain accès au journal (écriture ou export). Quand PAM
+est fermé, aucune purge en arrière-plan n’est exécutée. Le journal ne conserve
+que l’heure, l’origine, le type d’événement et l’enveloppe filtrée : aucun audio,
+transcription, nom d’application, argument, chemin personnel, contenu du profil
+ou sortie brute du moteur. stderr est drainé par blocs bornés ; seule sa
+présence est enregistrée, ses octets sont jetés.
+
+Dans **Préférences → Diagnostics locaux**, **Préparer un export de diagnostic**
+affiche un JSON que vous pouvez copier volontairement dans un fichier. Il est
+filtré à nouveau à la lecture, sans joindre le profil ou les reçus d’exécution.
+Aucun export n’est créé automatiquement et aucun envoi distant n’est effectué.
+Un export copié reste sous votre contrôle et n’est pas purgé par PAM. Un refus
+d’accès au journal est signalé lors de l’export ; la demande initiale garde sa
+propre erreur même si l’écriture du journal est impossible.
+
 ## Références et licences
 
 - [Whistle : formats audio et moteur commun](https://cactuscompute.com/blog/whistle)
