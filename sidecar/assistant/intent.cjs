@@ -1,7 +1,7 @@
 // Pure recognition, tool catalogue and plan validation; no filesystem or effects.
 const { ensure } = require('./validation.cjs');
-const { MEDIA_ACTIONS } = require('../media.cjs');
-const { DEEZER_APP_ID, CONTENT, PAGES, validateDeezerArgs } = require('../deezer.cjs');
+const { registry, parameterSchema } = require('../action-registry.cjs');
+const { DEEZER_APP_ID, validateDeezerArgs } = require('../deezer.cjs');
 const { findCommandAlias } = require('../command-aliases.cjs');
 const { canonicalPrompt } = require('../needle-tools.cjs');
 const { recognizeDeezerCommand, deezerActionLabel } = require('../deezer-commands.cjs');
@@ -93,67 +93,19 @@ function toolsFor(config, sessions) {
       const matching = sessions?.filter(
         (s) => s.sourceAppId?.toLowerCase() === app.media.sourceAppId.toLowerCase(),
       );
-      for (const [action, label] of Object.entries(MEDIA_ACTIONS)) {
-        if (
-          sessions !== undefined &&
-          (matching.length !== 1 ||
-            matching[0].error ||
-            matching[0].capabilities?.[action] !== true)
-        )
-          continue;
-        add(`media_${action}`, label + (action === 'next' ? ' déjà présente dans la file' : ''));
-      }
-      if (app.media.deezer && app.windowsApp?.appId === DEEZER_APP_ID) {
-        add(
-          'deezer_content',
-          'Afficher un contenu Deezer par identifiant, sans démarrer la lecture ni modifier la file',
-          {
-            kind: { type: 'string', enum: CONTENT, description: 'Type du contenu.' },
-            id: {
-              type: 'string',
-              pattern: '^[1-9][0-9]{0,18}$',
-              description:
-                'Identifiant numérique explicitement fourni par l’utilisateur. Ne jamais inventer un identifiant.',
-            },
-          },
-          ['kind', 'id'],
-        );
-        add(
-          'deezer_search',
-          'Rechercher une chanson, un artiste ou un contenu Deezer par son nom ; affiche les résultats, sans lancer de lecture',
-          {
-            query: {
-              type: 'string',
-              maxLength: 200,
-              description: 'Titre, artiste ou recherche explicitement demandé.',
-            },
-          },
-          ['query'],
-        );
-        add('deezer_page', 'Afficher une page Deezer', { page: { type: 'string', enum: PAGES } }, [
-          'page',
-        ]);
-        add('deezer_reload', 'Recharger Deezer Music');
-        add(
-          'deezer_start',
-          'Démarrer Flow ou les coups de cœur Deezer, sans sélectionner une chanson précise',
-          { mix: { type: 'string', enum: ['flow', 'loved_tracks'] } },
-          ['mix'],
-        );
-        add(
-          'deezer_smarttracklist',
-          'Afficher ou demander la lecture d’une sélection smarttracklist Deezer, dont l’identifiant doit être fourni explicitement',
-          {
-            id: {
-              type: 'string',
-              pattern: '^[A-Za-z0-9_-]{1,80}$',
-              description:
-                'Identifiant de sélection fourni par l’utilisateur, jamais un titre de chanson.',
-            },
-            mode: { type: 'string', enum: ['display', 'play'] },
-          },
-          ['id', 'mode'],
-        );
+      for (const definition of [...registry.actions].sort((a, b) => a.toolOrder - b.toolOrder)) {
+        if (definition.family === 'application') continue;
+        if (definition.family === 'media') {
+          if (
+            sessions !== undefined &&
+            (matching.length !== 1 ||
+              matching[0].error ||
+              matching[0].capabilities?.[definition.nativeAction] !== true)
+          )
+            continue;
+        } else if (!app.media.deezer || app.windowsApp?.appId !== DEEZER_APP_ID) continue;
+        const schema = parameterSchema(definition.id);
+        add(definition.id, definition.toolDescription, schema.properties, schema.required);
       }
     }
     return [{ ...base, action: 'open', applicationId: app.id, actionLabel: 'Ouvrir' }, ...extra];
@@ -269,23 +221,7 @@ function validateCardinality(transcript, calls, tools, singleAction) {
   }
 }
 function mediaTriggers(application, applications, action) {
-  const phrases = {
-    media_play: '(?:lecture|play|joue|reprends(?:\\s+la\\s+lecture)?)',
-    media_pause: '(?:pause|mets\\s+en\\s+pause|mettre\\s+en\\s+pause)',
-    media_next:
-      '(?:(?:passe\\s+(?:[aà]\\s+)?(?:la\\s+)?)?(?:piste|chanson|morceau)\\s+suivant[e]?)',
-    media_previous:
-      '(?:(?:passe\\s+(?:[aà]\\s+)?(?:la\\s+)?)?(?:piste|chanson|morceau)\\s+pr[eé]c[eé]dent[e]?)',
-    media_stop: '(?:arr[eê]te|stop)',
-    media_toggle:
-      '(?:bascule[r]?(?:\\s+(?:la\\s+)?lecture\\s*[/ ]\\s*pause)?|lecture\\s*/\\s*pause)',
-    deezer_content:
-      "(?:affiche[r]?|ouvre|ouvrir)\\s+(?:(?:la|le|un|une|l['’])\\s*)?(?:chanson|titre|track|album|artiste|artist|playlist|podcast|show|[ée]pisode|episode|profil|profile)\\s+[1-9][0-9]{0,18}",
-    deezer_search: '(?:cherche[r]?|recherche[r]?)\\s+.+',
-    deezer_start:
-      '(?:d[eé]marre[r]?|lance[r]?|joue|[ée]coute[r]?|lis|lire)\\s+(?:(?:le|les|mes)\\s+)?(?:flow|coups\\s+de\\s+c(?:œur|oeur))',
-    deezer_reload: '(?:recharge[r]?|reload)',
-  };
+  const phrases = Object.fromEntries(registry.actions.map((a) => [a.id, a.triggerPattern]));
   if (!phrases[action]) return [];
   const labels = [
     ...new Set([application.name, ...application.aliases].flatMap(labelVariants)),

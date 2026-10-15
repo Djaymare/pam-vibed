@@ -1,3 +1,4 @@
+const {ACTIONS} = require('./action-registry.cjs');
 const { createHash } = require('node:crypto');
 const {boundCommand,recognizeDeezerCommand} = require('./deezer-commands.cjs');
 const {DEEZER_APP_ID} = require('./deezer.cjs');
@@ -32,17 +33,8 @@ function needleTools(tools, config) {
     }
     const application = config.applications.find(app => app.id === tool.applicationId);
     const label = modelLabel(application);
-    const descriptions = {
-      open: `Open ${label}. ${application.description}`,
-      media_play: `Play or resume audio or video in the ${label} browser.`,
-      media_pause: `Pause audio or video in the ${label} browser.`,
-      media_next: `Play the next item already in the ${label} queue.`,
-      media_previous: `Play the previous item in ${label}.`,
-      media_stop: `Stop audio or video playback in ${label}.`,
-      media_toggle: `Toggle audio or video playback between play and pause in ${label}.`,
-    };
     // A browser label is useful for Opera; other media applications are players.
-    let description = descriptions[tool.action] ?? tool.description;
+    let description = ACTIONS[tool.action]?.modelDescription?.replaceAll('{label}', label).replaceAll('{description}', application.description) ?? tool.description;
     if (!/navigateur|browser|opera|chrome|firefox|edge/i.test(application.name)) description = description.replace(' browser.', ' player.');
     return {name: needleToolName(tool, config), description: `${description} Aliases: ${[application.name, ...application.aliases].join(', ')}.`,
       triggers: tool.triggers, parameters: tool.parameters};
@@ -52,9 +44,7 @@ function canonicalPrompt(tool, application) {
   const bound=boundCommand(tool,modelLabel(application));
   if(bound)return bound.prompt;
   const label = modelLabel(application);
-  return ({open: `Open ${label}`, media_play: `Play audio in ${label}`, media_pause: `Pause audio in ${label}`,
-    media_next: `Play the next item in ${label}`, media_previous: `Play the previous item in ${label}`,
-    media_stop: `Stop playback in ${label}`, media_toggle: `Toggle playback in ${label}`})[tool.action];
+  return ACTIONS[tool.action]?.canonicalPrompt?.replaceAll('{label}', label);
 }
 function labels(application) {
   return [...new Set([application.name, ...application.aliases].map(label => label.normalize('NFKD').replace(/\p{M}/gu, '').toLowerCase().trim().replace(/\s+/g, ' ')))];

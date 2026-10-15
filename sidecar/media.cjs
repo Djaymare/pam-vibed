@@ -1,6 +1,6 @@
 const { nativeRequest } = require('./native.cjs');
 const { DEEZER_APP_ID, deezerUri } = require('./deezer.cjs');
-const MEDIA_ACTIONS = {play:'Reprendre la lecture',pause:'Mettre en pause',next:'Passer à la piste suivante',previous:'Passer à la piste précédente',stop:'Arrêter la lecture',toggle:'Basculer lecture / pause'};
+const { MEDIA_ACTIONS } = require('./action-registry.cjs');
 function resolveSession(sessions, sourceAppId) {
   if (!Array.isArray(sessions)) throw new Error('Réponse des sessions Windows invalide.');
   const matching = sessions.filter(s => s.sourceAppId?.toLowerCase() === sourceAppId.toLowerCase());
@@ -16,7 +16,7 @@ function createMedia(native = nativeRequest) {
       const { budget, beforeEffect } = options;
       if (action.startsWith('media_')) {
         const command = action.slice(6);
-        if (!MEDIA_ACTIONS[command] || !application.media?.sourceAppId) throw new Error('Action ou lecteur multimédia non configuré.');
+        if (!Object.hasOwn(MEDIA_ACTIONS,command) || !application.media?.sourceAppId) throw new Error('Action ou lecteur multimédia non configuré.');
         const session = resolveSession(await native({method:'media_sessions'}, {budget}),application.media.sourceAppId);
         if (session.capabilities?.[command] !== true) throw new Error(`${application.name} ne prend actuellement pas en charge « ${MEDIA_ACTIONS[command]} ».`);
         budget?.check('commande média');

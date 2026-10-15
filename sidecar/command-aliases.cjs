@@ -3,8 +3,7 @@ const {requestIssue} = require('./needle-tools.cjs');
 const {validateDeezerArgs} = require('./deezer.cjs');
 const {recognizeDeezerCommand} = require('./deezer-commands.cjs');
 const {resolveMediaCommand} = require('./media-commands.cjs');
-const ACTIONS = new Set(['open','media_play','media_pause','media_next','media_previous','media_stop','media_toggle',
-  'deezer_search','deezer_content','deezer_start','deezer_page','deezer_reload','deezer_smarttracklist']);
+const ACTIONS = new Set(Object.keys(require('./action-registry.cjs').ACTIONS));
 const UUID = /^[0-9a-f-]{36}$/;
 function ensure(condition,message) {if(!condition)throw new Error(message);}
 function aliasArguments(action,args) {

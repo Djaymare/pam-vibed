@@ -10,7 +10,7 @@ test('a schema edit without regeneration fails in an isolated source copy',async
   const fsp=require('node:fs/promises'),path=require('node:path'),os=require('node:os');
   const directory=await fsp.mkdtemp(path.join(os.tmpdir(),'pam-contract-drift-'));
   t.after(()=>fsp.rm(directory,{recursive:true,force:true}));
-  for(const file of ['scripts/generate-contracts.mjs','scripts/rust-contracts.mjs','sidecar/contracts.cjs','sidecar/contracts.json','src/contracts.generated.ts','src/contract-runtime.js','src-tauri/src/contracts_generated.rs']) {
+  for(const file of ['scripts/generate-contracts.mjs','scripts/rust-contracts.mjs','sidecar/action-registry.cjs','sidecar/action-registry.json','src/actions.generated.ts','tests/fixtures/action-routes.json','sidecar/contracts.cjs','sidecar/contracts.json','src/contracts.generated.ts','src/contract-runtime.js','src-tauri/src/contracts_generated.rs']) {
     await fsp.mkdir(path.dirname(path.join(directory,file)),{recursive:true});await fsp.copyFile(file,path.join(directory,file));
   }
   const run=()=>spawnSync(process.execPath,['scripts/generate-contracts.mjs','--check'],{cwd:directory,encoding:'utf8',windowsHide:true});

@@ -54,6 +54,8 @@
       "../sidecar/media.cjs": "sidecar/media.cjs",
       "../sidecar/media-commands.cjs": "sidecar/media-commands.cjs",
       "../sidecar/deezer.cjs": "sidecar/deezer.cjs",
+      "../sidecar/action-registry.cjs": "sidecar/action-registry.cjs",
+      "../sidecar/action-registry.json": "sidecar/action-registry.json",
       "../sidecar/native.cjs": "sidecar/native.cjs",
       "../sidecar/package.json": "sidecar/package.json"
     },

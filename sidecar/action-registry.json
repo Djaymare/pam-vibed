@@ -1,0 +1,636 @@
+{
+  "version": 1,
+  "deezer": {
+    "appId": "Deezer.62021768415AF_q7m17pa7q8kj0!Deezer.Music",
+    "sourceIds": [
+      "Deezer.62021768415AF_q7m17pa7q8kj0!Deezer.Music",
+      "Deezer.exe"
+    ],
+    "host": "www.deezer.com",
+    "protocols": [
+      "deezer",
+      "dzr"
+    ],
+    "legacyPaths": [
+      "explore"
+    ]
+  },
+  "options": {
+    "pages": {
+      "home": {
+        "label": "Accueil",
+        "spokenLabel": "l’accueil",
+        "promptLabel": "home page",
+        "path": "",
+        "aliases": [
+          "accueil"
+        ]
+      },
+      "podcasts": {
+        "label": "Podcasts",
+        "spokenLabel": "les podcasts",
+        "promptLabel": "podcasts page",
+        "path": "podcasts",
+        "aliases": [
+          "podcasts"
+        ]
+      },
+      "explore": {
+        "label": "Explorer",
+        "spokenLabel": "Explorer",
+        "promptLabel": "explore page",
+        "path": "channels/explore",
+        "aliases": [
+          "explorer",
+          "exploration"
+        ]
+      },
+      "charts": {
+        "label": "Classements",
+        "spokenLabel": "les classements",
+        "promptLabel": "charts page",
+        "path": "channels/charts",
+        "aliases": [
+          "classements"
+        ]
+      },
+      "moods": {
+        "label": "Ambiances",
+        "spokenLabel": "les ambiances",
+        "promptLabel": "moods page",
+        "path": "channels/moods",
+        "aliases": [
+          "ambiances"
+        ]
+      },
+      "radios": {
+        "label": "Radios",
+        "spokenLabel": "les radios",
+        "promptLabel": "radios page",
+        "path": "channels/radios",
+        "aliases": [
+          "radios"
+        ]
+      },
+      "audio_settings": {
+        "label": "Réglages audio",
+        "spokenLabel": "les réglages audio",
+        "promptLabel": "audio settings",
+        "path": "settings/audio",
+        "aliases": [
+          "reglages audio",
+          "parametres audio"
+        ]
+      },
+      "theme": {
+        "label": "Apparence",
+        "spokenLabel": "l’apparence",
+        "promptLabel": "appearance settings",
+        "path": "settings/app_theme",
+        "aliases": [
+          "apparence",
+          "reglages d'apparence",
+          "theme"
+        ]
+      }
+    },
+    "contents": {
+      "track": {
+        "label": "Chanson",
+        "spokenLabel": "la chanson",
+        "promptLabel": "track",
+        "aliases": [
+          "chanson",
+          "titre",
+          "track"
+        ]
+      },
+      "album": {
+        "label": "Album",
+        "spokenLabel": "l’album",
+        "promptLabel": "album",
+        "aliases": [
+          "album"
+        ]
+      },
+      "artist": {
+        "label": "Artiste",
+        "spokenLabel": "l’artiste",
+        "promptLabel": "artist",
+        "aliases": [
+          "artiste",
+          "artist"
+        ]
+      },
+      "playlist": {
+        "label": "Playlist",
+        "spokenLabel": "la playlist",
+        "promptLabel": "playlist",
+        "aliases": [
+          "playlist"
+        ]
+      },
+      "show": {
+        "label": "Podcast",
+        "spokenLabel": "le podcast",
+        "promptLabel": "podcast",
+        "aliases": [
+          "podcast",
+          "show"
+        ]
+      },
+      "episode": {
+        "label": "Épisode",
+        "spokenLabel": "l’épisode",
+        "promptLabel": "episode",
+        "aliases": [
+          "episode"
+        ]
+      },
+      "profile": {
+        "label": "Profil",
+        "spokenLabel": "le profil",
+        "promptLabel": "profile",
+        "aliases": [
+          "profil",
+          "profile"
+        ]
+      }
+    },
+    "mixes": {
+      "flow": {
+        "label": "Démarrer Flow",
+        "path": "user/me/flow",
+        "choiceKey": "deezer_flow"
+      },
+      "loved_tracks": {
+        "label": "Lire les coups de cœur",
+        "path": "user/me/tracks",
+        "choiceKey": "deezer_favorites"
+      }
+    },
+    "modes": {
+      "display": {
+        "label": "Afficher la sélection"
+      },
+      "play": {
+        "label": "Demander sa lecture"
+      }
+    }
+  },
+  "actions": [
+    {
+      "id": "open",
+      "family": "application",
+      "label": "Ouvrir l’application",
+      "shortLabel": "Ouvrir l’application",
+      "executionLabel": "Ouvrir l’application",
+      "toolOrder": 0,
+      "toolDescription": "Ouvrir",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "input": {
+            "type": "string",
+            "maxLength": 2048,
+            "default": ""
+          }
+        },
+        "required": [],
+        "additionalProperties": false
+      },
+      "prerequisites": [
+        "enabled_application",
+        "validated_launch_target"
+      ],
+      "expectedEffect": "Lancer la cible validée avec les arguments approuvés, sans shell.",
+      "corrections": [
+        "applicationId",
+        "input"
+      ],
+      "modelDescription": "Open {label}. {description}",
+      "canonicalPrompt": "Open {label}"
+    },
+    {
+      "id": "media_play",
+      "family": "media",
+      "label": "Reprendre la lecture",
+      "shortLabel": "Lecture",
+      "executionLabel": "Reprendre la lecture",
+      "toolOrder": 1,
+      "toolDescription": "Reprendre la lecture",
+      "parameters": {
+        "type": "object",
+        "properties": {},
+        "required": [],
+        "additionalProperties": false
+      },
+      "prerequisites": [
+        "enabled_application",
+        "configured_media_source",
+        "unique_live_session",
+        "live_action_capability"
+      ],
+      "expectedEffect": "Demander cette commande à la seule session cible, si elle la permet.",
+      "corrections": [
+        "applicationId"
+      ],
+      "nativeAction": "play",
+      "triggerPattern": "(?:lecture|play|joue|reprends(?:\\s+la\\s+lecture)?)",
+      "modelDescription": "Play or resume audio or video in the {label} browser.",
+      "canonicalPrompt": "Play audio in {label}"
+    },
+    {
+      "id": "media_pause",
+      "family": "media",
+      "label": "Mettre en pause",
+      "shortLabel": "Pause",
+      "executionLabel": "Mettre en pause",
+      "toolOrder": 2,
+      "toolDescription": "Mettre en pause",
+      "parameters": {
+        "type": "object",
+        "properties": {},
+        "required": [],
+        "additionalProperties": false
+      },
+      "prerequisites": [
+        "enabled_application",
+        "configured_media_source",
+        "unique_live_session",
+        "live_action_capability"
+      ],
+      "expectedEffect": "Demander cette commande à la seule session cible, si elle la permet.",
+      "corrections": [
+        "applicationId"
+      ],
+      "nativeAction": "pause",
+      "triggerPattern": "(?:pause|mets\\s+en\\s+pause|mettre\\s+en\\s+pause)",
+      "modelDescription": "Pause audio or video in the {label} browser.",
+      "canonicalPrompt": "Pause audio in {label}"
+    },
+    {
+      "id": "media_next",
+      "family": "media",
+      "label": "Piste suivante",
+      "shortLabel": "Piste suivante",
+      "executionLabel": "Passer à la piste suivante",
+      "toolOrder": 3,
+      "toolDescription": "Passer à la piste suivante déjà présente dans la file",
+      "parameters": {
+        "type": "object",
+        "properties": {},
+        "required": [],
+        "additionalProperties": false
+      },
+      "prerequisites": [
+        "enabled_application",
+        "configured_media_source",
+        "unique_live_session",
+        "live_action_capability"
+      ],
+      "expectedEffect": "Demander cette commande à la seule session cible, si elle la permet.",
+      "corrections": [
+        "applicationId"
+      ],
+      "nativeAction": "next",
+      "triggerPattern": "(?:(?:passe\\s+(?:[aà]\\s+)?(?:la\\s+)?)?(?:piste|chanson|morceau)\\s+suivant[e]?)",
+      "modelDescription": "Play the next item already in the {label} queue.",
+      "canonicalPrompt": "Play the next item in {label}"
+    },
+    {
+      "id": "media_previous",
+      "family": "media",
+      "label": "Piste précédente",
+      "shortLabel": "Piste précédente",
+      "executionLabel": "Passer à la piste précédente",
+      "toolOrder": 4,
+      "toolDescription": "Passer à la piste précédente",
+      "parameters": {
+        "type": "object",
+        "properties": {},
+        "required": [],
+        "additionalProperties": false
+      },
+      "prerequisites": [
+        "enabled_application",
+        "configured_media_source",
+        "unique_live_session",
+        "live_action_capability"
+      ],
+      "expectedEffect": "Demander cette commande à la seule session cible, si elle la permet.",
+      "corrections": [
+        "applicationId"
+      ],
+      "nativeAction": "previous",
+      "triggerPattern": "(?:(?:passe\\s+(?:[aà]\\s+)?(?:la\\s+)?)?(?:piste|chanson|morceau)\\s+pr[eé]c[eé]dent[e]?)",
+      "modelDescription": "Play the previous item in {label}.",
+      "canonicalPrompt": "Play the previous item in {label}"
+    },
+    {
+      "id": "media_stop",
+      "family": "media",
+      "label": "Arrêter la lecture",
+      "shortLabel": "Arrêter",
+      "executionLabel": "Arrêter la lecture",
+      "toolOrder": 5,
+      "toolDescription": "Arrêter la lecture",
+      "parameters": {
+        "type": "object",
+        "properties": {},
+        "required": [],
+        "additionalProperties": false
+      },
+      "prerequisites": [
+        "enabled_application",
+        "configured_media_source",
+        "unique_live_session",
+        "live_action_capability"
+      ],
+      "expectedEffect": "Demander cette commande à la seule session cible, si elle la permet.",
+      "corrections": [
+        "applicationId"
+      ],
+      "nativeAction": "stop",
+      "triggerPattern": "(?:arr[eê]te|stop)",
+      "modelDescription": "Stop audio or video playback in {label}.",
+      "canonicalPrompt": "Stop playback in {label}"
+    },
+    {
+      "id": "media_toggle",
+      "family": "media",
+      "label": "Basculer lecture / pause",
+      "shortLabel": "Lecture / pause",
+      "executionLabel": "Basculer lecture / pause",
+      "toolOrder": 6,
+      "toolDescription": "Basculer lecture / pause",
+      "parameters": {
+        "type": "object",
+        "properties": {},
+        "required": [],
+        "additionalProperties": false
+      },
+      "prerequisites": [
+        "enabled_application",
+        "configured_media_source",
+        "unique_live_session",
+        "live_action_capability"
+      ],
+      "expectedEffect": "Demander cette commande à la seule session cible, si elle la permet.",
+      "corrections": [
+        "applicationId"
+      ],
+      "nativeAction": "toggle",
+      "triggerPattern": "(?:bascule[r]?(?:\\s+(?:la\\s+)?lecture\\s*[/ ]\\s*pause)?|lecture\\s*/\\s*pause)",
+      "modelDescription": "Toggle audio or video playback between play and pause in {label}.",
+      "canonicalPrompt": "Toggle playback in {label}"
+    },
+    {
+      "id": "deezer_start",
+      "family": "deezer",
+      "label": "Démarrer une sélection",
+      "shortLabel": "Démarrer une sélection",
+      "executionLabel": "Démarrer une sélection",
+      "toolOrder": 11,
+      "toolDescription": "Démarrer Flow ou les coups de cœur Deezer, sans sélectionner une chanson précise",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "mix": {
+            "type": "string",
+            "options": "mixes"
+          }
+        },
+        "required": [
+          "mix"
+        ],
+        "additionalProperties": false
+      },
+      "prerequisites": [
+        "enabled_application",
+        "deezer_store_plugin"
+      ],
+      "expectedEffect": "Demander la sélection ; le protocole ne confirme pas la lecture.",
+      "corrections": [
+        "applicationId",
+        "mix"
+      ],
+      "route": {
+        "kind": "option",
+        "parameter": "mix",
+        "options": "mixes"
+      },
+      "argumentError": "Mix Deezer non autorisé.",
+      "triggerPattern": "(?:d[eé]marre[r]?|lance[r]?|joue|[ée]coute[r]?|lis|lire)\\s+(?:(?:le|les|mes)\\s+)?(?:flow|coups\\s+de\\s+c(?:œur|oeur))"
+    },
+    {
+      "id": "deezer_page",
+      "family": "deezer",
+      "label": "Afficher une page",
+      "shortLabel": "Afficher une page",
+      "executionLabel": "Afficher une page",
+      "toolOrder": 9,
+      "toolDescription": "Afficher une page Deezer",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "page": {
+            "type": "string",
+            "options": "pages"
+          }
+        },
+        "required": [
+          "page"
+        ],
+        "additionalProperties": false
+      },
+      "prerequisites": [
+        "enabled_application",
+        "deezer_store_plugin"
+      ],
+      "expectedEffect": "Afficher la page ou le contenu sans démarrer de chanson ni modifier la file.",
+      "corrections": [
+        "applicationId",
+        "page"
+      ],
+      "route": {
+        "kind": "option",
+        "parameter": "page",
+        "options": "pages"
+      },
+      "argumentError": "Page Deezer non autorisée.",
+      "choicePrefix": "Afficher "
+    },
+    {
+      "id": "deezer_search",
+      "family": "deezer",
+      "label": "Rechercher dans Deezer",
+      "shortLabel": "Rechercher dans Deezer",
+      "executionLabel": "Rechercher dans Deezer",
+      "toolOrder": 8,
+      "toolDescription": "Rechercher une chanson, un artiste ou un contenu Deezer par son nom ; affiche les résultats, sans lancer de lecture",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "query": {
+            "type": "string",
+            "maxLength": 200,
+            "description": "Titre, artiste ou recherche explicitement demandé.",
+            "minLength": 1,
+            "trim": true,
+            "rejectControls": true,
+            "default": "",
+            "label": "Recherche à transmettre",
+            "help": "Corrigez ici un titre ou un artiste mal transcrit. La recherche restera associée à cette phrase si vous choisissez de la mémoriser."
+          }
+        },
+        "required": [
+          "query"
+        ],
+        "additionalProperties": false
+      },
+      "prerequisites": [
+        "enabled_application",
+        "deezer_store_plugin"
+      ],
+      "expectedEffect": "Afficher la page ou le contenu sans démarrer de chanson ni modifier la file.",
+      "corrections": [
+        "applicationId",
+        "query"
+      ],
+      "route": {
+        "kind": "search"
+      },
+      "argumentError": "Recherche Deezer invalide.",
+      "triggerPattern": "(?:cherche[r]?|recherche[r]?)\\s+.+"
+    },
+    {
+      "id": "deezer_content",
+      "family": "deezer",
+      "label": "Afficher un contenu Deezer",
+      "shortLabel": "Afficher un contenu Deezer",
+      "executionLabel": "Afficher un contenu Deezer",
+      "toolOrder": 7,
+      "toolDescription": "Afficher un contenu Deezer par identifiant, sans démarrer la lecture ni modifier la file",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "kind": {
+            "type": "string",
+            "description": "Type du contenu.",
+            "options": "contents",
+            "default": "track",
+            "error": "Type de contenu Deezer non autorisé.",
+            "label": "Type de contenu"
+          },
+          "id": {
+            "type": "string",
+            "pattern": "^[1-9][0-9]{0,18}$",
+            "description": "Identifiant numérique explicitement fourni par l’utilisateur. Ne jamais inventer un identifiant.",
+            "default": "",
+            "label": "Identifiant Deezer",
+            "inputmode": "numeric",
+            "maxLength": 19,
+            "help": "Affiche la page du contenu. La lecture d’une chanson précise reste à choisir dans Deezer."
+          }
+        },
+        "required": [
+          "kind",
+          "id"
+        ],
+        "additionalProperties": false
+      },
+      "prerequisites": [
+        "enabled_application",
+        "deezer_store_plugin"
+      ],
+      "expectedEffect": "Afficher la page ou le contenu sans démarrer de chanson ni modifier la file.",
+      "corrections": [
+        "applicationId",
+        "kind",
+        "id"
+      ],
+      "route": {
+        "kind": "content"
+      },
+      "argumentError": "Identifiant Deezer invalide : utilisez un identifiant numérique positif.",
+      "triggerPattern": "(?:affiche[r]?|ouvre|ouvrir)\\s+(?:(?:la|le|un|une|l['’])\\s*)?(?:chanson|titre|track|album|artiste|artist|playlist|podcast|show|[ée]pisode|episode|profil|profile)\\s+[1-9][0-9]{0,18}"
+    },
+    {
+      "id": "deezer_reload",
+      "family": "deezer",
+      "label": "Recharger Deezer",
+      "shortLabel": "Recharger Deezer",
+      "executionLabel": "Recharger Deezer",
+      "toolOrder": 10,
+      "toolDescription": "Recharger Deezer Music",
+      "parameters": {
+        "type": "object",
+        "properties": {},
+        "required": [],
+        "additionalProperties": false
+      },
+      "prerequisites": [
+        "enabled_application",
+        "deezer_store_plugin"
+      ],
+      "expectedEffect": "Demander le rechargement de Deezer.",
+      "corrections": [
+        "applicationId"
+      ],
+      "route": {
+        "kind": "fixed",
+        "path": "reload"
+      },
+      "argumentError": "Le rechargement Deezer n’accepte aucun argument.",
+      "triggerPattern": "(?:recharge[r]?|reload)"
+    },
+    {
+      "id": "deezer_smarttracklist",
+      "family": "deezer",
+      "label": "Afficher ou lire une sélection Deezer",
+      "shortLabel": "Afficher ou lire une sélection Deezer",
+      "executionLabel": "Afficher ou lire une sélection Deezer",
+      "toolOrder": 12,
+      "toolDescription": "Afficher ou demander la lecture d’une sélection smarttracklist Deezer, dont l’identifiant doit être fourni explicitement",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9_-]{1,80}$",
+            "description": "Identifiant de sélection fourni par l’utilisateur, jamais un titre de chanson.",
+            "default": "",
+            "label": "Identifiant de sélection",
+            "maxLength": 80
+          },
+          "mode": {
+            "type": "string",
+            "options": "modes",
+            "default": "display",
+            "label": "Action de la sélection"
+          }
+        },
+        "required": [
+          "id",
+          "mode"
+        ],
+        "additionalProperties": false
+      },
+      "prerequisites": [
+        "enabled_application",
+        "deezer_store_plugin"
+      ],
+      "expectedEffect": "Demander la sélection ; le protocole ne confirme pas la lecture.",
+      "corrections": [
+        "applicationId",
+        "id",
+        "mode"
+      ],
+      "route": {
+        "kind": "selection"
+      },
+      "argumentError": "Sélection Deezer invalide."
+    }
+  ]
+}

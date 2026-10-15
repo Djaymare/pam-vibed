@@ -30,6 +30,7 @@ export function harness(t, options={}) {
   function load(file) {
     file=resolve(file);
     if(cache.has(file))return cache.get(file);
+    if(extname(file)==='.json')return JSON.parse(readFileSync(file,'utf8'));
     const source=readFileSync(file,'utf8');
     const content=extname(file)==='.vue'?compileScript(parse(source).descriptor,{id:file,inlineTemplate:true,templateOptions:{compilerOptions:{hoistStatic:false}}}).content:source;
     const code=ts.transpileModule(content,{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022,esModuleInterop:true}}).outputText;
@@ -50,7 +51,7 @@ export function harness(t, options={}) {
         async dispose(){disposed++;}
       }};
       if(name.endsWith('.vue') && !options.components)return {__esModule:true,default:vue.defineComponent({render:()=>vue.h('span')})};
-      if(name.startsWith('.')) {let path=resolve(dirname(file),name);if(!extname(path))path+='.ts';return load(path);}
+      if(name.startsWith('.')) {let path=resolve(dirname(file),name);if(!['.ts','.js','.vue','.json'].includes(extname(path)))path+='.ts';return load(path);}
       return require(name);
     }
     new Function('require','exports','window','HTMLElement',code)(injected,out,window,class{});

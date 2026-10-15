@@ -4,6 +4,15 @@ import { computed, onMounted, ref, watch } from 'vue';
 import { request } from '../ipc';
 import { useAsyncScope } from '../composables/useAsyncScope';
 import type { Application, CommandAction, MediaSession } from '../types';
+import {
+  deezerPages as pages,
+  deezerContent,
+  deezerMixes,
+  deezerModes,
+  mediaActions,
+  actionParameters,
+  validActionField,
+} from '../actions';
 const props = defineProps<{ applications: Application[]; locked: boolean }>();
 const emit = defineEmits<{
   action: [
@@ -25,16 +34,9 @@ const contentId = ref('');
 const page = ref('home');
 const selectionId = ref('');
 const selectionMode = ref('display');
-const pages = {
-  home: 'Accueil',
-  podcasts: 'Podcasts',
-  explore: 'Explorer',
-  charts: 'Classements',
-  moods: 'Ambiances',
-  radios: 'Radios',
-  audio_settings: 'Réglages audio',
-  theme: 'Apparence',
-};
+const searchFields = actionParameters('deezer_search');
+const contentFields = actionParameters('deezer_content');
+const selectionFields = actionParameters('deezer_smarttracklist');
 const mediaApps = computed(() => props.applications.filter((app) => app.enabled && app.media));
 const app = computed(
   () => mediaApps.value.find((app) => app.id === selected.value) || mediaApps.value[0],
@@ -53,14 +55,6 @@ const matching = computed(() =>
   ),
 );
 const session = computed(() => (matching.value.length === 1 ? matching.value[0] : undefined));
-const actions = {
-  play: 'Lecture',
-  pause: 'Pause',
-  next: 'Piste suivante',
-  previous: 'Piste précédente',
-  stop: 'Arrêter',
-  toggle: 'Lecture / pause',
-};
 async function refresh() {
   if (props.locked) return;
   const token = read.begin();
@@ -127,13 +121,13 @@ watch(
       </p>
       <div class="media-buttons">
         <button
-          v-for="(label, action) in actions"
-          :key="action"
+          v-for="action in mediaActions"
+          :key="action.action"
           class="secondary small"
-          :disabled="locked || loading || !session?.capabilities?.[action]"
-          @click="prepare(('media_' + action) as CommandAction, {}, label)"
+          :disabled="locked || loading || !session?.capabilities?.[action.capability]"
+          @click="prepare(action.action, {}, action.label)"
         >
-          {{ label }}
+          {{ action.label }}
         </button>
       </div>
       <p class="muted">
@@ -146,7 +140,7 @@ watch(
           <label
             >Rechercher une chanson ou un artiste<input
               v-model="query"
-              maxlength="200"
+              :maxlength="searchFields.query.maxLength"
               placeholder="Titre et artiste"
               :disabled="locked" /></label
           ><button class="secondary small" :disabled="locked || !query.trim()">
@@ -160,25 +154,21 @@ watch(
         >
           <label
             >Contenu<select v-model="kind" :disabled="locked">
-              <option value="track">Chanson</option>
-              <option value="album">Album</option>
-              <option value="artist">Artiste</option>
-              <option value="playlist">Playlist</option>
-              <option value="show">Podcast</option>
-              <option value="episode">Épisode</option>
-              <option value="profile">Profil</option>
+              <option v-for="(label, value) in deezerContent" :key="value" :value="value">
+                {{ label }}
+              </option>
             </select></label
           ><label
             >Identifiant Deezer<input
               v-model="contentId"
               inputmode="numeric"
-              pattern="[1-9][0-9]{0,18}"
-              maxlength="19"
+              :pattern="contentFields.id.pattern"
+              :maxlength="contentFields.id.maxLength"
               placeholder="Ex. : 3135556"
               :disabled="locked" /></label
           ><button
             class="secondary small"
-            :disabled="locked || !/^[1-9][0-9]{0,18}$/.test(contentId)"
+            :disabled="locked || !validActionField('deezer_content', 'id', contentId)"
           >
             Afficher le contenu
           </button>
@@ -189,17 +179,13 @@ watch(
         </p>
         <div class="media-buttons">
           <button
+            v-for="(label, mix) in deezerMixes"
+            :key="mix"
             class="secondary small"
             :disabled="locked"
-            @click="prepare('deezer_start', { mix: 'flow' }, 'Démarrer Flow')"
+            @click="prepare('deezer_start', { mix }, label)"
           >
-            Démarrer Flow</button
-          ><button
-            class="secondary small"
-            :disabled="locked"
-            @click="prepare('deezer_start', { mix: 'loved_tracks' }, 'Lire les coups de cœur')"
-          >
-            Lire les coups de cœur</button
+            {{ label }}</button
           ><button
             class="text-button"
             :disabled="locked"
@@ -233,17 +219,18 @@ watch(
             <label
               >Identifiant de sélection smarttracklist<input
                 v-model="selectionId"
-                maxlength="80"
-                pattern="[A-Za-z0-9_-]{1,80}"
+                :maxlength="selectionFields.id.maxLength"
+                :pattern="selectionFields.id.pattern"
                 :disabled="locked" /></label
             ><label
               >Action<select v-model="selectionMode" :disabled="locked">
-                <option value="display">Afficher la sélection</option>
-                <option value="play">Demander sa lecture</option>
+                <option v-for="(label, value) in deezerModes" :key="value" :value="value">
+                  {{ label }}
+                </option>
               </select></label
             ><button
               class="secondary small"
-              :disabled="locked || !/^[A-Za-z0-9_-]{1,80}$/.test(selectionId)"
+              :disabled="locked || !validActionField('deezer_smarttracklist', 'id', selectionId)"
             >
               Préparer
             </button>

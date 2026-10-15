@@ -1,0 +1,163 @@
+[
+  {
+    "action": "deezer_start",
+    "args": {
+      "mix": "flow"
+    },
+    "uri": "deezer://www.deezer.com/user/me/flow"
+  },
+  {
+    "action": "deezer_start",
+    "args": {
+      "mix": "loved_tracks"
+    },
+    "uri": "deezer://www.deezer.com/user/me/tracks"
+  },
+  {
+    "action": "deezer_page",
+    "args": {
+      "page": "home"
+    },
+    "uri": "deezer://www.deezer.com/"
+  },
+  {
+    "action": "deezer_page",
+    "args": {
+      "page": "podcasts"
+    },
+    "uri": "deezer://www.deezer.com/podcasts"
+  },
+  {
+    "action": "deezer_page",
+    "args": {
+      "page": "explore"
+    },
+    "uri": "deezer://www.deezer.com/channels/explore"
+  },
+  {
+    "action": "deezer_page",
+    "args": {
+      "page": "charts"
+    },
+    "uri": "deezer://www.deezer.com/channels/charts"
+  },
+  {
+    "action": "deezer_page",
+    "args": {
+      "page": "moods"
+    },
+    "uri": "deezer://www.deezer.com/channels/moods"
+  },
+  {
+    "action": "deezer_page",
+    "args": {
+      "page": "radios"
+    },
+    "uri": "deezer://www.deezer.com/channels/radios"
+  },
+  {
+    "action": "deezer_page",
+    "args": {
+      "page": "audio_settings"
+    },
+    "uri": "deezer://www.deezer.com/settings/audio"
+  },
+  {
+    "action": "deezer_page",
+    "args": {
+      "page": "theme"
+    },
+    "uri": "deezer://www.deezer.com/settings/app_theme"
+  },
+  {
+    "action": "deezer_search",
+    "args": {
+      "query": "été /? & # %"
+    },
+    "uri": "deezer://www.deezer.com/search/%C3%A9t%C3%A9%20%2F%3F%20%26%20%23%20%25"
+  },
+  {
+    "action": "deezer_search",
+    "args": {
+      "query": " Daft Punk "
+    },
+    "uri": "deezer://www.deezer.com/search/Daft%20Punk"
+  },
+  {
+    "action": "deezer_content",
+    "args": {
+      "kind": "track",
+      "id": "3135556"
+    },
+    "uri": "deezer://www.deezer.com/track/3135556"
+  },
+  {
+    "action": "deezer_content",
+    "args": {
+      "kind": "album",
+      "id": "3135556"
+    },
+    "uri": "deezer://www.deezer.com/album/3135556"
+  },
+  {
+    "action": "deezer_content",
+    "args": {
+      "kind": "artist",
+      "id": "3135556"
+    },
+    "uri": "deezer://www.deezer.com/artist/3135556"
+  },
+  {
+    "action": "deezer_content",
+    "args": {
+      "kind": "playlist",
+      "id": "3135556"
+    },
+    "uri": "deezer://www.deezer.com/playlist/3135556"
+  },
+  {
+    "action": "deezer_content",
+    "args": {
+      "kind": "show",
+      "id": "3135556"
+    },
+    "uri": "deezer://www.deezer.com/show/3135556"
+  },
+  {
+    "action": "deezer_content",
+    "args": {
+      "kind": "episode",
+      "id": "3135556"
+    },
+    "uri": "deezer://www.deezer.com/episode/3135556"
+  },
+  {
+    "action": "deezer_content",
+    "args": {
+      "kind": "profile",
+      "id": "3135556"
+    },
+    "uri": "deezer://www.deezer.com/profile/3135556"
+  },
+  {
+    "action": "deezer_reload",
+    "args": {},
+    "uri": "deezer://www.deezer.com/reload"
+  },
+  {
+    "action": "deezer_smarttracklist",
+    "args": {
+      "id": "known-id_1",
+      "mode": "display"
+    },
+    "uri": "deezer://www.deezer.com/smarttracklist/known-id_1"
+  },
+  {
+    "action": "deezer_smarttracklist",
+    "args": {
+      "id": "known-id_1",
+      "mode": "play"
+    },
+    "uri": "deezer://www.deezer.com/smarttracklist/known-id_1?autoplay=true"
+  }
+]
