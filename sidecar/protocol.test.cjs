@@ -35,7 +35,8 @@ test('le sidecar garde un seul processus, corrige les demandes et s’arrête à
   assert.equal(original.result.status, 'pending');
   const corrected = await request('correct_request', { id: original.result.id, text: 'Diseur', applicationId: saved.result.applications[0].id, saveAlias: true, alias: 'Diseur' });
   assert.equal(corrected.ok, true); assert.equal(corrected.result.status, 'pending');
-  assert.equal((await request('confirm', { id: original.result.id })).ok, false);
+  const retired = await request('confirm', { id: original.result.id });
+  assert.equal(retired.ok, true); assert.equal(retired.result.status, 'invalidated');
   const second = await request('status');
   assert.deepEqual(second.result.engine, first.result.engine);
   assert.deepEqual(second.result.config.applications[0].aliases, ['Diseur']);

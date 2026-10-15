@@ -47,10 +47,20 @@ export interface RuntimeStatus {
   configError?: { message: string; fingerprint?: string; recoverable: boolean };
   configDirectory: string;
   temporaryCleanup?: { removed: number; failed: number; retained: number };
+  proposals?: ProposalSnapshot[];
   engine: { loaded: boolean; generation: number; pid: number } | null;
   desktop?: { shortcut: string; shortcutAvailable: boolean; shortcutError: string; closeToTray: boolean };
 }
+export type ProposalState = 'pending' | 'expired' | 'invalidated' | 'consumed' | 'unknown';
+export interface Proposal {
+  state: ProposalState;
+  createdAt: number | null;
+  expiresAt: number | null;
+  reason: string | null;
+}
+export interface ProposalSnapshot extends Proposal { id: string; message?: string }
 export interface Turn {
+  proposal?: Proposal;
   message?: string;
   id: string;
   transcript: string;
@@ -63,5 +73,5 @@ export interface Turn {
   commandAliasId?: string;
   results: { index?: number; name?: string; applicationId?: string; applicationName: string; success: boolean; message: string;
     outcome?: 'not_started' | 'performed' | 'failed' | 'unknown' }[];
-  status: 'executed' | 'pending' | 'unsupported' | 'silence' | 'failed' | 'cancelled' | 'partial';
+  status: 'executed' | 'pending' | 'unsupported' | 'silence' | 'failed' | 'cancelled' | 'partial' | 'expired' | 'invalidated' | 'consumed';
 }

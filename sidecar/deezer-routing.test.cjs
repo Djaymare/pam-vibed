@@ -99,7 +99,7 @@ test('la correction explicite de recherche mémorise le texte choisi et exige un
   const old=await f.handle('process_text',{text:phrase});
   const corrected=await f.handle('correct_request',{id:old.id,text:phrase,applicationId:app.id,action:'deezer_search',arguments:{query:'Daft Punk'},saveCommandAlias:true,commandPhrase:phrase});
   assert.equal(corrected.status,'pending');assert.equal(corrected.confidence,null);assert.deepEqual(corrected.calls[0].arguments,{query:'Daft Punk'});
-  await assert.rejects(f.handle('confirm',{id:old.id}));
+  assert.equal((await f.handle('confirm',{id:old.id})).status, 'invalidated');
   const learned=await f.handle('process_text',{text:phrase});assert.ok(learned.commandAliasId);assert.equal(learned.transcript,phrase);assert.deepEqual(learned.calls[0].arguments,{query:'Daft Punk'});
   assert.equal(f.executions.length,0);
 });

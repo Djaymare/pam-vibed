@@ -111,11 +111,11 @@ function createTemporaryFiles(directory) {
           });
         }
       });
-      for (const location of [absolute, path.join(absolute, 'pending')]) {
+      for (const location of [absolute, path.join(absolute, 'pending'), path.join(absolute, 'proposals')]) {
         await attempt(async () => {
           await checkedDirectory(root, location);
           for (const name of await fs.readdir(location)) {
-            if (location !== absolute && PENDING.test(name)) {
+            if (location === path.join(absolute, 'pending') && PENDING.test(name)) {
               await attempt(async () => {
                 const stat = await fs.lstat(path.join(location, name));
                 if (Date.now() - stat.mtimeMs >= LEGACY_RETENTION_MS) {

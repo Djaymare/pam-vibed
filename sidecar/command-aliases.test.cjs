@@ -28,9 +28,9 @@ test('correction explicite de pause : mémorisation, validation unique et retrai
   const old=await f.handle('prepare_action',{applicationId:browser.id,action:'media_stop'});
   const corrected=await f.handle('correct_request',{id:old.id,text:'Pause le navigateur',applicationId:browser.id,action:'media_pause',saveCommandAlias:true,commandPhrase:rule.phrase});
   assert.equal(corrected.status,'pending');assert.equal(corrected.calls[0].action,'media_pause');assert.equal(corrected.confidence,null);assert.equal(corrected.correctedFrom,old.id);
-  assert.equal(f.requests.length,0);assert.equal(f.executions.length,0);await assert.rejects(f.handle('confirm',{id:old.id}));
+  assert.equal(f.requests.length,0);assert.equal(f.executions.length,0);assert.equal((await f.handle('confirm',{id:old.id})).status, 'invalidated');
   await f.handle('confirm',{id:corrected.id});assert.deepEqual(f.executions,[{id:browser.id,action:'media_pause'}]);
-  await assert.rejects(f.handle('confirm',{id:corrected.id}));
+  assert.equal((await f.handle('confirm',{id:corrected.id})).status, 'consumed');
   const config=JSON.parse(await fs.readFile(path.join(f.directory,'applications.json'),'utf8'));
   assert.equal(config.commandAliases[0].phrase,rule.phrase);assert.deepEqual(config.applications[0].aliases,browser.aliases);
 });
@@ -55,10 +55,10 @@ test('modifier et supprimer une formulation invalide ses anciennes confirmations
   const f=await fixture(t),config=await f.handle('save_command_alias',rule),id=config.commandAliases[0].id;
   const pending=await f.handle('process_text',{text:rule.phrase});
   const updated=await f.handle('save_command_alias',{...rule,id,action:'media_play'});
-  assert.equal(updated.commandAliases.length,1);assert.equal(updated.commandAliases[0].id,id);await assert.rejects(f.handle('confirm',{id:pending.id}),/applications ont changé/);
+  assert.equal(updated.commandAliases.length,1);assert.equal(updated.commandAliases[0].id,id);assert.equal((await f.handle('confirm',{id:pending.id})).status, 'invalidated');
   const resumed=await f.handle('process_text',{text:rule.phrase});assert.equal(resumed.calls[0].action,'media_play');
   const deleted=await f.handle('delete_command_alias',{id});assert.equal(deleted.commandAliases.length,0);
-  await assert.rejects(f.handle('confirm',{id:resumed.id}),/applications ont changé/);
+  assert.equal((await f.handle('confirm',{id:resumed.id})).status, 'invalidated');
   assert.equal(f.executions.length,0);
 });
 test('la création refuse doublons, négations, citations et collisions avec les commandes natives',async t=>{

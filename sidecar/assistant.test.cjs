@@ -59,12 +59,12 @@ test('faible confiance : aucune exécution avant confirmation, confirmation non 
   const turn = await f.handle('process_text', { text: 'Ouvre le Bloc-notes' });
   assert.equal(turn.status, 'pending'); assert.equal(f.launched.length, 0);
   assert.equal((await f.handle('confirm', { id: turn.id })).status, 'executed');
-  await assert.rejects(f.handle('confirm', { id: turn.id })); assert.equal(f.launched.length, 1);
+  assert.equal((await f.handle('confirm', { id: turn.id })).status, 'consumed'); assert.equal(f.launched.length, 1);
 });
 test('annuler une demande empêche son exécution', async t => {
   const f = await fixture(t, { confidence: 0.9, function_calls: [call] }, { autoExecute: false });
   const turn = await f.handle('process_text', { text: 'Ouvre le Bloc-notes' });
-  await f.handle('discard', { id: turn.id }); await assert.rejects(f.handle('confirm', { id: turn.id }));
+  await f.handle('discard', { id: turn.id }); assert.equal((await f.handle('confirm', { id: turn.id })).status, 'consumed');
   assert.equal(f.launched.length, 0);
 });
 test('changer une application invalide une confirmation existante', async t => {
@@ -72,7 +72,8 @@ test('changer une application invalide une confirmation existante', async t => {
   const turn = await f.handle('process_text', { text: 'Ouvre le Bloc-notes' });
   f.config.applications[0].enabled = false;
   await fs.writeFile(path.join(f.directory, 'applications.json'), JSON.stringify(f.config));
-  await assert.rejects(f.handle('confirm', { id: turn.id }), /applications ont changé/);
+  const invalidated = await f.handle('confirm', { id: turn.id });
+  assert.equal(invalidated.status, 'invalidated'); assert.equal(invalidated.proposal.reason, 'configuration_changed');
   assert.equal(f.launched.length, 0);
 });
 test('valider tout le plan avant lancement : outil inconnu dans le deuxième appel', async t => {
@@ -307,7 +308,7 @@ test('corriger une transcription retire l’ancien plan et impose une nouvelle v
   const corrected = await f.handle('correct_request', { id: original.id, text: 'Ouvre Notepad' });
   assert.equal(corrected.status, 'pending'); assert.equal(corrected.correctedFrom, original.id);
   assert.equal(corrected.transcript, 'Ouvre Notepad'); assert.equal(f.launched.length, 0);
-  await assert.rejects(f.handle('confirm', { id: original.id }));
+  assert.equal((await f.handle('confirm', { id: original.id })).status, 'invalidated');
   assert.equal((await f.handle('confirm', { id: corrected.id })).status, 'executed');
   assert.equal(f.launched.length, 1);
 });
@@ -359,6 +360,6 @@ test('une panne pendant la correction ne laisse aucun ancien plan exécutable', 
   });
   const original = await f.handle('process_text', { text: 'Bloc-notes' });
   await assert.rejects(f.handle('correct_request', { id: original.id, text: 'Notepad' }), /Moteur arrêté/);
-  await assert.rejects(f.handle('confirm', { id: original.id }));
+  assert.equal((await f.handle('confirm', { id: original.id })).status, 'invalidated');
   assert.equal(f.launched.length, 0);
 });

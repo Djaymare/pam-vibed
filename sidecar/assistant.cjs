@@ -13,6 +13,7 @@ const {resolveMediaCommand} = require('./media-commands.cjs');
 const { createTemporaryFiles, atomicJson: writeAtomicJson } = require('./temporary-files.cjs');
 const { createBudget, interruptedTurn } = require('./budget.cjs');
 const { executionStore } = require('./execution.cjs');
+const { proposalStore } = require('./proposals.cjs');
 
 const { validateConfig, validateApplicationStructure, LANGUAGES, DEFAULT_CONFIG } = require('./config-schema.cjs');
 const { readConfig, recoverConfig } = require('./config-store.cjs');
@@ -247,12 +248,12 @@ async function launch(application, args, { budget, beforeEffect } = {}) {
   return { applicationName: application.name, success: true, message: `${application.name} lancé.` };
 }
 
-function createAssistant({ runtimeDirectory, configDirectory, runEngine = executeFile, launchApplication = launch, engine, media = createMedia(), now, setTimer, clearTimer, budgetMs = 40_000 }) {
+function createAssistant({ runtimeDirectory, configDirectory, runEngine = executeFile, launchApplication = launch, engine, media = createMedia(), now, proposalNow = Date.now, setTimer, clearTimer, budgetMs = 40_000 }) {
   const temporaryFiles = createTemporaryFiles(configDirectory);
   const atomicJson = (destination, value) => writeAtomicJson(destination, value, configDirectory);
-  let startupCleanup = temporaryFiles.collect();
+  const proposals = proposalStore(configDirectory, { now: proposalNow });
+  let startupCleanup = proposals.initialize().then(() => temporaryFiles.collect());
   const configPath = path.join(configDirectory, 'applications.json');
-  const pendingDirectory = path.join(configDirectory, 'pending');
   const executions = executionStore(configDirectory);
   async function executeCalls(turn, config, context) {
     // Validate the whole plan before any executable is launched.
@@ -315,6 +316,7 @@ function createAssistant({ runtimeDirectory, configDirectory, runEngine = execut
       const validated = validateConfig(value);
       ensure(JSON.stringify(await readConfig(configDirectory)) === loadedConfig, 'Le profil a changé pendant la modification. Relisez-le avant de réessayer.');
       await atomicJson(configPath, validated);
+      await proposals.reconcile(configDigest(validated));
     };
     if (method === 'status') {
       const files = ['needle.exe', 'models/needle3.cact', 'models/whistle.cact', 'npm/bin/npm-cli.js', 'libneedle3.dll', 'ffi/node_modules/@koromix/koffi-win32-x64/win32_x64/koffi.node'];
@@ -327,7 +329,7 @@ function createAssistant({ runtimeDirectory, configDirectory, runEngine = execut
       const ready = !configError && checks.every(check => check.available);
       if (ready && engine) await budget.run(() => engine.warm({timeout:budget.timeout()}), 'chargement des moteurs');
       const applicationAvailabilityEntries = await Promise.all(config.applications.map(async app => [app.id, await applicationAvailability(app)]));
-      return { ready, checks, manifest, config, applicationAvailability: Object.fromEntries(applicationAvailabilityEntries), configDirectory, ...(configError ? { configError } : {}), temporaryCleanup, engine: engine?.status() ?? null };
+      return { ready, checks, manifest, config, proposals: await proposals.reconcile(configError ? null : configDigest(config)), applicationAvailability: Object.fromEntries(applicationAvailabilityEntries), configDirectory, ...(configError ? { configError } : {}), temporaryCleanup, engine: engine?.status() ?? null };
     }
     if (method === 'restart_engine') {
       ensure(engine, 'Le moteur persistant est indisponible.');
@@ -342,8 +344,7 @@ function createAssistant({ runtimeDirectory, configDirectory, runEngine = execut
       const calls = validateCalls([{name:actionToolName(app,payload.action),arguments:payload.arguments ?? {}}],config);
       const turn = {id:randomUUID(),transcript:payload.label === undefined ? (calls[0].actionLabel || `Ouvrir ${app.name}`) : cleanText(payload.label,'Libellé de l’action',2000),language:config.language,
         confidence:null,reasoning:'Action choisie explicitement.',durationMs:0,calls,results:[],status:'pending'};
-      await atomicJson(path.join(pendingDirectory, `${turn.id}.json`), {createdAt:Date.now(),configDigest:configDigest(config),calls,turn});
-      return turn;
+      return proposals.prepare(turn, configDigest(config));
     }
     if (method === 'set_application_enabled') {
       ensure(typeof payload.enabled === 'boolean', 'État de l’application invalide.');
@@ -413,18 +414,13 @@ function createAssistant({ runtimeDirectory, configDirectory, runEngine = execut
       if (method === 'confirm') {
         const previous = await executions.read(payload.id);
         if (previous) {
-          ensure(previous.status==='partial', 'Cette confirmation a déjà été consommée. Aucun rejeu autorisé.');
-          return previous;
+          return previous.status === 'partial' ? previous : { ...previous, status: 'consumed', message: 'Cette confirmation a déjà été consommée. Aucun rejeu autorisé.' };
         }
       }
-      const file = path.join(pendingDirectory, `${payload.id}.json`);
-      const pending = JSON.parse(await fs.readFile(file, 'utf8'));
-      // Consume before executing, so the same approval cannot launch twice.
-      await fs.unlink(file);
-      if (method === 'discard') return { status: 'cancelled' };
-      ensure(Date.now() - pending.createdAt < 10 * 60_000, 'Cette demande a expiré. Relancez votre demande.');
-      ensure(pending.configDigest === configDigest(config), 'Les applications ont changé. Relancez votre demande.');
-      return executeCalls({...pending.turn}, config, context);
+      const claimed = await proposals.claim(payload.id, configDigest(config), method === 'confirm');
+      if (!claimed.executable) return claimed.turn;
+      delete claimed.turn.message;
+      return executeCalls(claimed.turn, config, context);
     }
     if (method === 'correct_request') {
       ensure(typeof payload.id === 'string' && /^[0-9a-f-]{36}$/.test(payload.id), 'Identifiant de demande invalide.');
@@ -453,13 +449,11 @@ function createAssistant({ runtimeDirectory, configDirectory, runEngine = execut
       }
       if(payload.saveAlias===true || payload.saveCommandAlias===true)await saveConfig(config);
       // Retire the old approval before preparing a replacement, even if inference fails.
-      try { await fs.unlink(path.join(pendingDirectory, `${payload.id}.json`)); }
-      catch (error) { if (error.code !== 'ENOENT') throw error; }
+      await proposals.invalidate(payload.id);
       if(chosenCalls) {
         const turn={id:randomUUID(),transcript:payload.text.trim(),language:config.language,confidence:null,reasoning:'Action choisie explicitement dans la correction.',
           durationMs:0,calls:chosenCalls,results:[],status:'pending',correctedFrom:payload.id};
-        await atomicJson(path.join(pendingDirectory,`${turn.id}.json`),{createdAt:Date.now(),configDigest:configDigest(config),calls:chosenCalls,turn});
-        return turn;
+        return proposals.prepare(turn, configDigest(config));
       }
     }
     ensure(method === 'process_text' || method === 'process_audio' || method === 'correct_request', 'Méthode inconnue.');
@@ -625,9 +619,7 @@ function createAssistant({ runtimeDirectory, configDirectory, runEngine = execut
         await executeCalls(turn, config, context);
       } else {
         turn.status = 'pending';
-        await atomicJson(path.join(pendingDirectory, `${turn.id}.json`), {
-          createdAt: Date.now(), configDigest: configDigest(config), calls: turn.calls, turn,
-        });
+        await proposals.prepare(turn, configDigest(config));
       }
       return turn;
     } finally {

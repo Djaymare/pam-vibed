@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onMounted, onBeforeUnmount, reactive, ref, watch } from 'vue';
+import { computed, nextTick, onMounted, onBeforeUnmount, reactive, ref, watch } from 'vue';
 import { invoke, isTauri } from '@tauri-apps/api/core';
 import { listen, type UnlistenFn } from '@tauri-apps/api/event';
 import { open } from '@tauri-apps/plugin-dialog';
@@ -11,6 +11,7 @@ import CommandAliases from './components/CommandAliases.vue';
 import CommandArguments from './components/CommandArguments.vue';
 import {commandActions,choiceArguments} from './actions';
 import { VoiceRecorder } from './audio/recorder';
+import { retainTurns, reconcileTurns } from './proposals';
 import type { Application, CommandAlias, Config, InstalledApplication, MediaSession, RuntimeStatus, Turn, WindowsApplication } from './types';
 
 const page = ref<'assistant' | 'applications' | 'settings'>('assistant');
@@ -64,6 +65,7 @@ let recorder: VoiceRecorder | undefined;
 let interval: number | undefined;
 let limitTimer: number | undefined;
 let healthTimer: number | undefined;
+let proposalTimer: number | undefined;
 const unlisten: UnlistenFn[] = [];
 let disposed = false;
 
@@ -78,7 +80,7 @@ function describeError(caught: unknown) {
 }
 async function refresh() {
   loading.value = true; error.value = '';
-  try { status.value = await request<RuntimeStatus>('status'); config.value = status.value.config; }
+  try { status.value = await request<RuntimeStatus>('status'); config.value = status.value.config; turns.value = reconcileTurns(turns.value, status.value.proposals); }
   catch (caught) { error.value = describeError(caught); }
   finally { loading.value = false; }
 }
@@ -88,6 +90,7 @@ async function updateHealth() {
     const next = await request<RuntimeStatus>('status');
     if (next.configError || status.value?.configError) config.value = next.config;
     status.value = next;
+    turns.value = reconcileTurns(turns.value, next.proposals);
   }
   catch (caught) { error.value = describeError(caught); }
 }
@@ -117,14 +120,25 @@ onMounted(async () => {
       if (disposed) stop(); else unlisten.push(stop);
     }
   }
-  if (!disposed) { await refresh(); healthTimer = window.setInterval(() => { void updateHealth(); }, 15_000); }
+  if (!disposed) {
+    await refresh(); healthTimer = window.setInterval(() => { void updateHealth(); }, 15_000);
+    proposalTimer = window.setInterval(() => { turns.value = reconcileTurns(turns.value); }, 1000);
+  }
+});
+// Invalidate visible approvals immediately when an application or formulation
+// changes, including deletion. The sidecar independently checks its digest.
+watch(() => JSON.stringify([config.value.applications, config.value.commandAliases || []]), (next, previous) => {
+  if (next === previous) return;
+  turns.value = turns.value.map(turn => turn.status === 'pending' ? { ...turn, status: 'invalidated',
+    proposal: { createdAt: null, expiresAt: null, ...turn.proposal, state: 'invalidated', reason: 'configuration_changed' },
+    message: 'Les applications ou formulations ont changé. Reformulez votre demande.' } : turn);
 });
 watch(recording, value => { if (isTauri()) void invoke('desktop_action', { action: value ? 'listening' : 'idle' }).catch(() => {}); });
 async function process(method: string, payload: unknown) {
   busy.value = true; error.value = '';
   try {
     const turn = await request<Turn>(method, payload);
-    turns.value = [turn, ...turns.value].slice(0, 20); text.value = '';
+    turns.value = retainTurns([turn, ...reconcileTurns(turns.value)]); text.value = '';
   } catch (caught) { error.value = describeError(caught); }
   finally { busy.value = false; void updateHealth(); }
 }
@@ -162,7 +176,7 @@ async function finishRecording() {
 async function cancelRecording() {
   requestingMic.value = false; recording.value = false; clearTimers(); await recorder?.dispose(); recorder = undefined; level.value = 0;
 }
-onBeforeUnmount(() => { disposed = true; clearTimers(); window.clearInterval(healthTimer); unlisten.forEach(stop => stop()); void recorder?.dispose(); });
+onBeforeUnmount(() => { disposed = true; clearTimers(); window.clearInterval(healthTimer); window.clearInterval(proposalTimer); unlisten.forEach(stop => stop()); void recorder?.dispose(); });
 function editTurn(turn: Turn) {
   rememberDialogTrigger();
   correction.value = turn; correctionError.value = '';
@@ -182,9 +196,12 @@ async function correctTurn() {
       arguments:correctionChoice.value ? choiceArguments(correctionChoice.value,correctionForm.arguments) : undefined,
       saveAlias: correctionForm.saveAlias && !!correctionApp.value && (!correctionForm.action || correctionForm.action==='open'), alias: correctionForm.alias,
       saveCommandAlias:correctionForm.saveCommandAlias && !!correctionApp.value && !!correctionForm.action,commandPhrase:correctionForm.commandPhrase });
-    turns.value = [turn, ...turns.value.map(item => item.id === original.id && item.status === 'pending' ? { ...item, status: 'cancelled' as const } : item)].slice(0, 20);
     prepared = true;
-    status.value = await request<RuntimeStatus>('status'); config.value = status.value.config;
+    try { status.value = await request<RuntimeStatus>('status'); config.value = status.value.config; }
+    catch (caught) { error.value = describeError(caught); }
+    await nextTick();
+    turns.value = retainTurns([turn, ...turns.value.map(item => item.id === original.id && item.status === 'pending' ? { ...item, status: 'invalidated' as const,
+      message: 'Cette proposition a été remplacée par une correction.' } : item)]);
   } catch (caught) { correctionError.value = describeError(caught); }
   finally { busy.value = false; if (prepared) correction.value = undefined; void updateHealth(); }
 }
@@ -200,12 +217,14 @@ async function restartEngine() {
 }
 async function resolveTurn(turn: Turn, accept: boolean) {
   if (locked.value) return;
+  turns.value = reconcileTurns(turns.value);
+  if (turns.value.find(item => item.id === turn.id)?.status !== 'pending') return;
   busy.value = true; error.value = '';
   try {
     const updated = await request<Turn>(accept ? 'confirm' : 'discard', { id: turn.id });
     turns.value = turns.value.map(item => item.id === turn.id ? { ...item, ...updated } : item);
   } catch (caught) { error.value = describeError(caught); }
-  finally { busy.value = false; }
+  finally { busy.value = false; void updateHealth(); }
 }
 function editApplication(application?: Application, preserveTrigger = false) {
   if (!preserveTrigger) rememberDialogTrigger();
@@ -307,7 +326,7 @@ async function deleteCommandAlias(id:string) {
   try {config.value=await request<Config>('delete_command_alias',{id});}
   finally {busy.value=false;}
 }
-const labels: Record<Turn['status'], string> = { executed: 'Terminé', pending: 'À valider', unsupported: 'Aucune action disponible', silence: 'Aucune parole détectée', failed: 'Échec de l’action', cancelled: 'Annulé', partial: 'Exécution interrompue' };
+const labels: Record<Turn['status'], string> = { executed: 'Terminé', pending: 'À valider', unsupported: 'Aucune action disponible', silence: 'Aucune parole détectée', failed: 'Échec de l’action', cancelled: 'Annulé', partial: 'Exécution interrompue', expired: 'Proposition expirée', invalidated: 'Proposition retirée', consumed: 'Confirmation consommée' };
 const outcomeLabels = {not_started:'Non démarrée',performed:'Effectuée',failed:'Échouée',unknown:'Résultat inconnu'};
 </script>
 
@@ -353,11 +372,12 @@ const outcomeLabels = {not_started:'Non démarrée',performed:'Effectuée',faile
             <div class="pipeline"><span><Icon name="mic" :size="15" />Voix</span><Icon name="chevron" :size="12" /><span>Whistle<small>transcrit</small></span><Icon name="chevron" :size="12" /><span>Needle<small>comprend</small></span><Icon name="chevron" :size="12" /><span><Icon name="apps" :size="15" />Application</span></div>
           </section>
           <form class="text-request" @submit.prevent="submitText"><input v-model="text" :disabled="locked" maxlength="2000" aria-label="Demande écrite" placeholder="Vous préférez écrire ? Entrez votre demande…" /><button class="send-button" :disabled="!canRequest || !text.trim()" aria-label="Envoyer la demande"><Icon name="arrow" :size="20" /></button></form>
+          <p class="muted">Les propositions sont valables dix minutes et sont retirées au redémarrage de PAM. Reformulez pour préparer une nouvelle action.</p>
           <MediaControls :applications="config.applications" :locked="locked" @action="prepareMediaAction" />
           <section class="connected"><div class="section-heading"><h3>Vos applications<span>{{ activeApps.length }}</span></h3><button class="text-button" :disabled="locked" @click="page = 'applications'">Gérer <Icon name="arrow" :size="14" /></button></div><div v-if="activeApps.length" class="app-chips"><span v-for="app in activeApps" :key="app.id"><span class="app-initial">{{ app.name.slice(0, 1).toUpperCase() }}</span>{{ app.name }}<i /></span></div><p v-else class="empty-inline">Aucune application connectée pour le moment.</p></section>
           <section class="history"><div class="section-heading"><h3>Activité récente</h3><span class="muted">Cette session uniquement</span></div>
             <div v-if="!turns.length" class="history-empty"><Icon name="clock" :size="22" /><p>Votre première demande apparaîtra ici.</p></div>
-            <article v-for="turn in turns" :key="turn.id" class="turn-card"><div class="turn-head"><span class="turn-badge" :class="turn.status"><Icon :name="turn.status === 'executed' ? 'check' : 'info'" :size="14" />{{ labels[turn.status] }}</span><span class="turn-metrics" title="Score du choix effectué par Needle. La précision de la transcription vocale est indépendante.">{{ (turn.durationMs / 1000).toFixed(2) }} s<span v-if="turn.confidence !== null"> · confiance Needle {{ Math.round(turn.confidence * 100) }} %</span></span></div><p class="transcript">{{ turn.transcript || 'Le microphone n’a capté aucune parole.' }}</p><div v-if="turn.calls.length" class="call-list"><div v-for="(call, index) in turn.calls" :key="index"><Icon name="arrow" :size="14" /><strong>{{ call.actionLabel || 'Ouvrir' }} {{ call.applicationName }}</strong><code v-if="(!call.action || call.action === 'open') && Object.keys(call.arguments).length">{{ Object.entries(call.arguments).map(([key,value]) => `${key} : ${value}`).join(' · ') }}</code></div></div><p v-if="turn.status === 'unsupported'" class="muted">{{ turn.message || 'Cette demande ne correspond à aucune action actuellement disponible. Consultez les sessions et les capacités de votre lecteur.' }}</p><p v-if="turn.status === 'partial'" class="result-error" role="status">{{ turn.message }}</p><p v-for="(result, index) in turn.results" :key="index" :class="result.success ? 'result-success' : 'result-error'">{{ result.outcome ? outcomeLabels[result.outcome] + ' · ' + result.applicationName + ' : ' : '' }}{{ result.message }}</p><div v-if="turn.status === 'pending'" class="approval"><p>Vérifiez les actions proposées avant de les lancer.</p><button class="primary small" :disabled="locked" @click="resolveTurn(turn, true)"><Icon name="check" :size="16" />Exécuter</button><button class="secondary small" :disabled="locked" @click="resolveTurn(turn, false)">Annuler</button></div><div class="turn-correction"><span v-if="turn.commandAliasId" class="muted">Formulation personnelle appliquée</span><span v-if="turn.correctedFrom" class="muted">Demande corrigée · validation requise</span><button class="text-button" :disabled="locked" @click="editTurn(turn)"><Icon name="edit" :size="14" />Corriger la demande</button></div><details v-if="turn.reasoning"><summary>{{ turn.confidence === null ? 'Détail de la demande' : 'Raisonnement Needle' }}</summary><p>{{ turn.reasoning }}</p></details></article>
+            <article v-for="turn in turns" :key="turn.id" class="turn-card"><div class="turn-head"><span class="turn-badge" :class="turn.status"><Icon :name="turn.status === 'executed' ? 'check' : 'info'" :size="14" />{{ labels[turn.status] }}</span><span class="turn-metrics" title="Score du choix effectué par Needle. La précision de la transcription vocale est indépendante.">{{ (turn.durationMs / 1000).toFixed(2) }} s<span v-if="turn.confidence !== null"> · confiance Needle {{ Math.round(turn.confidence * 100) }} %</span></span></div><p class="transcript">{{ turn.transcript || 'Le microphone n’a capté aucune parole.' }}</p><div v-if="turn.calls.length" class="call-list"><div v-for="(call, index) in turn.calls" :key="index"><Icon name="arrow" :size="14" /><strong>{{ call.actionLabel || 'Ouvrir' }} {{ call.applicationName }}</strong><code v-if="(!call.action || call.action === 'open') && Object.keys(call.arguments).length">{{ Object.entries(call.arguments).map(([key,value]) => `${key} : ${value}`).join(' · ') }}</code></div></div><p v-if="turn.status === 'unsupported'" class="muted">{{ turn.message || 'Cette demande ne correspond à aucune action actuellement disponible. Consultez les sessions et les capacités de votre lecteur.' }}</p><p v-if="['partial','expired','invalidated','consumed'].includes(turn.status)" class="result-error" role="status">{{ turn.message }}</p><p v-for="(result, index) in turn.results" :key="index" :class="result.success ? 'result-success' : 'result-error'">{{ result.outcome ? outcomeLabels[result.outcome] + ' · ' + result.applicationName + ' : ' : '' }}{{ result.message }}</p><div v-if="turn.status === 'pending'" class="approval"><p>Vérifiez les actions proposées avant de les lancer.<span v-if="turn.proposal?.expiresAt"> À valider avant {{ new Date(turn.proposal.expiresAt).toLocaleTimeString() }}.</span></p><button class="primary small" :disabled="locked" @click="resolveTurn(turn, true)"><Icon name="check" :size="16" />Exécuter</button><button class="secondary small" :disabled="locked" @click="resolveTurn(turn, false)">Annuler</button></div><div class="turn-correction"><span v-if="turn.commandAliasId" class="muted">Formulation personnelle appliquée</span><span v-if="turn.correctedFrom" class="muted">Demande corrigée · validation requise</span><button class="text-button" :disabled="locked" @click="editTurn(turn)"><Icon name="edit" :size="14" />Corriger la demande</button></div><details v-if="turn.reasoning"><summary>{{ turn.confidence === null ? 'Détail de la demande' : 'Raisonnement Needle' }}</summary><p>{{ turn.reasoning }}</p></details></article>
           </section>
         </template>
         <template v-else-if="page === 'applications'">

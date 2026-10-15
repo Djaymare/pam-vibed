@@ -42,8 +42,9 @@ test('an interruption returns known outcomes and confirmation after restart neve
   const make=()=>createAssistant({configDirectory:f.directory,runtimeDirectory:f.directory,now:()=>elapsed,setTimer:()=>0,clearTimer:()=>{},budgetMs:100,
     runEngine:async()=>({stdout:JSON.stringify({confidence:1,function_calls:Array(3).fill(f.call)})}),
     launchApplication:async (_app,_args,opts)=>{await opts.beforeEffect();effects++;elapsed+=effects===1?10:100;return {success:true,message:'Launched'};}});
-  const pending=await make()('process_text',{text:'Ouvre Fixture trois fois'});
-  const turn=await make()('confirm',{id:pending.id});
+  const handle=make();
+  const pending=await handle('process_text',{text:'Ouvre Fixture trois fois'});
+  const turn=await handle('confirm',{id:pending.id});
   assert.deepEqual(turn.results.map(r=>r.outcome),['performed','unknown','not_started']);
   const recovered=await make()('confirm',{id:pending.id});
   assert.deepEqual(recovered.results,turn.results);
@@ -97,8 +98,9 @@ test('restarting after a crash in an emitted action recovers the journal without
       assert.equal(recovered.results[0].outcome,'unknown');assert.equal(recovered.results[1].outcome,'not_started');
       const error=new Error('Process interrupted');error.outcome='unknown';throw error;
     }});
-  const pending=await make()('process_text',{text:'Ouvre Fixture deux fois'});const id=pending.id;
-  const turn=await make()('confirm',{id});assert.equal(turn.status,'partial');assert.equal(effects,1);
+  const handle=make();
+  const pending=await handle('process_text',{text:'Ouvre Fixture deux fois'});const id=pending.id;
+  const turn=await handle('confirm',{id});assert.equal(turn.status,'partial');assert.equal(effects,1);
   assert.equal((await make()('confirm',{id})).results[0].outcome,'unknown');assert.equal(effects,1);
 });
 

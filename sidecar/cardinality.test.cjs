@@ -103,7 +103,7 @@ test('PAM-08 : faible confiance ou ambiguïté du moteur conserve la confirmatio
     assert.equal(turn.status,'pending');assert.equal(f.launches.length,0);
     const confirmed=await f.handle('confirm',{id:turn.id});
     assert.equal(confirmed.status,'executed');assert.equal(f.launches.length,1);
-    await assert.rejects(f.handle('confirm',{id:turn.id}));assert.equal(f.launches.length,1);
+    assert.equal((await f.handle('confirm',{id:turn.id})).status, 'consumed');assert.equal(f.launches.length,1);
   }
 });
 test('PAM-08 : répétition valide à faible confiance attend la confirmation du plan entier',async t=>{

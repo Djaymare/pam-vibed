@@ -47,8 +47,8 @@ test('un score faible garde le seuil et impose une confirmation avec le même id
   const f=await fixture(t,{confidence:0.2346,function_calls:[{name:'play_opera_gx',arguments:{}}]});
   const turn=await f.handle('process_text',{text:'Play Opéra'});
   assert.equal(turn.confidence,0.2346);assert.equal(turn.status,'pending');assert.equal(f.executions.length,0);
-  const saved=JSON.parse(await fs.readFile(path.join(f.directory,'pending',`${turn.id}.json`),'utf8'));
-  assert.equal(saved.calls[0].name,actionToolName(browser,'media_play'));
+  const saved=JSON.parse(await fs.readFile(path.join(f.directory,'proposals',`${turn.id}.json`),'utf8'));
+  assert.equal(saved.turn.calls[0].name,actionToolName(browser,'media_play'));
   await f.handle('confirm',{id:turn.id});assert.equal(f.executions.length,1);
 });
 

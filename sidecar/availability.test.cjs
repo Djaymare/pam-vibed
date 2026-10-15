@@ -62,7 +62,7 @@ test('contournement UI : test et confirmation refusent la cible supprimée avant
   assert.equal(confirmed.results[0].success, false);
   assert.match(confirmed.results[0].message, /ENOENT|introuvable/);
   assert.equal(confirmed.status, 'failed');
-  await assert.rejects(f.handle('confirm', { id:turn.id }), /déjà|introuvable|confirmée/);
+  assert.equal((await f.handle('confirm', { id:turn.id })).status, 'consumed');
   assert.equal((await f.read()).applications[0].enabled, true);
 });
 

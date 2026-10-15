@@ -96,13 +96,13 @@ test('clic manuel : validation obligatoire, consommation unique et pas de lancem
   const turn=await f.handle('prepare_action',{applicationId:deezer.id,action:'media_next',arguments:{}});
   assert.equal(turn.status,'pending');assert.equal(f.calls.length,0);
   await f.handle('confirm',{id:turn.id});assert.equal(f.calls[0][1],'media_next');
-  await assert.rejects(f.handle('confirm',{id:turn.id}));assert.equal(f.calls.length,1);
+  assert.equal((await f.handle('confirm',{id:turn.id})).status, 'consumed');assert.equal(f.calls.length,1);
 });
 test('le changement de cible média invalide une confirmation',async t=>{
   const f=await fixture(t);const turn=await f.handle('prepare_action',{applicationId:deezer.id,action:'media_next'});
   const c=JSON.parse(await fs.readFile(path.join(f.directory,'applications.json'),'utf8'));c.applications[0].media.sourceAppId='opera.exe';c.applications[0].media.deezer=false;
   await fs.writeFile(path.join(f.directory,'applications.json'),JSON.stringify(c));
-  await assert.rejects(f.handle('confirm',{id:turn.id}),/applications ont changé/);assert.equal(f.calls.length,0);
+  assert.equal((await f.handle('confirm',{id:turn.id})).status, 'invalidated');assert.equal(f.calls.length,0);
 });
 test('alias média : outil de la bonne action seulement, métadonnées internes exclues du modèle',async t=>{
   const f=await fixture(t);const turn=await f.handle('process_text',{text:'Joue Diseur'});
@@ -114,7 +114,7 @@ test('la correction conserve l’action média et les confirmations existantes',
   const old=await f.handle('prepare_action',{applicationId:deezer.id,action:'media_play'});
   const corrected=await f.handle('correct_request',{id:old.id,text:'Piste suivante Diseur',applicationId:deezer.id});
   assert.equal(corrected.status,'pending');assert.equal(corrected.calls[0].action,'media_next');
-  assert.equal(corrected.transcript,'Piste suivante Diseur');assert.equal(f.prompts[0].prompt,'Play the next item in Deezer Music');await assert.rejects(f.handle('confirm',{id:old.id}));
+  assert.equal(corrected.transcript,'Piste suivante Diseur');assert.equal(f.prompts[0].prompt,'Play the next item in Deezer Music');assert.equal((await f.handle('confirm',{id:old.id})).status, 'invalidated');
 });
 test('une insertion précise en prochaine position ne devient pas un simple saut de piste',async t=>{
   const f=await fixture(t,{confidence:1,function_calls:[call('media_next')]});
