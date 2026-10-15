@@ -8,7 +8,7 @@ import { createServer as createNetServer } from 'node:net';
 
 // Real Windows WebView2 + Vue components, with only native services simulated.
 // Build src-tauri/examples/modal-test-host.rs first and set PAM_MODAL_TEST_HOST.
-const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
+const root = resolve(process.env.PAM_TEST_SOURCE_ROOT || resolve(dirname(fileURLToPath(import.meta.url)), '..'));
 assert.equal(process.platform, 'win32', 'This suite requires Windows WebView2.');
 const host = process.env.PAM_MODAL_TEST_HOST;
 assert.ok(host, 'Set PAM_MODAL_TEST_HOST to the compiled disposable host.');

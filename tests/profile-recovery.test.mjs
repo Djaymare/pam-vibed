@@ -3,13 +3,15 @@ import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import { readFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
+import { fileURLToPath } from 'node:url';
+import { resolve, dirname } from 'node:path';
 import { parse, compileScript } from '@vue/compiler-sfc';
 import ts from 'typescript';
 import * as vue from 'vue';
 
 // Compile and mount the real App SFC with Vue's renderer. Only native services,
 // timers and unrelated child components are substituted; no WebView2 claim.
-async function mountApp(t, { recoveryFailure = false, healthy = false, proposalScenario = false, correctionSuccess = false, transferScenario = false, transferFailure = false, backupScenario = false, diagnosticScenario = false, microphoneFailure = false } = {}) {
+async function mountApp(t, { recoveryFailure = false, healthy = false, proposalScenario = false, correctionSuccess = false, transferScenario = false, transferFailure = false, backupScenario = false, diagnosticScenario = false, microphoneFailure = false, pendingPermission = false, pendingListener = false } = {}) {
   const previousDocument = globalThis.document;
   globalThis.document = { activeElement: null };
   for (const name of ['Document', 'ShadowRoot']) {
@@ -21,6 +23,10 @@ async function mountApp(t, { recoveryFailure = false, healthy = false, proposalS
   let time = Date.now(), sequence = 0;
   const TestDate = class extends Date { static now() { return time; } };
   const proposals = [], timerCallbacks = new Map();
+  const resources = { listeners: 0, disposedRecorders: 0 };
+  let permit, register;
+  const permission = new Promise(resolve => { permit = resolve; });
+  const registration = new Promise(resolve => { register = resolve; });
   const empty = { version: 2, applications: [], commandAliases: [], language: 'fr', autoExecute: true, confidenceThreshold: 0.7 };
   const profileBackup = backupScenario ? { fingerprint: 'previewed-current', backupFingerprint: 'previewed-backup', backupSummary: { applications: ['Éditeur sauvegardé'], formulations: 3, language: 'en', autoExecute: false, confidenceThreshold: 0.9 } } : undefined;
   let profileError = { message: 'Profil invalide : applications[0] : Nom invalide.', fingerprint: 'original', recoverable: true };
@@ -77,9 +83,31 @@ async function mountApp(t, { recoveryFailure = false, healthy = false, proposalS
   const script = compileScript(descriptor, { id: 'pam-profile-test', inlineTemplate: true, templateOptions: { compilerOptions: { hoistStatic: false } } });
   const compiled = ts.transpileModule(script.content, { compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.CommonJS } }).outputText;
   const localRequire = createRequire(import.meta.url);
+  const features = new Map();
+  // Load the extracted production screens/composables, keeping the same native
+  // fixtures and assertions used before extraction.
+  const loadFeature = filename => {
+    if (features.has(filename)) return features.get(filename);
+    const source = readFileSync(filename, 'utf8');
+    const content = filename.endsWith('.vue')
+      ? compileScript(parse(source).descriptor, { id: filename, inlineTemplate: true, templateOptions: { compilerOptions: { hoistStatic: false } } }).content
+      : source;
+    const code = ts.transpileModule(content, { compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.CommonJS } }).outputText;
+    const result = {}; features.set(filename, result);
+    const requireFeature = name => {
+      if (name.startsWith('.') && (name.includes('/composables/') || name.includes('/views/'))) {
+        const target = resolve(dirname(filename), name);
+        return loadFeature(target.endsWith('.vue') ? target : target + '.ts');
+      }
+      return injectedRequire(name);
+    };
+    new Function('require','exports','window','HTMLElement','Date',code)(requireFeature,result,timers,class {},TestDate);
+    return result;
+  };
   const stub = vue.defineComponent({ render: () => vue.h('span') });
   const injectedRequire = name => {
-    if (name === './ipc') return {request:(method,payload={})=>invoke('assistant_request',{method,payload}),desktopAction:action=>invoke('desktop_action',{action}),discoverApplications:()=>invoke('discover_applications')};
+    if (name.endsWith('/ipc')) return {request:(method,payload={})=>invoke('assistant_request',{method,payload}),desktopAction:action=>invoke('desktop_action',{action}),discoverApplications:()=>invoke('discover_applications')};
+    if (name.includes('/composables/') || name.includes('/views/')) return loadFeature(fileURLToPath(new URL('../src/' + name.replace(/^\.\//,''), import.meta.url)) + (name.endsWith('.vue') ? '' : '.ts'));
     if (name === './errors' || name === '../errors') {
       const result = {};
       const code = ts.transpileModule(readFileSync(new URL('../src/errors.ts', import.meta.url), 'utf8'), { compilerOptions: { module: ts.ModuleKind.CommonJS, esModuleInterop: true } }).outputText;
@@ -96,19 +124,25 @@ async function mountApp(t, { recoveryFailure = false, healthy = false, proposalS
     }) };
     if (name.endsWith('.vue')) return { __esModule: true, default: stub };
     if (name.includes('@tauri-apps/api/core')) return { invoke, isTauri: () => true };
-    if (name.includes('@tauri-apps/api/event')) return { listen: async () => () => {} };
+    if (name.includes('@tauri-apps/api/event')) return { listen: async () => { if (pendingListener) await registration; resources.listeners++; return () => { resources.listeners--; }; } };
     if (name.includes('@tauri-apps/plugin-dialog')) return { open: async () => null };
-    if (name === './actions') return { commandActions: () => [], choiceArguments: () => ({}) };
-    if (name === './proposals') {
+    if (name.endsWith('/actions')) return { commandActions: () => [], choiceArguments: () => ({}) };
+    if (name.endsWith('/proposals')) {
       const result = {};
       const code = ts.transpileModule(readFileSync(new URL('../src/proposals.ts', import.meta.url), 'utf8'), { compilerOptions: { module: ts.ModuleKind.CommonJS } }).outputText;
       new Function('exports', 'Date', code)(result, TestDate); return result;
     }
-    if (name === './audio/recorder') return { VoiceRecorder: class { async start() {if(microphoneFailure)throw new DOMException('SENTINEL','NotAllowedError');} async dispose() {} } };
+    if (name.endsWith('/audio/recorder')) return { VoiceRecorder: class { async start() {if(microphoneFailure)throw new DOMException('SENTINEL','NotAllowedError');if(pendingPermission)await permission;} async dispose() {resources.disposedRecorders++;} } };
     return localRequire(name);
   };
   const exports = {};
-  const timers = { setInterval: (callback, ms) => { timerCallbacks.set(ms, callback); return ms; }, clearInterval: ms => timerCallbacks.delete(ms), setTimeout: () => 1, clearTimeout: () => {} };
+  const activeTimers = new Map(); let timerId = 0;
+  const timers = {
+    setInterval(callback, ms) { const id = ++timerId; activeTimers.set(id, { callback, ms, repeat: true }); timerCallbacks.set(ms, callback); return id; },
+    clearInterval(id) { const old = activeTimers.get(id); activeTimers.delete(id); if (old) { const remaining = [...activeTimers.values()].find(timer => timer.repeat && timer.ms === old.ms); if (remaining) timerCallbacks.set(old.ms, remaining.callback); else timerCallbacks.delete(old.ms); } },
+    setTimeout(callback, ms) { const id = ++timerId; activeTimers.set(id, { callback, ms, repeat: false }); return id; },
+    clearTimeout(id) { activeTimers.delete(id); },
+  };
   new Function('require', 'exports', 'window', 'HTMLElement', 'Date', compiled)(injectedRequire, exports, timers, class {}, TestDate);
   const node = (type, text = '') => ({ type, tagName: type.toUpperCase(), text, children: [], props: {}, parent: null, addEventListener() {}, removeEventListener() {}, getRootNode() { return globalThis.document; }, get options() { return this.children.filter(n => n.type === 'option'); } });
   const renderer = vue.createRenderer({
@@ -124,14 +158,17 @@ async function mountApp(t, { recoveryFailure = false, healthy = false, proposalS
     remove(n) { n.parent.children.splice(n.parent.children.indexOf(n), 1); n.parent = null; },
   });
   const root = node('root'), app = renderer.createApp(exports.default);
-  app.mount(root); t.after(() => app.unmount());
+  let mounted = true;
+  const unmount = () => { if (mounted) { mounted = false; app.unmount(); } };
+  app.mount(root); t.after(unmount);
   const settle = async () => { for (let i = 0; i < 12; i++) { await Promise.resolve(); await vue.nextTick(); } };
   const all = n => [n, ...n.children.flatMap(all)];
   const textOf = n => n.text + n.children.map(textOf).join('');
-  const button = label => all(root).find(n => n.type === 'button' && textOf(n) === label);
+  const button = label => all(root).find(n => n.type === 'button' && textOf(n).replace(/\s+/g, ' ').trim() === label);
   const click = async label => { const b = button(label); assert.ok(b, label); assert.ok(!b.props.disabled); await b.props.onClick(); await settle(); };
   await settle();
   return { root, calls, button, click, text: () => textOf(root), all: () => all(root), settle,
+    resources, timerCallbacks, activeTimers, unmount, permit, register,
     async send(text) {
       all(root).find(n => n.props['aria-label'] === 'Demande écrite').props['onUpdate:modelValue'](text);
       await settle(); await all(root).find(n => n.type === 'form' && n.props.class === 'text-request').props.onSubmit({ preventDefault() {} }); await settle();
@@ -157,6 +194,28 @@ test('PAM-12 Vue : message structuré corrélable et export uniquement après cl
   assert.equal(f.calls.filter(c=>c.method==='export_diagnostics').length,1);
   const output=f.all().find(n=>n.props['aria-label']==='Export de diagnostic filtré');assert.match(output.props.value,/model_failure/);assert.ok(output.props.readonly!==undefined);
   await f.click('Fermer l’export');assert.equal(f.all().some(n=>n.props['aria-label']==='Export de diagnostic filtré'),false);
+});
+test('PAM-16 Vue : unmount releases audio, health/proposal timers and global subscriptions', async t => {
+  const f = await mountApp(t, { healthy: true });
+  assert.equal(f.resources.listeners, 2);
+  assert.ok(f.timerCallbacks.has(15000)); assert.ok(f.timerCallbacks.has(1000));
+  await f.all().find(n => n.props['aria-label'] === 'Commencer l’enregistrement').props.onClick();
+  await f.settle();
+  f.unmount(); await f.settle();
+  assert.equal(f.resources.disposedRecorders, 1);
+  assert.equal(f.resources.listeners, 0); assert.equal(f.timerCallbacks.size, 0);
+  assert.equal(f.activeTimers.size, 0);
+  assert.equal(f.calls.some(c => c.method === 'process_audio'), false);
+});
+test('PAM-16 Vue : permission or listener completion after unmount cannot recreate owned resources', async t => {
+  const f = await mountApp(t, { healthy: true, pendingPermission: true, pendingListener: true });
+  const start = f.all().find(n => n.props['aria-label'] === 'Commencer l’enregistrement').props.onClick();
+  await f.settle(); f.unmount(); f.permit(); f.register();
+  await start; await f.settle();
+  assert.ok(f.resources.disposedRecorders >= 1);
+  assert.equal(f.resources.listeners, 0); assert.equal(f.timerCallbacks.size, 0);
+  assert.equal(f.activeTimers.size, 0);
+  assert.equal(f.calls.some(c => c.method === 'process_audio'), false);
 });
 test('PAM-12 Vue : refus du microphone envoyé sans données personnelles et affiché avec sa référence',async t=>{
   const f=await mountApp(t,{healthy:true,microphoneFailure:true});

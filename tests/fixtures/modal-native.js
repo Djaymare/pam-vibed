@@ -1,5 +1,5 @@
 // Frontend-only services: no sidecar, file picker, microphone or launched app.
-const config = { version: 1, applications: [{ id: '11111111-1111-4111-8111-111111111111', name: 'Fixture', description: 'Application simulée', executable: 'C:\\fixture.exe', arguments: [], aliases: [], enabled: true }], language: 'fr', autoExecute: false, confidenceThreshold: 0.7 };
+const config = { version: 2, commandAliases: [], applications: [{ id: '11111111-1111-4111-8111-111111111111', name: 'Fixture', description: 'Application simulée', executable: 'C:\\fixture.exe', arguments: [], aliases: [], enabled: true }], language: 'fr', autoExecute: false, confidenceThreshold: 0.7 };
 const availabilityScenario = new URLSearchParams(location.search).has('availability');
 let available = !availabilityScenario;
 if (availabilityScenario) {
@@ -9,16 +9,24 @@ if (availabilityScenario) {
   window.pamAvailabilityFixture = { config, calls:[] };
 }
 let saveAttempts = 0, correctionAttempts = 0;
-const turn = (id, text) => ({ id, transcript: text, status: 'pending', confidence: 0.9, durationMs: 1, calls: [], results: [] });
+const turn = (id, text) => ({ id, transcript: text, language: 'fr', reasoning: '', status: 'pending', confidence: 0.9, durationMs: 1, calls: [], results: [] });
 export const isTauri = () => true;
 export const listen = async () => () => {};
 export const open = async () => availabilityScenario ? 'C:\\repaired.exe' : null;
 export async function invoke(command, input) {
-  if (command === 'discover_applications') return [{ name: 'Détectée', appId: 'Fixture.Detected', kind: 'desktop' }];
   if (command !== 'assistant_request') return;
-  const { method, payload } = input;
+  const { version, id, requestId, method, payload } = input.request;
+  try {
+    return { version, id, requestId, method, ok: true, result: await handle(method, payload) };
+  } catch (error) {
+    return { version, id, requestId, method, ok: false, error: { code: 'invalid_request', stage: 'validation', requestId, retryable: true, technical: { category: 'invalid_request' }, message: error.message } };
+  }
+}
+async function handle(method, payload) {
+  if (method === 'desktop_action') return null;
+  if (method === 'discover_applications') return [{ name: 'Détectée', appId: 'Fixture.Detected', kind: 'desktop', icon: null }];
   if (availabilityScenario) window.pamAvailabilityFixture.calls.push({method,payload});
-  if (method === 'status') return { config, ready: true, checks: [], engine: null,
+  if (method === 'status') return { config, ready: true, checks: [], manifest: null, configDirectory: 'C:\\fixture-profile', engine: null,
     ...(availabilityScenario ? {applicationAvailability:{[config.applications[0].id]:{available,reason:'Cible de test indisponible.'}}} : {}) };
   if (method === 'media_sessions') return [];
   if (method === 'set_application_enabled') {
@@ -30,13 +38,15 @@ export async function invoke(command, input) {
     if (!availabilityScenario && ++saveAttempts === 1) throw Error('Enregistrement simulé refusé. Corrigez puis réessayez.');
     if (availabilityScenario) available = payload.executable === 'C:\\repaired.exe' || !!payload.windowsApp;
     const app = { ...payload, id: payload.id || '22222222-2222-4222-8222-222222222222' };
+    // Native launch resolution fills the executable for catalogue entries.
+    if (app.windowsApp) app.executable = 'C:\\fixture-catalogue.exe';
     config.applications = [...config.applications.filter(a => a.id !== app.id), app];
     return config;
   }
-  if (method === 'process_text') return turn('original', payload.text);
+  if (method === 'process_text') return turn('33333333-3333-4333-8333-333333333333', payload.text);
   if (method === 'correct_request') {
     if (++correctionAttempts === 1) throw Error('Correction simulée refusée. Réessayez.');
-    return turn('corrected', payload.text);
+    return turn('44444444-4444-4444-8444-444444444444', payload.text);
   }
   throw Error(`Unexpected fixture method: ${method}`);
 }

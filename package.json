@@ -9,6 +9,9 @@
   },
   "packageManager": "npm@11.19.0",
   "scripts": {
+    "lint": "eslint src/App.vue src/composables src/views sidecar/assistant.cjs sidecar/assistant --max-warnings 0",
+    "format": "prettier --write src/App.vue src/composables src/views sidecar/assistant.cjs sidecar/assistant eslint.config.js .prettierrc.json",
+    "format:check": "prettier --check src/App.vue src/composables src/views sidecar/assistant.cjs sidecar/assistant eslint.config.js .prettierrc.json",
     "check:development": "node scripts/check-development.mjs",
     "dev": "npm run check:development && vite",
     "dev:desktop": "npm run check:development && npm run prepare:runtime && vite",
@@ -35,15 +38,20 @@
     "package:docker": "npm run check:development && tauri build --runner cargo-xwin --target x86_64-pc-windows-msvc --no-bundle -- --locked && node scripts/package-portable.mjs"
   },
   "dependencies": {
-    "vue": "^3.5.13",
     "@tauri-apps/api": "^2",
-    "@tauri-apps/plugin-dialog": "^2"
+    "@tauri-apps/plugin-dialog": "^2",
+    "vue": "^3.5.13"
   },
   "devDependencies": {
+    "@eslint/js": "10.0.1",
+    "@tauri-apps/cli": "^2",
     "@vitejs/plugin-vue": "^6.0.7",
+    "eslint": "10.12.0",
+    "eslint-plugin-vue": "10.11.1",
+    "prettier": "3.9.10",
     "typescript": "~6.0.3",
+    "typescript-eslint": "8.71.2",
     "vite": "^8.0.16",
-    "vue-tsc": "^3.3.5",
-    "@tauri-apps/cli": "^2"
+    "vue-tsc": "^3.3.5"
   }
 }

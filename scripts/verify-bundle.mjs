@@ -10,6 +10,8 @@ const required = ['PAM.exe', 'pam-node.exe', 'docs/windows-media-deezer.md', 'do
   'sidecar/media.cjs', 'sidecar/media-commands.cjs', 'sidecar/deezer.cjs', 'sidecar/deezer-commands.cjs', 'sidecar/native.cjs', 'sidecar/needle-tools.cjs', 'sidecar/command-aliases.cjs',
   'sidecar/engine.cjs', 'sidecar/engine-worker.cjs', 'runtime/libneedle3.dll', 'runtime/ffi/node_modules/koffi/index.cjs',
   'runtime/needle.exe', 'runtime/models/needle3.cact', 'runtime/models/whistle.cact', 'runtime/npm/bin/npm-cli.js'];
+for (const module of ['audio', 'config-repository', 'executor', 'intent', 'planner', 'validation']) required.push(`sidecar/assistant/${module}.cjs`);
+for (const module of ['budget', 'config-store', 'config-schema', 'config-migrations', 'execution', 'proposals', 'temporary-files']) required.push(`sidecar/${module}.cjs`);
 for (const file of required) assert.ok((await stat(join(bundle, file))).isFile(), `${file} absent du paquet`);
 const manifest = JSON.parse(await readFile(join(bundle, 'runtime/manifest.json'), 'utf8'));
 for (const asset of manifest.assets) {
