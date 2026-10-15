@@ -25,7 +25,7 @@ test('le sidecar garde un seul processus, corrige les demandes et s’arrête à
     if (waiter) { pending.delete(reply.id); waiter(reply); }
   });
   const request = (method, payload = {}, transport = {}) => new Promise(resolve => {
-    const id = ++serial; pending.set(id, resolve); child.stdin.write(JSON.stringify({ id, method, payload, ...transport }) + '\n');
+    const id = ++serial; pending.set(id, resolve); child.stdin.write(JSON.stringify({ version:1,requestId:require('node:crypto').randomUUID(),id, method, payload, ...transport }) + '\n');
   });
   const first = await request('status');
   assert.equal(first.ok, true); assert.equal(first.result.engine.loaded, true); assert.equal(first.result.engine.pid, child.pid);

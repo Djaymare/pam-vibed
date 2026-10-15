@@ -160,6 +160,6 @@ test('le plugin enregistré refuse une session tierce ou un URI arbitraire', {sk
   const f=await fixture(t);
   const draft={...deezer,id:undefined,executable:path.join(process.env.SystemRoot,'explorer.exe')};
   await assert.rejects(f.handle('save_application',{...draft,media:{sourceAppId:'opera.exe',deezer:true}}),/doit cibler/);
-  await assert.rejects(f.handle('save_application',{...draft,media:{sourceAppId:'Deezer.exe',deezer:true,uri:'deezer://arbitrary'}}),/multimédia invalide/);
+  await assert.rejects(f.handle('save_application',{...draft,media:{sourceAppId:'Deezer.exe',deezer:true,uri:'deezer://arbitrary'}}),error=>error.diagnostic?.code==='invalid_request');
   assert.equal(f.calls.length,0);
 });

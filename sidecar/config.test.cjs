@@ -84,7 +84,7 @@ test('fiche minimale refusée avant normalize, rendu, moteur, lancement et toute
   assert.match(status.configError.message, /applications\[0\]/);
   assert.doesNotMatch(status.configError.message, /normalize/);
   for (const method of ['process_text', 'settings', 'save_application', 'delete_application', 'save_command_alias', 'confirm']) {
-    await assert.rejects(f.handle(method, { text: 'Ouvre broken' }), /Profil invalide/);
+    await assert.rejects(f.handle(method, { text: 'Ouvre broken' }), error=>error.diagnostic?.code===(method==='process_text'?'invalid_profile':'invalid_request'));
     assert.equal(await fs.readFile(f.file, 'utf8'), bytes);
   }
   assert.equal(f.effects(), 0);
@@ -105,7 +105,7 @@ test('récupération confirmée conserve les octets originaux ; refus, changemen
   const bytes = JSON.stringify(await profile('broken'));
   const f = await fixture(t, bytes);
   const status = await f.handle('status'), fingerprint = status.configError.fingerprint;
-  await assert.rejects(f.handle('recover_config', { fingerprint }), /Confirmez/);
+  await assert.rejects(f.handle('recover_config', { fingerprint }), error=>error.diagnostic?.code==='invalid_request');
   assert.equal(await fs.readFile(f.file, 'utf8'), bytes);
   await fs.appendFile(f.file, ' ');
   await assert.rejects(f.handle('recover_config', { confirmed: true, fingerprint }), /changé/);

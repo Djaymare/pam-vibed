@@ -79,6 +79,7 @@ async function mountApp(t, { recoveryFailure = false, healthy = false, proposalS
   const localRequire = createRequire(import.meta.url);
   const stub = vue.defineComponent({ render: () => vue.h('span') });
   const injectedRequire = name => {
+    if (name === './ipc') return {request:(method,payload={})=>invoke('assistant_request',{method,payload}),desktopAction:action=>invoke('desktop_action',{action}),discoverApplications:()=>invoke('discover_applications')};
     if (name === './errors' || name === '../errors') {
       const result = {};
       const code = ts.transpileModule(readFileSync(new URL('../src/errors.ts', import.meta.url), 'utf8'), { compilerOptions: { module: ts.ModuleKind.CommonJS, esModuleInterop: true } }).outputText;

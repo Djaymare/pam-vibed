@@ -48,7 +48,8 @@ try {
   assert.equal(ok(await request('status')).applicationAvailability[app.id].available,false);
   const proposed = ok(await request('prepare_action',{applicationId:app.id,action:'open',arguments:{}}));
   const refused = ok(await request('confirm',{id:proposed.id}));
-  assert.equal(refused.results[0].success,false); assert.match(refused.results[0].message,/absente du catalogue/);
+  assert.equal(refused.results[0].success,false); assert.equal(refused.results[0].error.code,'target_missing');
+  assert.match(refused.results[0].message,/Réparez ou désactivez/);
   config = ok(await request('set_application_enabled',{id:app.id,enabled:false}));
   assert.deepEqual(config.applications[0],{...windowsApp,enabled:false}); assert.deepEqual(config.commandAliases,aliases);
   ok(await request('save_application',{...windowsApp,enabled:false}));

@@ -6,7 +6,7 @@ import { fileURLToPath } from 'node:url';
 import { spawn } from 'node:child_process';
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const bundle = resolve(process.argv[2] || join(root, 'artifacts/PAM-windows-x64'));
-const required = ['PAM.exe', 'pam-node.exe', 'docs/windows-media-deezer.md', 'docs/media-commands.md', 'docs/needle-confidence.md', 'docs/command-aliases.md', 'docs/deezer-routing.md', 'sidecar/main.cjs', 'sidecar/assistant.cjs',
+const required = ['PAM.exe', 'pam-node.exe', 'docs/windows-media-deezer.md', 'docs/media-commands.md', 'docs/needle-confidence.md', 'docs/command-aliases.md', 'docs/deezer-routing.md', 'sidecar/main.cjs', 'sidecar/assistant.cjs', 'sidecar/contracts.json', 'sidecar/contracts.cjs',
   'sidecar/media.cjs', 'sidecar/media-commands.cjs', 'sidecar/deezer.cjs', 'sidecar/deezer-commands.cjs', 'sidecar/native.cjs', 'sidecar/needle-tools.cjs', 'sidecar/command-aliases.cjs',
   'sidecar/engine.cjs', 'sidecar/engine-worker.cjs', 'runtime/libneedle3.dll', 'runtime/ffi/node_modules/koffi/index.cjs',
   'runtime/needle.exe', 'runtime/models/needle3.cact', 'runtime/models/whistle.cact', 'runtime/npm/bin/npm-cli.js'];
@@ -66,7 +66,7 @@ if (process.platform === 'win32') {
       let stdout = ''; let stderr = '';
       child.stdout.on('data', chunk => { stdout += chunk; }); child.stderr.on('data', chunk => { stderr += chunk; });
       child.on('error', reject); child.on('close', code => code === 0 ? resolve(JSON.parse(stdout)) : reject(new Error(stderr || stdout)));
-      child.stdin.end(JSON.stringify({ method: 'status', payload: {} }));
+      child.stdin.end(JSON.stringify({ version:1,id:1,requestId:'11111111-1111-4111-8111-111111111111',method: 'status', payload: {} }));
     });
     assert.equal(reply.ok, true); assert.equal(reply.result.ready, true);
     assert.equal(reply.result.engine.loaded, true);

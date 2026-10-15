@@ -1,10 +1,10 @@
 <script setup lang="ts">
 import { describeError } from '../errors';
 import { computed, onMounted, ref, watch } from 'vue';
-import { invoke } from '@tauri-apps/api/core';
-import type { Application, MediaSession } from '../types';
+import { request } from '../ipc';
+import type { Application, CommandAction, MediaSession } from '../types';
 const props = defineProps<{ applications: Application[]; locked: boolean }>();
-const emit = defineEmits<{ action: [applicationId: string, action: string, args: Record<string,string>, label: string] }>();
+const emit = defineEmits<{ action: [applicationId: string, action: CommandAction, args: Record<string,string>, label: string] }>();
 const sessions = ref<MediaSession[]>([]);
 const error = ref('');
 const loading = ref(false);
@@ -24,11 +24,11 @@ const session = computed(() => matching.value.length === 1 ? matching.value[0] :
 const actions = { play:'Lecture', pause:'Pause', next:'Piste suivante', previous:'Piste précédente', stop:'Arrêter', toggle:'Lecture / pause' };
 async function refresh() {
   loading.value = true; error.value = '';
-  try { sessions.value = await invoke('assistant_request',{method:'media_sessions',payload:{}}); }
+  try { sessions.value = await request('media_sessions'); }
   catch (caught) { error.value = describeError(caught); }
   finally { loading.value = false; }
 }
-function prepare(action:string,args:Record<string,string>,label:string) {
+function prepare(action:CommandAction,args:Record<string,string>,label:string) {
   if (app.value) emit('action',app.value.id,action,args,`${label} dans ${app.value.name}`);
 }
 onMounted(refresh);
@@ -43,7 +43,7 @@ onMounted(refresh);
       <p v-else-if="matching.length > 1" class="result-error">Plusieurs sessions de ce lecteur : fermez les médias supplémentaires pour choisir sans ambiguïté.</p>
       <p v-else-if="session?.error" class="result-error">{{ session.error }}</p>
       <p v-else class="muted">{{ session?.title || 'Média sans titre' }}<span v-if="session?.artist"> · {{ session.artist }}</span> · {{ session?.playbackStatus }}</p>
-      <div class="media-buttons"><button v-for="(label, action) in actions" :key="action" class="secondary small" :disabled="locked || loading || !session?.capabilities?.[action]" @click="prepare('media_' + action, {},label)">{{ label }}</button></div>
+      <div class="media-buttons"><button v-for="(label, action) in actions" :key="action" class="secondary small" :disabled="locked || loading || !session?.capabilities?.[action]" @click="prepare(('media_' + action) as CommandAction, {},label)">{{ label }}</button></div>
       <p class="muted">Les boutons disponibles correspondent aux capacités actuelles du lecteur. « Piste suivante » passe au prochain élément déjà présent dans la file.</p>
       <div v-if="app.media?.deezer" class="deezer-controls">
         <h3>Deezer Music</h3>

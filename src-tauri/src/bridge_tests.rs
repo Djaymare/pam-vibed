@@ -88,7 +88,7 @@ impl Drop for Fixture {
     }
 }
 fn audio() -> Value {
-    json!({"audio": "A".repeat(4_000_000)})
+    json!({"audio": vec![255;1_100_000]})
 }
 
 #[test]
@@ -96,7 +96,7 @@ fn diagnostics_correlate_node_rust_and_stderr_without_personal_content() {
     let fixture = Fixture::new("diagnostic", Duration::from_secs(3), 4);
     let error = fixture
         .bridge
-        .request("process_audio", json!({"audio":"SENTINEL_AUDIO"}))
+        .request("process_audio", json!({"audio":[83,69,78,84,73,78,69,76]}))
         .unwrap_err()
         .envelope();
     assert_eq!(error.code, "model_failure");
@@ -149,10 +149,7 @@ fn real_node_main_propagates_corrupt_profile_without_voice_content() {
     };
     let error = fixture
         .bridge
-        .request(
-            "process_text",
-            json!({"text":"SENTINEL_PRIVATE_VOICE","arguments":["SENTINEL_ARGS"]}),
-        )
+        .request("process_text", json!({"text":"SENTINEL_PRIVATE_VOICE"}))
         .unwrap_err()
         .envelope();
     assert_eq!(error.code, "invalid_profile");
@@ -177,7 +174,7 @@ fn missing_host_target_has_a_safe_stable_error() {
     let fixture = Fixture::new("host-missing", Duration::from_secs(3), 4);
     let error = fixture
         .bridge
-        .request("test_application", json!({}))
+        .request("process_text", json!({"text":"host missing"}))
         .unwrap_err()
         .envelope();
     assert_eq!(error.code, "target_missing");
@@ -202,9 +199,9 @@ fn unread_audio_pipe_has_a_deadline_and_recovers() {
     fixture.mode("echo");
     let result = fixture
         .bridge
-        .request("status", json!({"label":"recovered"}))
+        .request("process_text", json!({"text":"recovered"}))
         .unwrap();
-    assert_eq!(result["label"], "recovered");
+    assert_eq!(result["transcript"], "recovered");
     assert_eq!(fixture.executions(), ["recovered"]);
 }
 
@@ -285,8 +282,8 @@ fn restart_during_write_is_accessible_and_does_not_replay() {
     assert_eq!(
         fixture
             .bridge
-            .request("status", json!({"label":"after restart"}))
-            .unwrap()["label"],
+            .request("process_text", json!({"text":"after restart"}))
+            .unwrap()["transcript"],
         "after restart"
     );
     assert_eq!(fixture.executions(), ["after restart"]);
@@ -297,14 +294,14 @@ fn idle_restart_retires_the_stream_before_the_next_request() {
     let fixture = Fixture::new("echo", Duration::from_secs(2), 4);
     let first = fixture
         .bridge
-        .request("status", json!({"label":"before"}))
+        .request("process_text", json!({"text":"before"}))
         .unwrap();
     fixture.bridge.restart();
     let second = fixture
         .bridge
-        .request("status", json!({"label":"after"}))
+        .request("process_text", json!({"text":"after"}))
         .unwrap();
-    assert_ne!(first["pid"], second["pid"]);
+    assert_ne!(first["reasoning"], second["reasoning"]);
     assert_eq!(fixture.executions(), ["before", "after"]);
 }
 
@@ -336,14 +333,14 @@ fn eof_is_distinct_from_a_missing_response() {
 fn full_queue_and_expired_queued_request_never_execute() {
     let fixture = Fixture::new("late", Duration::from_secs(4), 1);
     let bridge = fixture.bridge.clone();
-    let active = thread::spawn(move || bridge.request("confirm", json!({"label":"active"})));
+    let active = thread::spawn(move || bridge.request("process_text", json!({"text":"active"})));
     fixture.ready();
     fixture.at_stage(RESPONSE);
     let bridge = fixture.bridge.clone();
     let queued = thread::spawn(move || {
         bridge.request_until(
-            "confirm",
-            json!({"label":"expired"}),
+            "process_text",
+            json!({"text":"expired"}),
             Instant::now() + Duration::from_millis(300),
         )
     });
@@ -351,7 +348,7 @@ fn full_queue_and_expired_queued_request_never_execute() {
     assert_eq!(
         fixture
             .bridge
-            .request("confirm", json!({"label":"saturated"}))
+            .request("process_text", json!({"text":"saturated"}))
             .unwrap_err()
             .code,
         "bridge_queue_full"
@@ -361,7 +358,7 @@ fn full_queue_and_expired_queued_request_never_execute() {
         "bridge_queue_timeout"
     );
     // A queued timeout must not kill the active process or cancel its effect.
-    assert_eq!(active.join().unwrap().unwrap()["label"], "active");
+    assert_eq!(active.join().unwrap().unwrap()["transcript"], "active");
     fixture.wait_for(|| fixture.bridge.is_idle());
     assert_eq!(fixture.executions(), ["active"]);
 }
@@ -372,7 +369,7 @@ fn late_reply_cannot_satisfy_another_request_or_replay_an_effect() {
     assert_eq!(
         fixture
             .bridge
-            .request("confirm", json!({"label":"once"}))
+            .request("process_text", json!({"text":"once"}))
             .unwrap_err()
             .code,
         "bridge_response_timeout"
@@ -382,8 +379,8 @@ fn late_reply_cannot_satisfy_another_request_or_replay_an_effect() {
     assert_eq!(
         fixture
             .bridge
-            .request("status", json!({"label":"new"}))
-            .unwrap()["label"],
+            .request("process_text", json!({"text":"new"}))
+            .unwrap()["transcript"],
         "new"
     );
     assert_eq!(fixture.executions(), ["once", "new"]);
@@ -396,8 +393,8 @@ fn requests_keep_effect_order_and_size_limits() {
         assert_eq!(
             fixture
                 .bridge
-                .request("confirm", json!({"label":label}))
-                .unwrap()["label"],
+                .request("process_text", json!({"text":label}))
+                .unwrap()["transcript"],
             label
         );
     }
@@ -405,7 +402,7 @@ fn requests_keep_effect_order_and_size_limits() {
     assert_eq!(
         fixture
             .bridge
-            .request("process_audio", json!({"audio":"A".repeat(5_000_000)}))
+            .request("process_audio", json!({"audio":vec![255;1_300_000]}))
             .unwrap_err()
             .code,
         "bridge_request_size"
@@ -417,17 +414,17 @@ fn requests_keep_effect_order_and_size_limits() {
 fn concurrent_requests_execute_in_queue_order() {
     let fixture = Fixture::new("late", Duration::from_secs(6), 4);
     let bridge = fixture.bridge.clone();
-    let first = thread::spawn(move || bridge.request("confirm", json!({"label":"first"})));
+    let first = thread::spawn(move || bridge.request("process_text", json!({"text":"first"})));
     fixture.ready();
     fixture.at_stage(RESPONSE);
     let bridge = fixture.bridge.clone();
-    let second = thread::spawn(move || bridge.request("confirm", json!({"label":"second"})));
+    let second = thread::spawn(move || bridge.request("process_text", json!({"text":"second"})));
     fixture.wait_for(|| fixture.bridge.control.pending.load(Ordering::Acquire) == 2);
     let bridge = fixture.bridge.clone();
-    let third = thread::spawn(move || bridge.request("confirm", json!({"label":"third"})));
+    let third = thread::spawn(move || bridge.request("process_text", json!({"text":"third"})));
     fixture.wait_for(|| fixture.bridge.control.pending.load(Ordering::Acquire) == 3);
     for (request, label) in [(first, "first"), (second, "second"), (third, "third")] {
-        assert_eq!(request.join().unwrap().unwrap()["label"], label);
+        assert_eq!(request.join().unwrap().unwrap()["transcript"], label);
     }
     assert_eq!(fixture.executions(), ["first", "second", "third"]);
 }
@@ -439,7 +436,7 @@ fn interruption_preserves_per_action_outcomes_and_restart_does_not_replay() {
         let start = Instant::now();
         let turn = fixture
             .bridge
-            .request("confirm", json!({"label":"emitted"}))
+            .request("process_text", json!({"text":"emitted"}))
             .unwrap();
         assert!(start.elapsed() < Duration::from_secs(2));
         assert_eq!(turn["status"], "partial");
@@ -452,8 +449,8 @@ fn interruption_preserves_per_action_outcomes_and_restart_does_not_replay() {
         assert_eq!(
             fixture
                 .bridge
-                .request("status", json!({"label":"recovered"}))
-                .unwrap()["label"],
+                .request("process_text", json!({"text":"recovered"}))
+                .unwrap()["transcript"],
             "recovered"
         );
         assert_eq!(fixture.executions(), ["emitted", "recovered"]);
@@ -464,12 +461,12 @@ fn interruption_preserves_per_action_outcomes_and_restart_does_not_replay() {
 fn sidecar_receives_budget_after_queueing_and_startup() {
     let fixture = Fixture::new("late", Duration::from_secs(4), 4);
     let bridge = fixture.bridge.clone();
-    let first = thread::spawn(move || bridge.request("confirm", json!({"label":"first"})));
+    let first = thread::spawn(move || bridge.request("process_text", json!({"text":"first"})));
     fixture.ready();
     fixture.at_stage(RESPONSE);
     fixture
         .bridge
-        .request("confirm", json!({"label":"second"}))
+        .request("process_text", json!({"text":"second"}))
         .unwrap();
     first.join().unwrap().unwrap();
     let budgets: Vec<u64> = fs::read_to_string(fixture.profile.join("budgets"))
@@ -488,9 +485,43 @@ fn unrelated_progress_cannot_supply_a_partial_result() {
     assert_eq!(
         fixture
             .bridge
-            .request("confirm", json!({}))
+            .request("process_text", json!({"text":"invalid progress"}))
             .unwrap_err()
             .code,
         "bridge_protocol"
     );
+}
+
+#[test]
+fn stale_response_is_ignored_without_replaying_the_request() {
+    let fixture = Fixture::new("stale-response", Duration::from_secs(2), 4);
+    let result = fixture
+        .bridge
+        .request("process_text", json!({"text":"once"}))
+        .unwrap();
+    assert_eq!(result["transcript"], "once");
+    assert_eq!(fixture.executions(), ["once"]);
+}
+
+#[test]
+fn malformed_or_incompatible_frames_fail_before_host_effect() {
+    for mode in [
+        "wrong-version",
+        "invalid-result",
+        "invalid-error",
+        "invalid-host",
+    ] {
+        let fixture = Fixture::new(mode, Duration::from_secs(2), 4);
+        assert_eq!(
+            fixture
+                .bridge
+                .request("process_text", json!({"text":"once"}))
+                .unwrap_err()
+                .code,
+            "bridge_protocol",
+            "{mode}"
+        );
+        assert_eq!(fixture.executions(), ["once"]);
+        assert!(!fixture.profile.join("forbidden-effect").exists());
+    }
 }

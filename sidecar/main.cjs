@@ -5,6 +5,7 @@ const { nativeRequest } = require('./native.cjs');
 const { createBudget } = require('./budget.cjs');
 const { performance } = require('node:perf_hooks');
 const { requestId, failure } = require('./diagnostics.cjs');
+const {contract,validateRequest,validateResult}=require('./contracts.cjs');
 
 const { createEngine } = require('./engine.cjs');
 const [runtimeDirectory, configDirectory] = process.argv.slice(2);
@@ -24,15 +25,18 @@ function enqueue(input) {
     try {
       if (!runtimeDirectory || !configDirectory) throw new Error('Chemins du sidecar manquants.');
       request = JSON.parse(input);
+      if(!validateRequest(request) || contract.nativeOnly.includes(request.method)) throw new Error('Requête IPC incompatible.');
+      host.setContext(request.requestId);
       const remaining = Number.isFinite(request.remainingMs) ? request.remainingMs : 40_000;
       const transportRemaining = Number.isFinite(request.deadlineUnixMs) ? request.deadlineUnixMs-Date.now() : remaining;
       const budget = createBudget({milliseconds:Math.max(0,Math.min(transportRemaining,remaining-(performance.now()-admittedAt)))});
       const result = await handle(request.method, request.payload, {budget, requestId:requestId(request.requestId),
-        onDiagnostic: error => process.stdout.write(JSON.stringify({type:'diagnostic',id:request.id,error})+'\n'),
-        onProgress: turn => process.stdout.write(JSON.stringify({type:'turn_progress',id:request.id,turn})+'\n')});
-      process.stdout.write(JSON.stringify({ id: request.id, ok: true, result }) + '\n');
+        onDiagnostic: error => process.stdout.write(JSON.stringify({version:contract.version,requestId:request.requestId,type:'diagnostic',id:request.id,error})+'\n'),
+        onProgress: turn => process.stdout.write(JSON.stringify({version:contract.version,requestId:request.requestId,type:'turn_progress',id:request.id,turn})+'\n')});
+      if(!validateResult(request.method,result)) throw new Error('Résultat IPC incompatible.');
+      process.stdout.write(JSON.stringify({ version:contract.version,requestId:request.requestId,id: request.id, ok: true, result }) + '\n');
     } catch (error) {
-      process.stdout.write(JSON.stringify({ id: request?.id, ok: false, error: failure(error,{requestId:request?.requestId}) }) + '\n');
+      process.stdout.write(JSON.stringify({ version:contract.version,requestId:request?.requestId,id: request?.id, ok: false, error: failure(error,{requestId:request?.requestId}) }) + '\n');
     } finally { clearTimeout(timer); }
   });
 }

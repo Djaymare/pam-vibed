@@ -1,8 +1,9 @@
 <script setup lang="ts">
 import { ref, watch } from 'vue';
-import type { Config, ImportPreview } from '../types';
+import type { ImportPreview } from '../types';
 import { describeError } from '../errors';
-const props = defineProps<{ locked: boolean; request: <T>(method: string, payload?: unknown) => Promise<T> }>();
+import type { RequestFunction } from '../ipc';
+const props = defineProps<{ locked: boolean; request: RequestFunction }>();
 const content = ref(''), exported = ref(''), preview = ref<ImportPreview>(), busy = ref(false), message = ref(''), error = ref('');
 watch(content, () => { preview.value = undefined; });
 async function run(action: () => Promise<void>) {
@@ -11,11 +12,11 @@ async function run(action: () => Promise<void>) {
   try { await action(); } catch (caught) { error.value = describeError(caught); preview.value = undefined; }
   finally { busy.value = false; }
 }
-function exportProfile() { return run(async () => { exported.value = await props.request<string>('export_config'); }); }
-function inspectImport() { return run(async () => { preview.value = await props.request<ImportPreview>('preview_import', { content: content.value }); }); }
+function exportProfile() { return run(async () => { exported.value = await props.request('export_config'); }); }
+function inspectImport() { return run(async () => { preview.value = await props.request('preview_import', { content: content.value }); }); }
 function importProfile() { return run(async () => {
   if (!preview.value) return;
-  const result = await props.request<{ config: Config; backupPath: string }>('import_config', { content: content.value, ...preview.value, confirmed: true });
+  const result = await props.request('import_config', { content: content.value, ...preview.value, confirmed: true });
   preview.value = undefined; content.value = ''; exported.value = '';
   message.value = `Profil importé. Copie de l’ancien profil : ${result.backupPath}`;
 }); }

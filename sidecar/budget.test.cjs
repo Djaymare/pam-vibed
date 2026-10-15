@@ -106,8 +106,9 @@ test('restarting after a crash in an emitted action recovers the journal without
 
 test('a host timeout uses the remaining budget and classifies the emitted result as unknown', async () => {
   const sent=[];const host=createHostChannel(line=>sent.push(JSON.parse(line)));
+  host.setContext('11111111-1111-4111-8111-111111111111');
   const budget=createBudget({milliseconds:30});
-  const started=performance.now();await assert.rejects(host.request('launch_application',{}, {budget}),error=>error.outcome==='unknown');
+  const started=performance.now();await assert.rejects(host.request('launch_application',{executable:'C:\\fixture.exe',arguments:[]}, {budget}),error=>error.outcome==='unknown');
   assert.ok(performance.now()-started<150);assert.equal(sent.length,1);assert.ok(sent[0].remainingMs<=30);
   host.receive({type:'host_response',id:sent[0].id,ok:true,result:{accepted:true}});
   host.close();assert.equal(sent.length,1);

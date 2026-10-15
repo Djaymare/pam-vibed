@@ -1,0 +1,41 @@
+// The descriptor is also consumed by the browser generator and Rust validator.
+const contract = require('./contracts.json');
+function matches(value, schema, definitions = contract.definitions) {
+  if (typeof schema === 'string') {
+    if (schema === 'string') return typeof value === 'string';
+    if (schema === 'boolean') return typeof value === 'boolean';
+    if (schema === 'number') return typeof value === 'number' && Number.isFinite(value);
+    if (schema === 'integer') return Number.isSafeInteger(value) && value >= 0;
+    if (schema === 'byte') return Number.isInteger(value) && value >= 0 && value <= 255;
+    return Object.hasOwn(definitions, schema) && matches(value, definitions[schema], definitions);
+  }
+  if ('literal' in schema) return value === schema.literal;
+  if (schema.enum) return schema.enum.includes(value);
+  if (schema.nullable) return value === null || matches(value, schema.nullable, definitions);
+  if (schema.array) return Array.isArray(value) && value.length <= schema.max && value.every(item => matches(item, schema.array, definitions));
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return false;
+  if (schema.record) return Object.values(value).every(item => matches(item, schema.record, definitions));
+  const properties = schema.properties;
+  if (!schema.extra && Object.keys(value).some(key => !Object.hasOwn(properties,key) && !Object.hasOwn(properties,key+'?'))) return false;
+  return Object.entries(properties).every(([key, type]) => key.endsWith('?')
+    ? value[key.slice(0,-1)] === undefined || matches(value[key.slice(0,-1)], type, definitions)
+    : Object.hasOwn(value,key) && matches(value[key], type, definitions));
+}
+function validatePayload(method, payload) {
+  return Object.hasOwn(contract.methods,method) && matches(payload,contract.methods[method][0]);
+}
+function validateResult(method, result) {
+  return Object.hasOwn(contract.methods,method) && matches(result,contract.methods[method][1]);
+}
+function validReference(id) { return typeof id === 'string' && /^(?:pam-\d{1,20}-\d{1,10}-\d{1,20}|[a-f0-9]{8}(?:-[a-f0-9]{4}){3}-[a-f0-9]{12})$/i.test(id); }
+function validateRequest(request) {
+  return request && typeof request === 'object' && !Array.isArray(request)
+    && Object.keys(request).every(key=>['version','id','requestId','method','payload','remainingMs','deadlineUnixMs'].includes(key))
+    && (request.remainingMs===undefined || Number.isFinite(request.remainingMs) && request.remainingMs>=0)
+    && (request.deadlineUnixMs===undefined || Number.isFinite(request.deadlineUnixMs))
+    && request.version === contract.version && Number.isSafeInteger(request.id) && request.id > 0 && validReference(request.requestId) && validatePayload(request.method,request.payload);
+}
+function validateHostPayload(method,payload) {
+  return Object.hasOwn(contract.hostMethods,method) && matches(payload,contract.hostMethods[method]);
+}
+module.exports = { contract, matches, validatePayload, validateResult, validateRequest, validReference, validateHostPayload };

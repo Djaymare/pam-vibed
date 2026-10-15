@@ -1,5 +1,6 @@
 import catalog from '../sidecar/error-catalog.json';
-export interface PamError { code: string; stage: string; requestId: string; retryable: boolean; message: string; technical: { category: string } }
+import type { PamError } from './contracts.generated';
+export type { PamError } from './contracts.generated';
 export function microphoneCode(caught: unknown): 'microphone_denied' | 'microphone_missing' | undefined {
   if (caught instanceof DOMException && caught.name === 'NotAllowedError') return 'microphone_denied';
   if (caught instanceof DOMException && caught.name === 'NotFoundError') return 'microphone_missing';

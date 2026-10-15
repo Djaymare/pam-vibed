@@ -204,7 +204,7 @@ test('sidecar : import/restauration retirent les anciennes propositions sans mot
   await handle('import_config', { ...preview, content, confirmed: true });
   assert.equal((await handle('confirm', { id: proposal.id })).proposal.state, 'invalidated');
   const next = await handle('prepare_action', { applicationId: config.applications[0].id, action: 'open' });
-  await handle('recover_config', { ...await f.store.recoveryInfo(), restoreBackup: true, confirmed: true });
+  await handle('recover_config', { ...(({fingerprint,backupFingerprint})=>({fingerprint,backupFingerprint}))(await f.store.recoveryInfo()), restoreBackup: true, confirmed: true });
   assert.equal((await handle('confirm', { id: next.id })).proposal.state, 'invalidated');
   assert.equal(effects, 0);
 });

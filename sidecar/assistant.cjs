@@ -1,4 +1,5 @@
 const fs = require('node:fs/promises');
+const {validatePayload}=require('./contracts.cjs');
 const path = require('node:path');
 const { randomUUID, createHash } = require('node:crypto');
 const { execFile, spawn } = require('node:child_process');
@@ -645,6 +646,7 @@ function createAssistant({ runtimeDirectory, configDirectory, runEngine = execut
   }
   return async (method, payload = {}, context = {}) => {
     context = {...context,requestId:requestId(context.requestId)};
+    if(!validatePayload(method,payload)) throw annotate(new Error('Requête IPC invalide.'),context);
     const budget = context.budget || createBudget({milliseconds:budgetMs, ...(now ? {now} : {}), ...(setTimer ? {setTimer,clearTimer} : {})});
     try { return await handle(method,payload,{...context,budget}); }
     catch (error) {

@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, nextTick, onMounted, onBeforeUnmount, reactive, ref, watch } from 'vue';
-import { invoke, isTauri } from '@tauri-apps/api/core';
+import { isTauri } from '@tauri-apps/api/core';
 import { listen, type UnlistenFn } from '@tauri-apps/api/event';
 import { open } from '@tauri-apps/plugin-dialog';
 import Icon from './components/Icon.vue';
@@ -14,6 +14,8 @@ import {commandActions,choiceArguments} from './actions';
 import { VoiceRecorder } from './audio/recorder';
 import { retainTurns, reconcileTurns } from './proposals';
 import { describeError, microphoneCode } from './errors';
+import { request as ipcRequest, desktopAction, discoverApplications as ipcDiscoverApplications, type RequestFunction } from './ipc';
+import type { CommandAction, Method, Methods } from './contracts.generated';
 import type { Application, CommandAlias, Config, InstalledApplication, MediaSession, RuntimeStatus, Turn, WindowsApplication } from './types';
 
 const page = ref<'assistant' | 'applications' | 'settings'>('assistant');
@@ -36,10 +38,10 @@ function beginRecovery() {
   recoveryChoice.value = { fingerprint: details.fingerprint, backupFingerprint: details.backupFingerprint ?? '', backupSummary: details.backupSummary ?? { applications: [], formulations: 0, language: 'fr', autoExecute: true, confidenceThreshold: 0.7 } };
   recoveryOpen.value = true;
 }
-async function profileRequest<T>(method: string, payload?: unknown): Promise<T> {
+async function profileRequest<M extends Method>(method: M, payload?: Methods[M]['payload']): Promise<Methods[M]['result']> {
   busy.value = true;
   try {
-    const result = await request<T>(method, payload);
+    const result = await request(method, payload);
     if (method === 'import_config') { config.value = (result as { config: Config }).config; recoveryOpen.value = false; await refresh(); }
     return result;
   } finally { busy.value = false; }
@@ -93,20 +95,20 @@ let proposalTimer: number | undefined;
 const unlisten: UnlistenFn[] = [];
 let disposed = false;
 
-async function request<T>(method: string, payload: unknown = {}): Promise<T> {
+const request: RequestFunction = (method, payload) => {
   if (!isTauri()) throw new Error('Ouvrez PAM avec l’application Windows pour accéder au microphone et aux applications.');
-  return invoke<T>('assistant_request', { method, payload });
+  return ipcRequest(method, payload);
 }
 async function refresh() {
   loading.value = true; error.value = '';
-  try { status.value = await request<RuntimeStatus>('status'); config.value = status.value.config; turns.value = reconcileTurns(turns.value, status.value.proposals); }
+  try { status.value = await request('status'); config.value = status.value.config; turns.value = reconcileTurns(turns.value, status.value.proposals); }
   catch (caught) { error.value = describeError(caught); }
   finally { loading.value = false; }
 }
 async function updateHealth() {
   if (locked.value || !isTauri()) return;
   try {
-    const next = await request<RuntimeStatus>('status');
+    const next = await request('status');
     if (next.configError || status.value?.configError) config.value = next.config;
     status.value = next;
     turns.value = reconcileTurns(turns.value, next.proposals);
@@ -118,7 +120,7 @@ async function recoverProfile(restoreBackup = false) {
   if (!fingerprint || locked.value) return;
   busy.value = true; error.value = '';
   try {
-    const result = await request<{ config: Config; backupPath: string }>('recover_config', { confirmed: true, fingerprint,
+    const result = await request('recover_config', { confirmed: true, fingerprint,
       ...(restoreBackup ? { restoreBackup: true, backupFingerprint: recoveryChoice.value?.backupFingerprint } : {}) });
     config.value = result.config; recoveryBackup.value = result.backupPath; recoveryOpen.value = false;
     await refresh();
@@ -153,22 +155,22 @@ watch(() => JSON.stringify([config.value.applications, config.value.commandAlias
     proposal: { createdAt: null, expiresAt: null, ...turn.proposal, state: 'invalidated', reason: 'configuration_changed' },
     message: 'Les applications ou formulations ont changé. Reformulez votre demande.' } : turn);
 });
-watch(recording, value => { if (isTauri()) void invoke('desktop_action', { action: value ? 'listening' : 'idle' }).catch(() => {}); });
-async function process(method: string, payload: unknown) {
+watch(recording, value => { if (isTauri()) void desktopAction(value ? 'listening' : 'idle').catch(() => {}); });
+async function process<M extends 'process_text' | 'process_audio' | 'prepare_action'>(method: M, payload: Methods[M]['payload']) {
   busy.value = true; error.value = '';
   try {
-    const turn = await request<Turn>(method, payload);
+    const turn = await request(method, payload);
     turns.value = retainTurns([turn, ...reconcileTurns(turns.value)]); text.value = '';
   } catch (caught) { error.value = describeError(caught); }
   finally { busy.value = false; void updateHealth(); }
 }
 async function submitText() { if (canRequest.value && text.value.trim()) await process('process_text', { text: text.value.trim() }); }
-async function prepareMediaAction(applicationId:string, action:string, args:Record<string,string>, label:string) {
+async function prepareMediaAction(applicationId:string, action:CommandAction, args:Record<string,string>, label:string) {
   if (!locked.value) await process('prepare_action',{applicationId,action,arguments:args,label});
 }
 async function refreshMediaSessions() {
   mediaError.value = '';
-  try { mediaSessions.value = await request<MediaSession[]>('media_sessions'); }
+  try { mediaSessions.value = await request('media_sessions'); }
   catch (caught) { mediaError.value = describeError(caught); }
 }
 function clearTimers() { window.clearInterval(interval); window.clearTimeout(limitTimer); }
@@ -219,14 +221,14 @@ async function correctTurn() {
   let prepared = false;
   busy.value = true; correctionError.value = '';
   try {
-    const turn = await request<Turn>('correct_request', { id: original.id, text: correctionForm.text.trim(),
+    const turn = await request('correct_request', { id: original.id, text: correctionForm.text.trim(),
       applicationId: correctionForm.applicationId || undefined, input: correctionInput.value ? correctionForm.input : undefined,
       action:correctionChoice.value?.action,
       arguments:correctionChoice.value ? choiceArguments(correctionChoice.value,correctionForm.arguments) : undefined,
       saveAlias: correctionForm.saveAlias && !!correctionApp.value && (!correctionForm.action || correctionForm.action==='open'), alias: correctionForm.alias,
       saveCommandAlias:correctionForm.saveCommandAlias && !!correctionApp.value && !!correctionForm.action,commandPhrase:correctionForm.commandPhrase });
     prepared = true;
-    try { status.value = await request<RuntimeStatus>('status'); config.value = status.value.config; }
+    try { status.value = await request('status'); config.value = status.value.config; }
     catch (caught) { error.value = describeError(caught); }
     await nextTick();
     turns.value = retainTurns([turn, ...turns.value.map(item => item.id === original.id && item.status === 'pending' ? { ...item, status: 'invalidated' as const,
@@ -235,12 +237,12 @@ async function correctTurn() {
   finally { busy.value = false; if (prepared) correction.value = undefined; void updateHealth(); }
 }
 async function desktop(action: 'hide' | 'quit') {
-  try { await invoke('desktop_action', { action }); }
+  try { await desktopAction(action); }
   catch (caught) { error.value = describeError(caught); }
 }
 async function restartEngine() {
   busy.value = true; error.value = '';
-  try { await request('restart_engine'); status.value = await request<RuntimeStatus>('status'); }
+  try { await request('restart_engine'); status.value = await request('status'); }
   catch (caught) { error.value = describeError(caught); }
   finally { busy.value = false; }
 }
@@ -250,7 +252,7 @@ async function resolveTurn(turn: Turn, accept: boolean) {
   if (turns.value.find(item => item.id === turn.id)?.status !== 'pending') return;
   busy.value = true; error.value = '';
   try {
-    const updated = await request<Turn>(accept ? 'confirm' : 'discard', { id: turn.id });
+    const updated = await request(accept ? 'confirm' : 'discard', { id: turn.id });
     turns.value = turns.value.map(item => item.id === turn.id ? { ...item, ...updated } : item);
   } catch (caught) { error.value = describeError(caught); }
   finally { busy.value = false; void updateHealth(); }
@@ -275,7 +277,7 @@ async function addApplication() {
 async function discoverApplications() {
   if (discoveryLoading.value) return;
   discoveryLoading.value = true; discoveryError.value = '';
-  try { installedApplications.value = await invoke<InstalledApplication[]>('discover_applications'); }
+  try { installedApplications.value = await ipcDiscoverApplications(); }
   catch (caught) { discoveryError.value = describeError(caught); }
   finally { discoveryLoading.value = false; }
 }
@@ -302,7 +304,7 @@ function useExecutable() { form.windowsApp = undefined; form.executable = ''; fo
 function applicationPayload() {
   let args: unknown;
   try { args = JSON.parse(form.arguments); } catch { throw new Error('Les arguments doivent être un tableau JSON, par exemple ["--new-window", "{input}"].'); }
-  return { ...form, media:mediaSource.value ? {sourceAppId:mediaSource.value,deezer:deezerPlugin.value && deezerTarget.value} : undefined, id: editingId.value, aliases: form.aliases.split(',').map(alias => alias.trim()).filter(Boolean), arguments: args };
+  return { ...form, media:mediaSource.value ? {sourceAppId:mediaSource.value,deezer:deezerPlugin.value && deezerTarget.value} : undefined, id: editingId.value, aliases: form.aliases.split(',').map(alias => alias.trim()).filter(Boolean), arguments: args as string[] };
 }
 async function testLaunch() {
   busy.value = true; testing.value = true; formError.value = ''; testResult.value = undefined;
@@ -321,38 +323,38 @@ async function browse() {
 async function saveApplication() {
   busy.value = true; formError.value = '';
   try {
-    config.value = await request<Config>('save_application', applicationPayload());
+    config.value = await request('save_application', applicationPayload());
     editorOpen.value = false;
   } catch (caught) { formError.value = describeError(caught); }
   finally { busy.value = false; void updateHealth(); }
 }
 async function toggleApplication(application: Application) {
   busy.value = true; error.value = '';
-  try { config.value = await request<Config>('set_application_enabled', { id: application.id, enabled: !application.enabled }); }
+  try { config.value = await request('set_application_enabled', { id: application.id, enabled: !application.enabled }); }
   catch (caught) { error.value = describeError(caught); }
   finally { busy.value = false; void updateHealth(); }
 }
 async function deleteApplication(application: Application) {
   busy.value = true; error.value = '';
-  try { config.value = await request<Config>('delete_application', { id: application.id }); }
+  try { config.value = await request('delete_application', { id: application.id }); }
   catch (caught) { error.value = describeError(caught); }
   finally { busy.value = false; }
 }
 async function saveSettings() {
   busy.value = true; error.value = '';
-  try { config.value = await request<Config>('settings', { language: config.value.language, autoExecute: config.value.autoExecute,
+  try { config.value = await request('settings', { language: config.value.language, autoExecute: config.value.autoExecute,
     confidenceThreshold: Number(config.value.confidenceThreshold) }); }
   catch (caught) { const message = describeError(caught); await refresh(); error.value = message; }
   finally { busy.value = false; }
 }
 async function saveCommandAlias(alias:Omit<CommandAlias,'id'> & {id?:string}) {
   busy.value=true;
-  try {config.value=await request<Config>('save_command_alias',alias);}
+  try {config.value=await request('save_command_alias',alias);}
   finally {busy.value=false;}
 }
 async function deleteCommandAlias(id:string) {
   busy.value=true;
-  try {config.value=await request<Config>('delete_command_alias',{id});}
+  try {config.value=await request('delete_command_alias',{id});}
   finally {busy.value=false;}
 }
 const labels: Record<Turn['status'], string> = { executed: 'Terminé', pending: 'À valider', unsupported: 'Aucune action disponible', silence: 'Aucune parole détectée', failed: 'Échec de l’action', cancelled: 'Annulé', partial: 'Exécution interrompue', expired: 'Proposition expirée', invalidated: 'Proposition retirée', consumed: 'Confirmation consommée' };

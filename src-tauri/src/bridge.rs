@@ -1,5 +1,5 @@
 //! One transport actor serializes effects. Callers never own the pipe or its lock.
-use crate::{applications::Catalogue, diagnostics, launch};
+use crate::{applications::Catalogue, contracts, diagnostics, launch};
 use serde_json::{json, Value};
 use std::{
     collections::HashSet,
@@ -252,11 +252,30 @@ impl Bridge {
         payload: Value,
         deadline: Instant,
     ) -> Result<Value, Error> {
-        let request_id = diagnostics::request_id();
-        self.request_inner(method, payload, deadline, &request_id)
+        self.request_correlated_until(method, payload, deadline, &diagnostics::request_id())
+    }
+    pub fn request_correlated(
+        &self,
+        method: &str,
+        payload: Value,
+        request_id: &str,
+    ) -> Result<Value, Error> {
+        self.request_correlated_until(method, payload, Instant::now() + self.timeout, request_id)
+    }
+    fn request_correlated_until(
+        &self,
+        method: &str,
+        payload: Value,
+        deadline: Instant,
+        request_id: &str,
+    ) -> Result<Value, Error> {
+        if !contracts::valid_payload(method, &payload) {
+            return Err(Error::new("bridge_protocol", "Requête invalide."));
+        }
+        self.request_inner(method, payload, deadline, request_id)
             .map(|mut result| {
                 if result["error"].is_object() {
-                    let diagnostic = diagnostics::Error::from_value(&result["error"], &request_id);
+                    let diagnostic = diagnostics::Error::from_value(&result["error"], request_id);
                     self.record_diagnostic(&diagnostic, "rust");
                     result["error"] = json!(diagnostic);
                 }
@@ -279,7 +298,7 @@ impl Bridge {
                 let safe = error.envelope();
                 let diagnostic = diagnostics::Error::new(
                     &safe.code,
-                    &request_id,
+                    request_id,
                     if error.diagnostic.is_some() {
                         &safe.stage
                     } else {
@@ -308,7 +327,7 @@ impl Bridge {
         });
         attempt.check(&self.control)?;
         let mut bytes =
-            serde_json::to_vec(&json!({"id": attempt.id, "requestId":request_id, "method": method, "payload": payload}))
+            serde_json::to_vec(&json!({"version":contracts::VERSION,"id": attempt.id, "requestId":request_id, "method": method, "payload": payload}))
                 .map_err(|e| Error::new("bridge_protocol", e.to_string()))?;
         if bytes.len() > REQUEST_LIMIT {
             return Err(Error::new(
@@ -700,6 +719,15 @@ impl Worker {
                     ))
                 }
             };
+            if response["version"] != contracts::VERSION {
+                return Err(Error::new(
+                    "bridge_protocol",
+                    "Version de réponse incompatible.",
+                ));
+            }
+            if response["requestId"] != attempt.request_id {
+                continue;
+            }
             if response["type"] == "diagnostic" {
                 if response["id"] != attempt.id {
                     return Err(Error::new(
@@ -714,7 +742,10 @@ impl Worker {
                 continue;
             }
             if response["type"] == "turn_progress" {
-                if response["id"] != attempt.id || !valid_progress(&response["turn"]) {
+                if response["id"] != attempt.id
+                    || !valid_progress(&response["turn"])
+                    || !contracts::valid_type(&response["turn"], "Turn")
+                {
                     return Err(Error::new(
                         "bridge_protocol",
                         "Progression d’exécution invalide.",
@@ -726,14 +757,26 @@ impl Worker {
             }
             if response["type"] != "host_request" {
                 if response["id"] != attempt.id {
-                    return Err(Error::new(
-                        "bridge_protocol",
-                        "Réponse d’une autre demande.",
-                    ));
+                    continue;
                 }
                 return if response["ok"] == true {
+                    if !contracts::valid_result(
+                        request["method"].as_str().unwrap_or(""),
+                        &response["result"],
+                    ) {
+                        return Err(Error::new("bridge_protocol", "Résultat invalide."));
+                    }
                     Ok(response["result"].clone())
                 } else {
+                    if response["ok"] != false
+                        || !contracts::valid_type(&response["error"], "PamError")
+                        || response["error"]["requestId"] != attempt.request_id
+                    {
+                        return Err(Error::new(
+                            "bridge_protocol",
+                            "Enveloppe d’erreur invalide.",
+                        ));
+                    }
                     let diagnostic =
                         diagnostics::Error::from_value(&response["error"], &attempt.request_id);
                     let mut error = Error::new("sidecar_error", diagnostic.message.clone());
@@ -744,6 +787,12 @@ impl Worker {
             let id = response["id"]
                 .as_str()
                 .ok_or_else(|| Error::new("bridge_protocol", "Identifiant de lancement absent."))?;
+            if !contracts::valid_host_payload(
+                response["method"].as_str().unwrap_or(""),
+                &response["payload"],
+            ) {
+                return Err(Error::new("bridge_protocol", "Requête native invalide."));
+            }
             if id.len() != 36
                 || !id.bytes().all(|b| b.is_ascii_hexdigit() || b == b'-')
                 || executed.len() >= 32
@@ -790,6 +839,9 @@ impl Worker {
                     json!({"type":"host_response","id":id,"ok":false,"error":error})
                 }
             };
+            let mut reply = reply;
+            reply["version"] = json!(contracts::VERSION);
+            reply["requestId"] = json!(attempt.request_id);
             let mut bytes = serde_json::to_vec(&reply)
                 .map_err(|e| Error::new("bridge_protocol", e.to_string()))?;
             bytes.push(b'\n');

@@ -1,0 +1,591 @@
+[
+  {
+    "name": "request status",
+    "valid": true,
+    "request": {
+      "version": 1,
+      "id": 1,
+      "requestId": "11111111-1111-4111-8111-111111111111",
+      "method": "status",
+      "payload": {}
+    }
+  },
+  {
+    "name": "request export_diagnostics",
+    "valid": true,
+    "request": {
+      "version": 1,
+      "id": 2,
+      "requestId": "11111111-1111-4111-8111-111111111111",
+      "method": "export_diagnostics",
+      "payload": {}
+    }
+  },
+  {
+    "name": "request diagnostic_event",
+    "valid": true,
+    "request": {
+      "version": 1,
+      "id": 3,
+      "requestId": "11111111-1111-4111-8111-111111111111",
+      "method": "diagnostic_event",
+      "payload": {
+        "code": "microphone_denied"
+      }
+    }
+  },
+  {
+    "name": "request recover_config",
+    "valid": true,
+    "request": {
+      "version": 1,
+      "id": 4,
+      "requestId": "11111111-1111-4111-8111-111111111111",
+      "method": "recover_config",
+      "payload": {
+        "confirmed": true,
+        "fingerprint": "fixture"
+      }
+    }
+  },
+  {
+    "name": "request export_config",
+    "valid": true,
+    "request": {
+      "version": 1,
+      "id": 5,
+      "requestId": "11111111-1111-4111-8111-111111111111",
+      "method": "export_config",
+      "payload": {}
+    }
+  },
+  {
+    "name": "request preview_import",
+    "valid": true,
+    "request": {
+      "version": 1,
+      "id": 6,
+      "requestId": "11111111-1111-4111-8111-111111111111",
+      "method": "preview_import",
+      "payload": {
+        "content": "fixture"
+      }
+    }
+  },
+  {
+    "name": "request import_config",
+    "valid": true,
+    "request": {
+      "version": 1,
+      "id": 7,
+      "requestId": "11111111-1111-4111-8111-111111111111",
+      "method": "import_config",
+      "payload": {
+        "content": "fixture",
+        "confirmed": true,
+        "fingerprint": "fixture",
+        "importFingerprint": "fixture"
+      }
+    }
+  },
+  {
+    "name": "request save_application",
+    "valid": true,
+    "request": {
+      "version": 1,
+      "id": 8,
+      "requestId": "11111111-1111-4111-8111-111111111111",
+      "method": "save_application",
+      "payload": {
+        "name": "fixture",
+        "description": "fixture",
+        "executable": "fixture",
+        "arguments": [],
+        "aliases": [],
+        "enabled": false
+      }
+    }
+  },
+  {
+    "name": "request set_application_enabled",
+    "valid": true,
+    "request": {
+      "version": 1,
+      "id": 9,
+      "requestId": "11111111-1111-4111-8111-111111111111",
+      "method": "set_application_enabled",
+      "payload": {
+        "id": "fixture",
+        "enabled": false
+      }
+    }
+  },
+  {
+    "name": "request delete_application",
+    "valid": true,
+    "request": {
+      "version": 1,
+      "id": 10,
+      "requestId": "11111111-1111-4111-8111-111111111111",
+      "method": "delete_application",
+      "payload": {
+        "id": "fixture"
+      }
+    }
+  },
+  {
+    "name": "request settings",
+    "valid": true,
+    "request": {
+      "version": 1,
+      "id": 11,
+      "requestId": "11111111-1111-4111-8111-111111111111",
+      "method": "settings",
+      "payload": {
+        "language": "fixture",
+        "autoExecute": false,
+        "confidenceThreshold": 0
+      }
+    }
+  },
+  {
+    "name": "request process_text",
+    "valid": true,
+    "request": {
+      "version": 1,
+      "id": 12,
+      "requestId": "11111111-1111-4111-8111-111111111111",
+      "method": "process_text",
+      "payload": {
+        "text": "fixture"
+      }
+    }
+  },
+  {
+    "name": "request process_audio",
+    "valid": true,
+    "request": {
+      "version": 1,
+      "id": 13,
+      "requestId": "11111111-1111-4111-8111-111111111111",
+      "method": "process_audio",
+      "payload": {
+        "audio": []
+      }
+    }
+  },
+  {
+    "name": "request confirm",
+    "valid": true,
+    "request": {
+      "version": 1,
+      "id": 14,
+      "requestId": "11111111-1111-4111-8111-111111111111",
+      "method": "confirm",
+      "payload": {
+        "id": "fixture"
+      }
+    }
+  },
+  {
+    "name": "request discard",
+    "valid": true,
+    "request": {
+      "version": 1,
+      "id": 15,
+      "requestId": "11111111-1111-4111-8111-111111111111",
+      "method": "discard",
+      "payload": {
+        "id": "fixture"
+      }
+    }
+  },
+  {
+    "name": "request correct_request",
+    "valid": true,
+    "request": {
+      "version": 1,
+      "id": 16,
+      "requestId": "11111111-1111-4111-8111-111111111111",
+      "method": "correct_request",
+      "payload": {
+        "id": "fixture",
+        "text": "fixture"
+      }
+    }
+  },
+  {
+    "name": "request restart_engine",
+    "valid": true,
+    "request": {
+      "version": 1,
+      "id": 17,
+      "requestId": "11111111-1111-4111-8111-111111111111",
+      "method": "restart_engine",
+      "payload": {}
+    }
+  },
+  {
+    "name": "request test_application",
+    "valid": true,
+    "request": {
+      "version": 1,
+      "id": 18,
+      "requestId": "11111111-1111-4111-8111-111111111111",
+      "method": "test_application",
+      "payload": {
+        "name": "fixture",
+        "description": "fixture",
+        "executable": "fixture",
+        "arguments": [],
+        "aliases": [],
+        "enabled": false
+      }
+    }
+  },
+  {
+    "name": "request media_sessions",
+    "valid": true,
+    "request": {
+      "version": 1,
+      "id": 19,
+      "requestId": "11111111-1111-4111-8111-111111111111",
+      "method": "media_sessions",
+      "payload": {}
+    }
+  },
+  {
+    "name": "request prepare_action",
+    "valid": true,
+    "request": {
+      "version": 1,
+      "id": 20,
+      "requestId": "11111111-1111-4111-8111-111111111111",
+      "method": "prepare_action",
+      "payload": {
+        "applicationId": "fixture",
+        "action": "open"
+      }
+    }
+  },
+  {
+    "name": "request save_command_alias",
+    "valid": true,
+    "request": {
+      "version": 1,
+      "id": 21,
+      "requestId": "11111111-1111-4111-8111-111111111111",
+      "method": "save_command_alias",
+      "payload": {
+        "phrase": "fixture",
+        "applicationId": "fixture",
+        "action": "open"
+      }
+    }
+  },
+  {
+    "name": "request delete_command_alias",
+    "valid": true,
+    "request": {
+      "version": 1,
+      "id": 22,
+      "requestId": "11111111-1111-4111-8111-111111111111",
+      "method": "delete_command_alias",
+      "payload": {
+        "id": "fixture"
+      }
+    }
+  },
+  {
+    "name": "request desktop_action",
+    "valid": true,
+    "request": {
+      "version": 1,
+      "id": 23,
+      "requestId": "11111111-1111-4111-8111-111111111111",
+      "method": "desktop_action",
+      "payload": {
+        "action": "hide"
+      }
+    }
+  },
+  {
+    "name": "request discover_applications",
+    "valid": true,
+    "request": {
+      "version": 1,
+      "id": 24,
+      "requestId": "11111111-1111-4111-8111-111111111111",
+      "method": "discover_applications",
+      "payload": {}
+    }
+  },
+  {
+    "name": "unknown method",
+    "valid": false,
+    "request": {
+      "version": 1,
+      "id": 1,
+      "requestId": "11111111-1111-4111-8111-111111111111",
+      "method": "erase_disk",
+      "payload": {}
+    }
+  },
+  {
+    "name": "incompatible version",
+    "valid": false,
+    "request": {
+      "version": 2,
+      "id": 1,
+      "requestId": "11111111-1111-4111-8111-111111111111",
+      "method": "status",
+      "payload": {}
+    }
+  },
+  {
+    "name": "invalid payload",
+    "valid": false,
+    "request": {
+      "version": 1,
+      "id": 1,
+      "requestId": "11111111-1111-4111-8111-111111111111",
+      "method": "status",
+      "payload": []
+    }
+  },
+  {
+    "name": "missing field",
+    "valid": false,
+    "request": {
+      "version": 1,
+      "id": 1,
+      "requestId": "11111111-1111-4111-8111-111111111111",
+      "method": "status",
+      "payload": null
+    }
+  },
+  {
+    "name": "invalid correlation",
+    "valid": false,
+    "request": {
+      "version": 1,
+      "id": 1,
+      "requestId": "personal-data",
+      "method": "status",
+      "payload": {}
+    }
+  },
+  {
+    "name": "invalid id",
+    "valid": false,
+    "request": {
+      "version": 1,
+      "id": 0,
+      "requestId": "11111111-1111-4111-8111-111111111111",
+      "method": "status",
+      "payload": {}
+    }
+  },
+  {
+    "name": "partial turn",
+    "valid": true,
+    "type": "Turn",
+    "value": {
+      "id": "fixture",
+      "transcript": "fixture",
+      "language": "fixture",
+      "confidence": null,
+      "reasoning": "fixture",
+      "durationMs": 0,
+      "calls": [
+        {
+          "name": "fixture",
+          "arguments": {},
+          "applicationId": "fixture",
+          "applicationName": "Fixture"
+        }
+      ],
+      "results": [
+        {
+          "outcome": "unknown",
+          "success": false,
+          "applicationName": "Fixture",
+          "message": "Unknown"
+        }
+      ],
+      "status": "partial",
+      "proposal": {
+        "state": "consumed",
+        "createdAt": 1,
+        "expiresAt": 2,
+        "reason": "fixture"
+      }
+    }
+  },
+  {
+    "name": "expired turn",
+    "valid": true,
+    "type": "Turn",
+    "value": {
+      "id": "fixture",
+      "transcript": "fixture",
+      "language": "fixture",
+      "confidence": null,
+      "reasoning": "fixture",
+      "durationMs": 0,
+      "calls": [],
+      "results": [],
+      "status": "expired",
+      "proposal": {
+        "state": "expired",
+        "createdAt": 1,
+        "expiresAt": 2,
+        "reason": "fixture"
+      }
+    }
+  },
+  {
+    "name": "invalidated turn",
+    "valid": true,
+    "type": "Turn",
+    "value": {
+      "id": "fixture",
+      "transcript": "fixture",
+      "language": "fixture",
+      "confidence": null,
+      "reasoning": "fixture",
+      "durationMs": 0,
+      "calls": [],
+      "results": [],
+      "status": "invalidated",
+      "proposal": {
+        "state": "invalidated",
+        "createdAt": 1,
+        "expiresAt": 2,
+        "reason": "fixture"
+      }
+    }
+  },
+  {
+    "name": "consumed turn",
+    "valid": true,
+    "type": "Turn",
+    "value": {
+      "id": "fixture",
+      "transcript": "fixture",
+      "language": "fixture",
+      "confidence": null,
+      "reasoning": "fixture",
+      "durationMs": 0,
+      "calls": [],
+      "results": [],
+      "status": "consumed",
+      "proposal": {
+        "state": "consumed",
+        "createdAt": 1,
+        "expiresAt": 2,
+        "reason": "fixture"
+      }
+    }
+  },
+  {
+    "name": "shared error",
+    "valid": true,
+    "type": "PamError",
+    "value": {
+      "code": "model_failure",
+      "stage": "inference",
+      "requestId": "11111111-1111-4111-8111-111111111111",
+      "retryable": false,
+      "message": "fixture",
+      "technical": {
+        "category": "model_failure"
+      }
+    }
+  },
+  {
+    "name": "invalid error",
+    "valid": false,
+    "type": "PamError",
+    "value": {
+      "code": "model_failure",
+      "stage": "inference",
+      "requestId": "11111111-1111-4111-8111-111111111111",
+      "retryable": "false",
+      "message": "fixture",
+      "technical": {
+        "category": "model_failure"
+      }
+    }
+  },
+  {
+    "name": "invalid action outcome",
+    "valid": false,
+    "type": "Turn",
+    "value": {
+      "id": "fixture",
+      "transcript": "fixture",
+      "language": "fixture",
+      "confidence": null,
+      "reasoning": "fixture",
+      "durationMs": 0,
+      "calls": [
+        {
+          "name": "fixture",
+          "arguments": {},
+          "applicationId": "fixture",
+          "applicationName": "Fixture"
+        }
+      ],
+      "results": [
+        {
+          "outcome": "replay",
+          "success": false,
+          "applicationName": "Fixture",
+          "message": "invalid"
+        }
+      ],
+      "status": "partial",
+      "proposal": {
+        "state": "consumed",
+        "createdAt": 1,
+        "expiresAt": 2,
+        "reason": "fixture"
+      }
+    }
+  },
+  {
+    "name": "unknown envelope field",
+    "valid": false,
+    "request": {
+      "version": 1,
+      "id": 1,
+      "requestId": "11111111-1111-4111-8111-111111111111",
+      "method": "status",
+      "payload": {},
+      "unexpected": true
+    }
+  },
+  {
+    "name": "unsafe integer id",
+    "valid": false,
+    "request": {
+      "version": 1,
+      "id": 9007199254740992,
+      "requestId": "11111111-1111-4111-8111-111111111111",
+      "method": "status",
+      "payload": {}
+    }
+  },
+  {
+    "name": "oversized PID correlation",
+    "valid": false,
+    "request": {
+      "version": 1,
+      "id": 1,
+      "requestId": "pam-1-12345678901-1",
+      "method": "status",
+      "payload": {}
+    }
+  }
+]

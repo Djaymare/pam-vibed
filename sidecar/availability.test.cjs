@@ -27,7 +27,7 @@ test('exécutable supprimé : désactivation dédiée sans stat, identifiant/arg
   await fs.unlink(f.executable);
   assert.equal((await f.handle('status')).applicationAvailability[f.app.id].available, false);
   const stat = t.mock.method(fs, 'stat', async () => { throw Error('No stat during disable'); });
-  const disabled = await f.handle('set_application_enabled', { id:f.app.id, enabled:false, arguments:[], aliases:[] });
+  const disabled = await f.handle('set_application_enabled', { id:f.app.id, enabled:false });
   assert.equal(stat.mock.callCount(), 0);
   assert.deepEqual(disabled.applications[0], { ...f.app, enabled:false });
   assert.deepEqual(disabled.commandAliases, before.commandAliases);

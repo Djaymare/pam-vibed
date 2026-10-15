@@ -31,6 +31,8 @@
     "externalBin": ["binaries/pam-node"],
     "resources": {
       "runtime/": "runtime/",
+      "../sidecar/contracts.json": "sidecar/contracts.json",
+      "../sidecar/contracts.cjs": "sidecar/contracts.cjs",
       "../sidecar/main.cjs": "sidecar/main.cjs",
       "../sidecar/diagnostics.cjs": "sidecar/diagnostics.cjs",
       "../sidecar/error-catalog.json": "sidecar/error-catalog.json",
