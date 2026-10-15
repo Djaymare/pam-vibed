@@ -42,3 +42,8 @@ fn main() {
         }
     }
 }
+#[cfg(windows)]
+#[path = "../src/windows_resources.rs"]
+// This standalone helper uses only STA; the application uses both constructors.
+#[allow(dead_code)]
+mod windows_resources;

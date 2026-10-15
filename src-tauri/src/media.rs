@@ -102,15 +102,8 @@ mod native {
             GlobalSystemMediaTransportControlsSessionPlaybackStatus as PlaybackStatus,
         },
         System::{Launcher, LauncherOptions},
-        Win32::System::WinRT::{RoInitialize, RoUninitialize, RO_INIT_MULTITHREADED},
     };
 
-    struct Apartment;
-    impl Drop for Apartment {
-        fn drop(&mut self) {
-            unsafe { RoUninitialize() };
-        }
-    }
     fn source(session: &Session) -> Result<String, String> {
         Ok(session.SourceAppUserModelId().map_err(err)?.to_string())
     }
@@ -144,8 +137,7 @@ mod native {
         }))
     }
     pub fn handle(request: &Value) -> Result<Value, String> {
-        unsafe { RoInitialize(RO_INIT_MULTITHREADED) }.map_err(err)?;
-        let _apartment = Apartment;
+        let _apartment = crate::windows_resources::Apartment::mta().map_err(err)?;
         let method = request["method"]
             .as_str()
             .ok_or("Méthode native manquante.")?;

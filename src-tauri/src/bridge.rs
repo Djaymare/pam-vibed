@@ -1,12 +1,16 @@
 //! One transport actor serializes effects. Callers never own the pipe or its lock.
-use crate::{applications::Catalogue, contracts, diagnostics, launch};
+use crate::{
+    applications::Catalogue,
+    contracts, diagnostics, launch,
+    supervision::{Clock, OwnedProcess, ProcessFactory, SystemClock, SystemProcess},
+};
 use serde_json::{json, Value};
 use std::{
     collections::HashSet,
     fmt,
     io::{BufRead, BufReader, Read, Write},
     path::PathBuf,
-    process::{Child, ChildStdin, Command, Stdio},
+    process::{ChildStdin, Command, Stdio},
     sync::{
         atomic::{AtomicBool, AtomicU64, AtomicU8, AtomicUsize, Ordering},
         mpsc::{self, Receiver, RecvTimeoutError, SyncSender, TrySendError},
@@ -23,6 +27,20 @@ const STARTING: u8 = 1;
 const WRITING: u8 = 2;
 const RESPONSE: u8 = 3;
 const HOST_EFFECT: u8 = 4;
+
+/// Host-facing IPC boundary. Test doubles exercise dispatch without starting
+/// Node or replacing the versioned contracts shared with production.
+pub(crate) trait RequestTransport {
+    fn request_correlated(
+        &self,
+        method: &str,
+        payload: Value,
+        request_id: &str,
+    ) -> Result<Value, Error>;
+    fn restart(&self);
+    fn export_diagnostics(&self) -> Result<Value, diagnostics::Error>;
+    fn record_diagnostic(&self, error: &diagnostics::Error, source: &str);
+}
 
 #[derive(Debug)]
 pub(crate) struct Error {
@@ -126,7 +144,7 @@ impl Attempt {
     fn check(&self, control: &Control) -> Result<(), Error> {
         if control.stopped.load(Ordering::Acquire) {
             Err(Error::new("bridge_stopped", "Le bridge est arrêté."))
-        } else if Instant::now() >= self.deadline {
+        } else if control.clock.now() >= self.deadline {
             Err(self.timeout())
         } else if self.cancelled.load(Ordering::Acquire) {
             Err(Error::new(
@@ -146,36 +164,40 @@ struct Operation {
 
 #[derive(Default)]
 struct ProcessState {
-    child: Option<Child>,
+    child: Option<OwnedProcess>,
     invalidated: bool,
     active: Option<Arc<Attempt>>,
-    #[cfg(windows)]
-    job: Option<ProcessJob>,
 }
 impl ProcessState {
     fn kill(&mut self) {
         self.invalidated = true;
-        // Internal children may also hold the unread pipe open. Terminate the
-        // entire sidecar job through the independent control path.
-        #[cfg(windows)]
-        if let Some(job) = &self.job {
-            unsafe {
-                windows_sys::Win32::System::JobObjects::TerminateJobObject(job.0, 70);
-            }
-        }
         if let Some(child) = self.child.as_mut() {
-            let _ = child.kill();
+            child.terminate();
         }
     }
 }
-#[derive(Default)]
 struct Control {
+    clock: Arc<dyn Clock>,
+    process_factory: Arc<dyn ProcessFactory>,
     // Held only for process bookkeeping/kill, never for pipe I/O or effects.
     state: Mutex<ProcessState>,
     stopped: AtomicBool,
     started: AtomicBool,
     pending: AtomicUsize,
     journal: Mutex<Option<Arc<diagnostics::Journal>>>,
+}
+impl Default for Control {
+    fn default() -> Self {
+        Self {
+            clock: Arc::new(SystemClock),
+            process_factory: Arc::new(SystemProcess),
+            state: Mutex::new(ProcessState::default()),
+            stopped: AtomicBool::new(false),
+            started: AtomicBool::new(false),
+            pending: AtomicUsize::new(0),
+            journal: Mutex::new(None),
+        }
+    }
 }
 impl Control {
     fn cancel(&self, attempt: &Attempt) {
@@ -211,8 +233,27 @@ impl Bridge {
         Self::with_limits(config, Duration::from_secs(50), 4)
     }
     fn with_limits(config: Config, timeout: Duration, capacity: usize) -> Result<Self, String> {
+        Self::with_services(
+            config,
+            timeout,
+            capacity,
+            Arc::new(SystemClock),
+            Arc::new(SystemProcess),
+        )
+    }
+    fn with_services(
+        config: Config,
+        timeout: Duration,
+        capacity: usize,
+        clock: Arc<dyn Clock>,
+        process_factory: Arc<dyn ProcessFactory>,
+    ) -> Result<Self, String> {
         let (sender, receiver) = mpsc::sync_channel(capacity);
-        let control = Arc::new(Control::default());
+        let control = Arc::new(Control {
+            clock,
+            process_factory,
+            ..Control::default()
+        });
         *control.journal.lock().unwrap() =
             Some(Arc::new(diagnostics::Journal::new(config.profile.clone())));
         let actor_control = control.clone();
@@ -229,7 +270,7 @@ impl Bridge {
         })
     }
     pub fn request(&self, method: &str, payload: Value) -> Result<Value, Error> {
-        self.request_until(method, payload, Instant::now() + self.timeout)
+        self.request_until(method, payload, self.control.clock.now() + self.timeout)
     }
     pub fn export_diagnostics(&self) -> Result<Value, diagnostics::Error> {
         self.control
@@ -260,7 +301,12 @@ impl Bridge {
         payload: Value,
         request_id: &str,
     ) -> Result<Value, Error> {
-        self.request_correlated_until(method, payload, Instant::now() + self.timeout, request_id)
+        self.request_correlated_until(
+            method,
+            payload,
+            self.control.clock.now() + self.timeout,
+            request_id,
+        )
     }
     fn request_correlated_until(
         &self,
@@ -355,8 +401,8 @@ impl Bridge {
                 }
             });
         }
-        match response.recv_timeout(deadline.saturating_duration_since(Instant::now())) {
-            Ok(result) if Instant::now() < deadline => result,
+        match response.recv_timeout(deadline.saturating_duration_since(self.control.clock.now())) {
+            Ok(result) if self.control.clock.now() < deadline => result,
             Ok(_) | Err(RecvTimeoutError::Timeout) => {
                 self.control.cancel(&attempt);
                 let error = attempt.timeout();
@@ -388,6 +434,26 @@ impl Drop for Bridge {
     fn drop(&mut self) {
         // Exit never joins an actor that might be inside a native effect.
         self.shutdown();
+    }
+}
+
+impl RequestTransport for Bridge {
+    fn request_correlated(
+        &self,
+        method: &str,
+        payload: Value,
+        request_id: &str,
+    ) -> Result<Value, Error> {
+        Bridge::request_correlated(self, method, payload, request_id)
+    }
+    fn restart(&self) {
+        Bridge::restart(self);
+    }
+    fn export_diagnostics(&self) -> Result<Value, diagnostics::Error> {
+        Bridge::export_diagnostics(self)
+    }
+    fn record_diagnostic(&self, error: &diagnostics::Error, source: &str) {
+        Bridge::record_diagnostic(self, error, source);
     }
 }
 
@@ -462,50 +528,6 @@ fn run_actor(config: Config, receiver: Receiver<Operation>, control: Arc<Control
     drop(worker);
 }
 
-#[cfg(windows)]
-struct ProcessJob(windows_sys::Win32::Foundation::HANDLE);
-#[cfg(windows)]
-unsafe impl Send for ProcessJob {}
-#[cfg(windows)]
-impl Drop for ProcessJob {
-    fn drop(&mut self) {
-        unsafe {
-            windows_sys::Win32::Foundation::CloseHandle(self.0);
-        }
-    }
-}
-#[cfg(windows)]
-fn supervise(child: &Child) -> Result<ProcessJob, Error> {
-    use std::os::windows::io::AsRawHandle;
-    use windows_sys::Win32::System::JobObjects::*;
-    unsafe {
-        let handle = CreateJobObjectW(std::ptr::null(), std::ptr::null());
-        if handle.is_null() {
-            return Err(Error::new(
-                "bridge_start",
-                "Impossible de superviser le sidecar.",
-            ));
-        }
-        let job = ProcessJob(handle);
-        let mut info: JOBOBJECT_EXTENDED_LIMIT_INFORMATION = std::mem::zeroed();
-        info.BasicLimitInformation.LimitFlags = JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE;
-        if SetInformationJobObject(
-            handle,
-            JobObjectExtendedLimitInformation,
-            &info as *const _ as *const _,
-            std::mem::size_of_val(&info) as u32,
-        ) == 0
-            || AssignProcessToJobObject(handle, child.as_raw_handle()) == 0
-        {
-            return Err(Error::new(
-                "bridge_start",
-                "Impossible de superviser le sidecar.",
-            ));
-        }
-        Ok(job)
-    }
-}
-
 struct Worker {
     stdin: ChildStdin,
     replies: Option<Receiver<Result<Value, Error>>>,
@@ -546,28 +568,24 @@ impl Worker {
             use std::os::windows::process::CommandExt;
             command.creation_flags(0x08000000);
         }
-        let mut child = command.spawn().map_err(|e| {
+        let child = control.process_factory.spawn(&mut command).map_err(|e| {
             Error::new(
                 "bridge_start",
                 format!("Impossible de démarrer Node embarqué : {e}"),
             )
         })?;
-        #[cfg(windows)]
-        let job = match supervise(&child) {
-            Ok(job) => job,
-            Err(error) => {
-                let _ = child.kill();
-                let _ = child.wait();
-                return Err(error);
-            }
-        };
+        let mut child = OwnedProcess::supervise(child).map_err(|e| {
+            Error::new(
+                "bridge_start",
+                format!("Impossible de superviser le sidecar : {e}"),
+            )
+        })?;
         // Command's piped handles exist; guard even unexpected handle failure.
-        let (Some(stdin), Some(stdout)) = (child.stdin.take(), child.stdout.take()) else {
-            let _ = child.kill();
-            let _ = child.wait();
+        let (Some(stdin), Some(stdout)) = (child.inner.stdin.take(), child.inner.stdout.take())
+        else {
             return Err(Error::new("bridge_start", "Pipes du sidecar absents."));
         };
-        let stderr_reader = if let Some(mut stderr) = child.stderr.take() {
+        let stderr_reader = if let Some(mut stderr) = child.inner.stderr.take() {
             let stderr_control = control.clone();
             Some(thread::spawn(move || {
                 let mut bytes = [0u8; 4096];
@@ -605,16 +623,10 @@ impl Worker {
             let mut state = control.state.lock().unwrap_or_else(|e| e.into_inner());
             if let Err(error) = attempt.check(&control) {
                 drop(state);
-                let _ = child.kill();
-                let _ = child.wait();
                 return Err(error);
             }
             state.child = Some(child);
             state.invalidated = false;
-            #[cfg(windows)]
-            {
-                state.job = Some(job);
-            }
         }
         let (sender, replies) = mpsc::sync_channel(1);
         let mut worker = Self {
@@ -680,7 +692,7 @@ impl Worker {
         // Send the current remainder, with room for the final report.
         let remaining = attempt
             .deadline
-            .saturating_duration_since(Instant::now())
+            .saturating_duration_since(self.control.clock.now())
             .as_millis() as u64;
         let mut request: Value = serde_json::from_slice(&operation.bytes)
             .map_err(|e| Error::new("bridge_protocol", e.to_string()))?;
@@ -701,12 +713,11 @@ impl Worker {
         loop {
             attempt.stage.store(RESPONSE, Ordering::Release);
             attempt.check(&self.control)?;
-            let response = match self
-                .replies
-                .as_ref()
-                .unwrap()
-                .recv_timeout(attempt.deadline.saturating_duration_since(Instant::now()))
-            {
+            let response = match self.replies.as_ref().unwrap().recv_timeout(
+                attempt
+                    .deadline
+                    .saturating_duration_since(self.control.clock.now()),
+            ) {
                 Ok(response) => {
                     attempt.check(&self.control)?;
                     response?
@@ -870,15 +881,8 @@ impl Drop for Worker {
     fn drop(&mut self) {
         let mut state = self.control.state.lock().unwrap_or_else(|e| e.into_inner());
         let child = state.child.take();
-        #[cfg(windows)]
-        let job = state.job.take();
         drop(state);
-        #[cfg(windows)]
-        drop(job); // Close inherited pipes in internal children before joining.
-        if let Some(mut child) = child {
-            let _ = child.kill();
-            let _ = child.wait();
-        }
+        drop(child); // Close job, terminate and reap before joining readers.
         drop(self.replies.take()); // Unblock a bounded stdout sender before joining.
         if let Some(reader) = self.reader.take() {
             let _ = reader.join();

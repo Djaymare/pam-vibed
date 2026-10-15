@@ -92,6 +92,80 @@ fn audio() -> Value {
 }
 
 #[test]
+fn injected_spawn_failure_is_correlated_without_start_or_replay() {
+    struct FailingFactory(AtomicUsize);
+    impl ProcessFactory for FailingFactory {
+        fn spawn(&self, command: &mut Command) -> std::io::Result<std::process::Child> {
+            self.0.fetch_add(1, Ordering::Relaxed);
+            assert!(command.get_program().to_string_lossy().ends_with(".exe"));
+            assert_eq!(command.get_args().count(), 3);
+            Err(std::io::Error::other("injected spawn failure"))
+        }
+    }
+    let fixture = Fixture::new("echo", Duration::from_secs(2), 2);
+    let factory = Arc::new(FailingFactory(AtomicUsize::new(0)));
+    let root = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+    let bridge = Bridge::with_services(
+        Config {
+            node: root.join("binaries/pam-node-x86_64-pc-windows-msvc.exe"),
+            script: root.join("../tests/fixtures/bridge-sidecar.cjs"),
+            runtime: root.join("runtime"),
+            profile: fixture.profile.clone(),
+            catalogue: Arc::new(Catalogue::default()),
+        },
+        Duration::from_secs(2),
+        2,
+        Arc::new(SystemClock),
+        factory.clone(),
+    )
+    .unwrap();
+    let error = bridge
+        .request_correlated("status", json!({}), "11111111-1111-4111-8111-111111111111")
+        .unwrap_err();
+    assert_eq!(
+        error.envelope().request_id,
+        "11111111-1111-4111-8111-111111111111"
+    );
+    assert_eq!(factory.0.load(Ordering::Relaxed), 1);
+    assert!(!bridge.has_started());
+    assert!(!fixture.profile.join("started.json").exists());
+    assert!(fixture.executions().is_empty());
+    bridge.shutdown();
+    fixture.wait_for(|| bridge._actor.is_finished());
+}
+
+#[test]
+fn injected_clock_expires_attempt_before_any_process_effect() {
+    struct FixedClock(Instant);
+    impl Clock for FixedClock {
+        fn now(&self) -> Instant {
+            self.0
+        }
+        fn sleep(&self, _: Duration) {
+            panic!("bridge must not poll by sleeping");
+        }
+    }
+    let clock = Arc::new(FixedClock(Instant::now() + Duration::from_secs(60)));
+    let control = Control {
+        clock: clock.clone(),
+        ..Control::default()
+    };
+    let attempt = Attempt {
+        id: 1,
+        request_id: "clock-fixture".into(),
+        deadline: clock.now(),
+        stage: AtomicU8::new(QUEUED),
+        cancelled: AtomicBool::new(false),
+        progress: Mutex::new(None),
+    };
+    assert_eq!(
+        attempt.check(&control).unwrap_err().code,
+        "bridge_queue_timeout"
+    );
+    assert!(control.state.lock().unwrap().child.is_none());
+}
+
+#[test]
 fn diagnostics_correlate_node_rust_and_stderr_without_personal_content() {
     let fixture = Fixture::new("diagnostic", Duration::from_secs(3), 4);
     let error = fixture

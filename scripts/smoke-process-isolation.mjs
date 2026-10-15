@@ -2,7 +2,7 @@
 // fixture compiled from tests/fixtures/process-fixture.rs. No user app is used.
 import assert from 'node:assert/strict';
 import { spawn } from 'node:child_process';
-import { mkdtemp, readFile, rm, stat, unlink } from 'node:fs/promises';
+import { copyFile, mkdtemp, readFile, rm, stat, unlink } from 'node:fs/promises';
 import { randomUUID } from 'node:crypto';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -45,6 +45,10 @@ for (const scenario of ['quit', 'restart_sidecar', 'kill', 'catalogue_quit', 'ca
     return JSON.parse(next.value);
   };
   try {
+    // AppsFolder can retain an earlier shortcut after deletion. Give every
+    // scenario a unique target so native target deduplication cannot select it.
+    const userFixture = join(profile, 'user-fixture.exe');
+    await copyFile(fixture, userFixture);
     const status = await request('status');
     assert.equal(status.ok, true, status.error);
     assert.equal(status.result.engine.loaded, true, 'Real Needle engine must be loaded in Node');
@@ -56,16 +60,16 @@ for (const scenario of ['quit', 'restart_sidecar', 'kill', 'catalogue_quit', 'ca
     const marker = join(profile, 'user.txt');
     const literal = ['a" b', '& | % ^', 'trailing\\', 'é日本'];
     let draft = { name: 'PAM process fixture', description: 'Inoffensive test process.',
-      executable: fixture, arguments: [marker, ...literal], aliases: [], enabled: true };
+      executable: userFixture, arguments: [marker, ...literal], aliases: [], enabled: true };
     if (catalogue) {
-      const created = await request('create_fixture_shortcut', { target: fixture, arguments: `"${marker}"`, destination: shortcut });
+      const created = await request('create_fixture_shortcut', { target: userFixture, arguments: `"${marker}"`, destination: shortcut });
       assert.equal(created.ok, true, created.error); createdShortcut = true;
       const discovery = await request('discover_applications');
       assert.equal(discovery.ok, true, discovery.error);
       const entry = discovery.result.find(app => app.name === name);
       assert.ok(entry, 'Native catalogue must discover the disposable shortcut');
       draft = { ...draft, executable: join(process.env.SystemRoot, 'explorer.exe'), arguments: [entry.launchArgument],
-        windowsApp: { appId: entry.appId, kind: entry.kind, launchArgument: entry.launchArgument, icon: entry.icon } };
+        windowsApp: { appId: entry.appId, kind: entry.kind, icon: entry.icon } };
     }
     let launched;
     if (!catalogue && action !== 'quit') {
@@ -79,7 +83,11 @@ for (const scenario of ['quit', 'restart_sidecar', 'kill', 'catalogue_quit', 'ca
       assert.equal(confirmed.ok, true, confirmed.error);
       assert.equal(confirmed.result.status, 'executed');
       launched = { ok: true, result: confirmed.result.results[0] };
-      assert.equal((await request('confirm', { id: prepared.result.id })).ok, false, 'Approval cannot launch twice');
+      // Track the owned test process before further assertions can fail.
+      owned.add(launched.result.details.pid);
+      const repeated = await request('confirm', { id: prepared.result.id });
+      assert.equal(repeated.ok, true);
+      assert.equal(repeated.result.status, 'consumed', 'Approval cannot launch twice');
     } else {
       launched = await request('test_application', draft);
     }
@@ -95,14 +103,18 @@ for (const scenario of ['quit', 'restart_sidecar', 'kill', 'catalogue_quit', 'ca
     const manual = { ...draft, windowsApp: undefined };
     const invalid = await request('test_application', { ...manual, executable: join(profile, 'missing.exe') });
     assert.equal(invalid.ok, false);
-    assert.match(invalid.error, /ENOENT|introuvable/);
+    assert.equal(invalid.error.code, 'target_missing');
+    assert.match(invalid.error.message, /Réparez ou désactivez/);
+    assert.ok(invalid.error.requestId, 'Missing target must retain its diagnostic correlation');
     // A corrupt but existing .exe reaches Rust and gets a correlated spawn error.
     const { writeFile } = await import('node:fs/promises');
     const corrupt = join(profile, 'invalid.exe'); await writeFile(corrupt, 'not executable');
     const nativeError = await request('test_application', { ...manual, executable: corrupt });
     assert.equal(nativeError.ok, true);
     assert.equal(nativeError.result.success, false);
-    assert.match(nativeError.result.message, /Impossible de lancer/);
+    assert.equal(nativeError.result.error.code, 'action_failure');
+    assert.match(nativeError.result.message, /Vérifiez l’application/);
+    assert.ok(nativeError.result.error.requestId, 'Native spawn failure must retain correlation');
     if (action === 'quit') {
       const exited = once(child, 'exit'); child.stdin.end(JSON.stringify({ method: 'quit' }) + '\n'); await exited;
     } else if (action === 'kill') {
