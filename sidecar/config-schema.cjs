@@ -4,7 +4,8 @@ const { DEEZER_APP_ID, DEEZER_SOURCE_IDS } = require('./deezer.cjs');
 const { validateStore, normalizePhrase } = require('./command-aliases.cjs');
 
 const LANGUAGES = new Set(['auto', 'fr', 'en', 'de', 'es', 'it', 'nl', 'pl']);
-const DEFAULT_CONFIG = { version: 1, applications: [], commandAliases: [], language: 'fr', autoExecute: true, confidenceThreshold: 0.7 };
+const CURRENT_VERSION = 2;
+const DEFAULT_CONFIG = { version: CURRENT_VERSION, applications: [], commandAliases: [], language: 'fr', autoExecute: true, confidenceThreshold: 0.7 };
 const MAX_CONFIG_BYTES = 2 * 1024 * 1024;
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 function ensure(condition, message) { if (!condition) throw new Error(message); }
@@ -67,12 +68,12 @@ function validateApplicationStructure(value, existingId) {
 // separately when registering/changing a target and immediately before launch.
 function validateConfig(value) {
   keys(value, ['version', 'applications', 'commandAliases', 'language', 'autoExecute', 'confidenceThreshold'], 'Profil');
-  ensure(value.version === 1, 'Version du profil incompatible (version 1 requise).');
+  ensure(value.version === 1 || value.version === CURRENT_VERSION, 'Version du profil incompatible. Utilisez une version de PAM compatible ou restaurez une sauvegarde.');
   ensure(LANGUAGES.has(value.language) && typeof value.autoExecute === 'boolean' &&
     Number.isFinite(value.confidenceThreshold) && value.confidenceThreshold >= 0.1 && value.confidenceThreshold <= 1, 'Préférences invalides.');
   ensure(Array.isArray(value.applications) && value.applications.length <= 32, 'Applications invalides (32 maximum).');
   const config = structuredClone(value);
-  if (config.commandAliases === undefined) config.commandAliases = [];
+  if (config.version === 1 && config.commandAliases === undefined) config.commandAliases = [];
   const ids = new Set(), names = new Set(), windowsIds = new Set();
   config.applications = value.applications.map((app, index) => {
     try {
@@ -106,4 +107,4 @@ function validateConfig(value) {
   return config;
 }
 
-module.exports = { validateConfig, validateApplicationStructure, LANGUAGES, DEFAULT_CONFIG, MAX_CONFIG_BYTES };
+module.exports = { validateConfig, validateApplicationStructure, LANGUAGES, DEFAULT_CONFIG, MAX_CONFIG_BYTES, CURRENT_VERSION };

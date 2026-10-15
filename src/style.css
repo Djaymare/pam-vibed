@@ -105,3 +105,4 @@ dialog.modal{max-width:calc(100vw - 32px);max-height:calc(100vh - 32px)}
   .turn-badge,.notice,.runtime-pill,.application-avatar,.brand-mark{border:1px solid CanvasText}
   :is(button,input,textarea,select,summary):focus-visible{outline:3px solid Highlight;outline-offset:3px}
 }
+.profile-recovery{flex-direction:column;align-items:stretch}

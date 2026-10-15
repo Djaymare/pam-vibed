@@ -9,6 +9,7 @@ import ModalDialog from './components/ModalDialog.vue';
 import MediaControls from './components/MediaControls.vue';
 import CommandAliases from './components/CommandAliases.vue';
 import CommandArguments from './components/CommandArguments.vue';
+import ProfileTransfer from './components/ProfileTransfer.vue';
 import {commandActions,choiceArguments} from './actions';
 import { VoiceRecorder } from './audio/recorder';
 import { retainTurns, reconcileTurns } from './proposals';
@@ -16,10 +17,25 @@ import type { Application, CommandAlias, Config, InstalledApplication, MediaSess
 
 const page = ref<'assistant' | 'applications' | 'settings'>('assistant');
 const status = ref<RuntimeStatus>();
-const config = ref<Config>({ version: 1, applications: [], language: 'fr', autoExecute: true, confidenceThreshold: 0.7 });
+const config = ref<Config>({ version: 2, applications: [], commandAliases: [], language: 'fr', autoExecute: true, confidenceThreshold: 0.7 });
 const error = ref('');
 const recoveryOpen = ref(false);
 const recoveryBackup = ref('');
+const recoveryChoice = ref<RuntimeStatus['profileBackup']>();
+function beginRecovery() {
+  const details = status.value?.configError ?? status.value?.profileBackup;
+  if (!details?.fingerprint) return;
+  recoveryChoice.value = { fingerprint: details.fingerprint, backupFingerprint: details.backupFingerprint ?? '', backupSummary: details.backupSummary ?? { applications: [], formulations: 0, language: 'fr', autoExecute: true, confidenceThreshold: 0.7 } };
+  recoveryOpen.value = true;
+}
+async function profileRequest<T>(method: string, payload?: unknown): Promise<T> {
+  busy.value = true;
+  try {
+    const result = await request<T>(method, payload);
+    if (method === 'import_config') { config.value = (result as { config: Config }).config; recoveryOpen.value = false; await refresh(); }
+    return result;
+  } finally { busy.value = false; }
+}
 const busy = ref(false);
 const loading = ref(true);
 const recording = ref(false);
@@ -94,12 +110,13 @@ async function updateHealth() {
   }
   catch (caught) { error.value = describeError(caught); }
 }
-async function recoverProfile() {
-  const fingerprint = status.value?.configError?.fingerprint;
+async function recoverProfile(restoreBackup = false) {
+  const fingerprint = recoveryChoice.value?.fingerprint;
   if (!fingerprint || locked.value) return;
   busy.value = true; error.value = '';
   try {
-    const result = await request<{ config: Config; backupPath: string }>('recover_config', { confirmed: true, fingerprint });
+    const result = await request<{ config: Config; backupPath: string }>('recover_config', { confirmed: true, fingerprint,
+      ...(restoreBackup ? { restoreBackup: true, backupFingerprint: recoveryChoice.value?.backupFingerprint } : {}) });
     config.value = result.config; recoveryBackup.value = result.backupPath; recoveryOpen.value = false;
     await refresh();
   } catch (caught) { const message = describeError(caught); recoveryOpen.value = false; await refresh(); error.value = message; }
@@ -349,14 +366,22 @@ const outcomeLabels = {not_started:'Non démarrée',performed:'Effectuée',faile
       <div class="content">
         <div v-if="status?.configError" class="notice error" role="alert">
           <span>{{ status.configError.message }}</span>
-          <button v-if="status.configError.recoverable && !recoveryOpen" :disabled="locked" @click="recoveryOpen = true">Récupérer le profil</button>
+          <button v-if="status.configError.recoverable && !recoveryOpen" :disabled="locked" @click="beginRecovery">Récupérer le profil</button>
         </div>
-        <section v-if="status?.configError && recoveryOpen" class="notice" aria-label="Confirmation de récupération">
+        <section v-if="recoveryOpen" class="notice profile-recovery" aria-label="Confirmation de récupération">
+          <template v-if="recoveryChoice?.backupFingerprint">
+            <p>Dernière copie valide : {{ recoveryChoice.backupSummary.applications.length }} applications et {{ recoveryChoice.backupSummary.formulations }} formulations. {{ recoveryChoice.backupSummary.applications.join(', ') }}</p>
+            <p>Langue : {{ recoveryChoice.backupSummary.language }} · Exécution automatique : {{ recoveryChoice.backupSummary.autoExecute ? 'activée' : 'désactivée' }} · Seuil : {{ Math.round(recoveryChoice.backupSummary.confidenceThreshold * 100) }} %.</p>
+            <p>Le profil actuel sera conservé dans une copie exacte. Les anciens plans d’action seront retirés.</p>
+            <button :disabled="locked" @click="recoverProfile(true)">Restaurer la dernière copie valide</button>
+          </template>
+          <template v-if="status?.configError">
           <span>Une copie exacte du fichier sera conservée dans le dossier du profil. Les applications et formulations seront retirées du profil actif et les préférences restaurées par défaut. Vous pourrez récupérer vos données depuis la sauvegarde. Confirmer la restauration d’un profil vide ?</span>
-          <button :disabled="locked" @click="recoverProfile">Sauvegarder puis restaurer</button>
+          <button :disabled="locked" @click="recoverProfile(false)">Sauvegarder puis restaurer</button>
+          </template>
           <button :disabled="locked" @click="recoveryOpen = false">Annuler</button>
         </section>
-        <div v-if="recoveryBackup" class="notice" role="status">Profil vide restauré. Original sauvegardé : {{ recoveryBackup }}</div>
+        <div v-if="recoveryBackup" class="notice" role="status">Profil restauré. Original sauvegardé : {{ recoveryBackup }}</div>
         <div v-if="status?.desktop?.shortcutError" class="notice error" role="alert">{{ status.desktop.shortcutError }} Vous pouvez utiliser le microphone ou le menu de PAM dans la zone de notification.</div>
         <div v-if="error" class="notice error" role="alert"><Icon name="info" /><span>{{ error }}</span><button v-if="!status?.ready" :disabled="locked" @click="refresh">Réessayer</button><button v-else aria-label="Fermer le message" @click="error = ''"><Icon name="close" :size="16" /></button></div>
         <template v-if="page === 'assistant'">
@@ -389,6 +414,8 @@ const outcomeLabels = {not_started:'Non démarrée',performed:'Effectuée',faile
         <template v-else>
           <div class="page-intro"><div class="eyebrow">À VOTRE RYTHME</div><h1>Préférences</h1><p>Une voix, vos règles, votre machine.</p></div>
           <CommandAliases :applications="config.applications" :aliases="config.commandAliases || []" :locked="locked" :save="saveCommandAlias" :remove="deleteCommandAlias" />
+          <ProfileTransfer :locked="locked" :request="profileRequest" />
+          <section v-if="status?.profileBackup" class="settings-card"><h2>Dernière copie valide</h2><p>Conservée avant chaque modification du profil.</p><button class="secondary small" :disabled="locked" @click="beginRecovery">Préparer une restauration</button></section>
           <section class="settings-card"><h2>Écoute et exécution</h2><div class="setting-row"><div><strong>Langue de transcription</strong><p>Whistle comprend sept langues, ou détecte la langue.</p></div><select v-model="config.language" :disabled="locked" aria-label="Langue de transcription" @change="saveSettings"><option value="auto">Détection automatique</option><option value="fr">Français</option><option value="en">English</option><option value="de">Deutsch</option><option value="es">Español</option><option value="it">Italiano</option><option value="nl">Nederlands</option><option value="pl">Polski</option></select></div><div class="setting-row"><div><strong>Exécuter automatiquement</strong><p>Lancer les actions quand Needle atteint le seuil de confiance.<br />Sinon, les actions restent à valider.</p></div><button class="toggle" :class="{ on: config.autoExecute }" :disabled="locked" role="switch" :aria-checked="config.autoExecute" aria-label="Exécuter automatiquement" @click="config.autoExecute = !config.autoExecute; saveSettings()"><span /></button></div><div class="setting-row"><div><strong>Seuil de confiance</strong><p>Les scores inférieurs demandent votre validation.</p></div><div class="range-control"><input v-model="config.confidenceThreshold" type="range" min="0.1" max="1" step="0.05" :disabled="locked" aria-label="Seuil de confiance" @change="saveSettings" /><span>{{ Math.round(config.confidenceThreshold * 100) }} %</span></div></div></section>
           <section class="settings-card"><h2>Accès rapide</h2><div class="setting-row"><div><strong>Raccourci global</strong><p>Ctrl + Maj + Espace démarre ou arrête l’enregistrement, depuis vos autres applications.</p></div><span class="muted">{{ status?.desktop?.shortcutAvailable ? 'Actif' : 'Indisponible' }}</span></div><div class="setting-row"><div><strong>PAM dans la zone de notification</strong><p>Fermer la fenêtre réduit PAM. Un clic sur son icône réaffiche la fenêtre.<br />Le microphone est coupé lorsque vous masquez la fenêtre.</p></div><button class="secondary small" @click="desktop('hide')">Réduire PAM</button></div><div class="setting-row"><div><strong>Quitter l’application</strong><p>Arrête PAM et libère les modèles en mémoire.</p></div><button class="secondary small" @click="desktop('quit')">Quitter PAM</button></div></section>
           <section class="settings-card"><h2>Runtime embarqué</h2><div class="setting-row"><div><strong>{{ status?.engine?.loaded ? 'Whistle et Needle en mémoire' : 'Moteurs disponibles' }}</strong><p>Les modèles sont conservés entre vos demandes et repris après une panne.</p></div><button class="secondary small" :disabled="locked" @click="restartEngine">Recharger les moteurs</button></div><div class="runtime-grid"><div><span>Reconnaissance vocale</span><strong>Whistle</strong><small>16 kHz · jusqu’à 30 secondes</small></div><div><span>Compréhension et outils</span><strong>Needle 3</strong><small>Exécution CPU locale</small></div><div><span>Sidecar</span><strong>Node {{ status?.manifest?.node || '—' }}</strong><small>npm {{ status?.manifest?.npm || '—' }} embarqué</small></div><div><span>Plateforme</span><strong>Windows x64</strong><small>Aucune installation de dépendance</small></div></div><div v-if="status && !status.ready" class="runtime-checks"><p v-for="check in status.checks" :key="check.file">{{ check.available ? '✓' : '✕' }} {{ check.file }}</p></div><p v-if="status?.temporaryCleanup?.failed" class="result-error" role="status">Le nettoyage de fichiers temporaires a échoué. Ils peuvent rester sur disque ; vérifiez l’accès au profil puis rechargez l’état.</p><p class="config-path">Configuration locale : <code>{{ status?.configDirectory || 'Indisponible' }}</code></p></section>

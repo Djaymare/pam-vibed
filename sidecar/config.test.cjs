@@ -28,7 +28,7 @@ test('fixtures valides et profil v1 sans formulations : validation sans disponib
   const legacy = structuredClone(valid); delete legacy.commandAliases;
   assert.deepEqual(validateConfig(legacy).commandAliases, []);
   const f = await fixture(t, JSON.stringify(valid));
-  assert.deepEqual(await readConfig(f.directory), valid);
+  assert.deepEqual(await readConfig(f.directory), { ...valid, version: 2 });
   const updated = await f.handle('save_application', { ...valid.applications[0], enabled: false });
   assert.equal(updated.applications[0].enabled, false);
   assert.equal((await f.handle('status')).configError, undefined);
@@ -36,7 +36,7 @@ test('fixtures valides et profil v1 sans formulations : validation sans disponib
 test('types, limites, unicité et références : résultats déterministes', async () => {
   const valid = await profile('valid');
   const mutations = [
-    [v => delete v.language, /Préférences/], [v => v.version = 2, /Version/],
+    [v => delete v.language, /Préférences/], [v => v.version = 3, /Version/],
     [v => v.applications = {}, /Applications/], [v => v.applications[0].enabled = 'yes', /État/],
     [v => v.applications[0].arguments = [null], /Arguments/], [v => v.applications[0].aliases = null, /Alias/],
     [v => v.applications[0].id = 'broken', /Identifiant/], [v => v.commandAliases = null, /Liste/],

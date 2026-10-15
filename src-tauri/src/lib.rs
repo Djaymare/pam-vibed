@@ -205,6 +205,9 @@ async fn assistant_request(
         method.as_str(),
         "status"
             | "recover_config"
+            | "export_config"
+            | "preview_import"
+            | "import_config"
             | "save_application"
             | "set_application_enabled"
             | "delete_application"

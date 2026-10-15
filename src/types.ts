@@ -44,13 +44,16 @@ export interface RuntimeStatus {
   manifest: { node: string; npm: string; target: string } | null;
   config: Config;
   applicationAvailability?: Record<string, { available: boolean; reason?: string }>;
-  configError?: { message: string; fingerprint?: string; recoverable: boolean };
+  configError?: { message: string; fingerprint?: string; recoverable: boolean; backupFingerprint?: string; backupSummary?: ProfileSummary };
+  profileBackup?: { fingerprint: string; backupFingerprint: string; backupSummary: ProfileSummary } | null;
   configDirectory: string;
   temporaryCleanup?: { removed: number; failed: number; retained: number };
   proposals?: ProposalSnapshot[];
   engine: { loaded: boolean; generation: number; pid: number } | null;
   desktop?: { shortcut: string; shortcutAvailable: boolean; shortcutError: string; closeToTray: boolean };
 }
+export interface ProfileSummary { applications: string[]; formulations: number; language: string; autoExecute: boolean; confidenceThreshold: number }
+export interface ImportPreview { fingerprint: string; importFingerprint: string; summary: ProfileSummary }
 export type ProposalState = 'pending' | 'expired' | 'invalidated' | 'consumed' | 'unknown';
 export interface Proposal {
   state: ProposalState;

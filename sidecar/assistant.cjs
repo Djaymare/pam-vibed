@@ -10,13 +10,13 @@ const { needleToolName, needleTools, canonicalPrompt, requestIssue } = require('
 const { ACTIONS: ALIAS_ACTIONS, findCommandAlias, saveCommandAlias } = require('./command-aliases.cjs');
 const {recognizeDeezerCommand,deezerCommandIssue,deezerActionLabel} = require('./deezer-commands.cjs');
 const {resolveMediaCommand} = require('./media-commands.cjs');
-const { createTemporaryFiles, atomicJson: writeAtomicJson } = require('./temporary-files.cjs');
+const { createTemporaryFiles } = require('./temporary-files.cjs');
 const { createBudget, interruptedTurn } = require('./budget.cjs');
 const { executionStore } = require('./execution.cjs');
 const { proposalStore } = require('./proposals.cjs');
 
 const { validateConfig, validateApplicationStructure, LANGUAGES, DEFAULT_CONFIG } = require('./config-schema.cjs');
-const { readConfig, recoverConfig } = require('./config-store.cjs');
+const { createConfigStore } = require('./config-store.cjs');
 const MAX_AUDIO_BYTES = 44 + 16_000 * 30 * 2;
 
 function ensure(condition, message) { if (!condition) throw new Error(message); }
@@ -250,10 +250,9 @@ async function launch(application, args, { budget, beforeEffect } = {}) {
 
 function createAssistant({ runtimeDirectory, configDirectory, runEngine = executeFile, launchApplication = launch, engine, media = createMedia(), now, proposalNow = Date.now, setTimer, clearTimer, budgetMs = 40_000 }) {
   const temporaryFiles = createTemporaryFiles(configDirectory);
-  const atomicJson = (destination, value) => writeAtomicJson(destination, value, configDirectory);
+  const profiles = createConfigStore(configDirectory);
   const proposals = proposalStore(configDirectory, { now: proposalNow });
   let startupCleanup = proposals.initialize().then(() => temporaryFiles.collect());
-  const configPath = path.join(configDirectory, 'applications.json');
   const executions = executionStore(configDirectory);
   async function executeCalls(turn, config, context) {
     // Validate the whole plan before any executable is launched.
@@ -304,18 +303,22 @@ function createAssistant({ runtimeDirectory, configDirectory, runEngine = execut
     await budget.run(() => startupCleanup, 'nettoyage initial');
     startupCleanup = null;
     const temporaryCleanup = await budget.run(() => temporaryFiles.collect(), 'nettoyage');
-    if (method === 'recover_config') return budget.run(() => recoverConfig(configDirectory, payload, { budget }), 'récupération du profil');
-    let config, configError;
-    try { config = await budget.run(() => readConfig(configDirectory), 'configuration'); }
+    if (method === 'export_config') return budget.run(() => profiles.exportConfig(), 'export du profil');
+    if (method === 'preview_import') return budget.run(() => profiles.previewImport(payload.content), 'aperçu du profil');
+    if (method === 'recover_config' || method === 'import_config') {
+      const options = { budget, beforeReplace: () => proposals.reconcile(null) };
+      const result = await budget.run(() => method === 'recover_config' ? profiles.recover(payload, options) : profiles.importConfig(payload, options), 'remplacement du profil');
+      return result;
+    }
+    let config, configError, loadedFingerprint;
+    try { ({ config, fingerprint: loadedFingerprint } = await budget.run(() => profiles.readState(), 'configuration')); }
     catch (error) {
       if (method !== 'status' || error.code !== 'invalid_profile') throw error;
       config = structuredClone(DEFAULT_CONFIG); configError = error.details;
     }
-    const loadedConfig = JSON.stringify(config);
     const saveConfig = async value => {
       const validated = validateConfig(value);
-      ensure(JSON.stringify(await readConfig(configDirectory)) === loadedConfig, 'Le profil a changé pendant la modification. Relisez-le avant de réessayer.');
-      await atomicJson(configPath, validated);
+      await profiles.write(validated, { budget, expectedFingerprint: loadedFingerprint });
       await proposals.reconcile(configDigest(validated));
     };
     if (method === 'status') {
@@ -329,7 +332,7 @@ function createAssistant({ runtimeDirectory, configDirectory, runEngine = execut
       const ready = !configError && checks.every(check => check.available);
       if (ready && engine) await budget.run(() => engine.warm({timeout:budget.timeout()}), 'chargement des moteurs');
       const applicationAvailabilityEntries = await Promise.all(config.applications.map(async app => [app.id, await applicationAvailability(app)]));
-      return { ready, checks, manifest, config, proposals: await proposals.reconcile(configError ? null : configDigest(config)), applicationAvailability: Object.fromEntries(applicationAvailabilityEntries), configDirectory, ...(configError ? { configError } : {}), temporaryCleanup, engine: engine?.status() ?? null };
+      return { ready, checks, manifest, config, profileBackup: await profiles.recoveryInfo().catch(() => null), proposals: await proposals.reconcile(configError ? null : configDigest(config)), applicationAvailability: Object.fromEntries(applicationAvailabilityEntries), configDirectory, ...(configError ? { configError } : {}), temporaryCleanup, engine: engine?.status() ?? null };
     }
     if (method === 'restart_engine') {
       ensure(engine, 'Le moteur persistant est indisponible.');

@@ -78,6 +78,55 @@ npm run tauri dev
 
 Pour tester l’application dans un profil isolé, définir `PAM_PROFILE_DIR` avec un chemin absolu avant de la lancer. Cette variable facultative redirige la configuration et les propositions temporaires, afin d’éviter de modifier le catalogue personnel. Sans cette variable, PAM utilise le dossier AppData habituel.
 
+### Sauvegarder, restaurer et transférer le profil
+
+Avant chaque modification, PAM conserve la dernière version valide dans
+`applications.backup.json`, à côté du profil. Les données sont écrites dans
+un fichier temporaire du même dossier, synchronisées sur disque, puis renommées.
+Un refus de remplacement Windows laisse la destination en place ; PAM n’efface
+pas le profil pour forcer le renommage. Les temporaires abandonnés du profil et
+de sa sauvegarde sont collectés après la mort de leur processus propriétaire.
+
+Si le profil est corrompu ou absent alors qu’une sauvegarde existe, PAM bloque
+les demandes et propose une récupération. **Récupérer le profil** affiche le
+contenu de la dernière copie valide ; confirmez **Restaurer la dernière copie
+valide** pour récupérer applications, préférences et formulations. Vous pouvez
+aussi préparer cette restauration depuis Préférences après une modification
+involontaire. Le fichier courant est conservé séparément dans une copie exacte
+`applications.invalid.<date>.<uuid>.json` avant remplacement. Cette copie et la
+sauvegarde ne sont pas supprimées par le nettoyage des temporaires. Si aucune
+copie valide n’est disponible, importez un export correct ou choisissez
+explicitement le profil vide après sauvegarde. Un échec de copie interdit le
+remplacement. Gardez ces fichiers pour une récupération manuelle et copiez-les
+ailleurs avant toute intervention sur le dossier du profil.
+
+Dans Préférences, **Afficher l’export du profil** fournit un JSON validé à copier
+dans un fichier local. Cet export contient les chemins personnels : sa copie
+et son partage restent volontaires. Pour importer, choisissez un fichier JSON
+ou collez son contenu, puis **Vérifier l’import**. L’aperçu montre les applications,
+le nombre de formulations et les préférences, dont l’exécution automatique.
+La confirmation remplace le profil entier, conserve ses identifiants et sauvegarde
+l’ancien fichier ; elle ne fusionne pas deux listes. Les doublons, références
+orphelines, fichiers trop grands (2 Mio), JSON et UTF-8 invalides sont refusés.
+Un changement du profil ou de l’import impose un nouvel aperçu. Import et
+restauration retirent les anciens plans d’action ; ils ne lancent aucune application.
+Les exécutables absents restent des cibles indisponibles à réparer, sans invalider
+la structure du profil ni supprimer ses données. Le contrôle natif des lancements
+et les confirmations habituelles restent applicables.
+
+Le schéma courant est la version 2, avec une liste explicite `commandAliases`.
+Le registre `sidecar/config-migrations.cjs` convertit la version 1 en mémoire,
+déterministement, puis valide chaque résultat. La lecture seule ne réécrit pas
+l’original ; la première modification explicite sauvegarde ses octets avant
+la persistance de la version 2. Une migration échouée ou une version future
+inconnue laisse l’original en place avec une procédure de récupération. N’utilisez
+pas une ancienne version de PAM pour modifier directement un profil version 2.
+
+`npm test` comprend les fautes E/S (écriture partielle/disque plein simulé,
+accès et synchronisation refusés), cinq coupures réelles de processus et un
+smoke de verrouillage/restauration sur Windows dans des profils jetables.
+Ces contrôles ne simulent pas une panne matérielle du disque ou de son cache.
+
 Dans cet espace de travail, si npm n’est pas dans le PATH, le runtime déjà préparé peut l’exécuter :
 
 ```powershell

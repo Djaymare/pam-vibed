@@ -128,7 +128,7 @@ function createTemporaryFiles(directory) {
             const legacy = LEGACY_TEMP.exec(name);
             if (!match && !legacy) continue;
             const destination = (match || legacy)[1];
-            if (location === absolute ? destination !== 'applications.json' : !PENDING.test(destination)) continue;
+            if (location === absolute ? !['applications.json', 'applications.backup.json'].includes(destination) : !PENDING.test(destination)) continue;
             await attempt(async () => {
               const file = path.join(location, name);
               if (activeWrites.has(file)) { report.retained++; return; }

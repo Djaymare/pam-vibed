@@ -9,7 +9,7 @@ import * as vue from 'vue';
 
 // Compile and mount the real App SFC with Vue's renderer. Only native services,
 // timers and unrelated child components are substituted; no WebView2 claim.
-async function mountApp(t, { recoveryFailure = false, healthy = false, proposalScenario = false, correctionSuccess = false } = {}) {
+async function mountApp(t, { recoveryFailure = false, healthy = false, proposalScenario = false, correctionSuccess = false, transferScenario = false, transferFailure = false, backupScenario = false } = {}) {
   const previousDocument = globalThis.document;
   globalThis.document = { activeElement: null };
   for (const name of ['Document', 'ShadowRoot']) {
@@ -21,7 +21,8 @@ async function mountApp(t, { recoveryFailure = false, healthy = false, proposalS
   let time = Date.now(), sequence = 0;
   const TestDate = class extends Date { static now() { return time; } };
   const proposals = [], timerCallbacks = new Map();
-  const empty = { version: 1, applications: [], commandAliases: [], language: 'fr', autoExecute: true, confidenceThreshold: 0.7 };
+  const empty = { version: 2, applications: [], commandAliases: [], language: 'fr', autoExecute: true, confidenceThreshold: 0.7 };
+  const profileBackup = backupScenario ? { fingerprint: 'previewed-current', backupFingerprint: 'previewed-backup', backupSummary: { applications: ['Éditeur sauvegardé'], formulations: 3, language: 'en', autoExecute: false, confidenceThreshold: 0.9 } } : undefined;
   let profileError = { message: 'Profil invalide : applications[0] : Nom invalide.', fingerprint: 'original', recoverable: true };
   if (healthy) {
     profileError = undefined;
@@ -30,7 +31,14 @@ async function mountApp(t, { recoveryFailure = false, healthy = false, proposalS
   const invoke = async (command, input) => {
     if (command !== 'assistant_request') return;
     calls.push(input);
-    if (input.method === 'status') return { ready: !profileError, config: structuredClone(empty), proposals: proposalScenario ? structuredClone(proposals) : [], configError: profileError, checks: [], engine: null };
+    if (input.method === 'status') return { ready: !profileError, config: structuredClone(empty), proposals: proposalScenario ? structuredClone(proposals) : [], configError: profileError, profileBackup, checks: [], engine: null };
+    if (transferScenario && input.method === 'export_config') return JSON.stringify(empty, null, 2);
+    if (transferScenario && input.method === 'preview_import') return { fingerprint: 'before', importFingerprint: 'import-digest', summary: { applications: ['Application importée'], formulations: 2, language: 'en', autoExecute: false, confidenceThreshold: 0.8 } };
+    if (transferScenario && input.method === 'import_config') {
+      if (transferFailure) throw Error('Le profil a changé. Recommencez l’aperçu.');
+      empty.applications[0].name = 'Application importée';
+      return { config: empty, backupPath: 'C:\\fixture\\previous.json' };
+    }
     if (proposalScenario && input.method === 'process_text') {
       const id = `proposal-${++sequence}`;
       const proposal = { state: 'pending', createdAt: time, expiresAt: time + 600000, reason: null };
@@ -63,12 +71,17 @@ async function mountApp(t, { recoveryFailure = false, healthy = false, proposalS
   };
   const source = await readFile(new URL('../src/App.vue', import.meta.url), 'utf8');
   const { descriptor } = parse(source);
-  const script = compileScript(descriptor, { id: 'pam-profile-test', inlineTemplate: true });
+  const script = compileScript(descriptor, { id: 'pam-profile-test', inlineTemplate: true, templateOptions: { compilerOptions: { hoistStatic: false } } });
   const compiled = ts.transpileModule(script.content, { compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.CommonJS } }).outputText;
   const localRequire = createRequire(import.meta.url);
   const stub = vue.defineComponent({ render: () => vue.h('span') });
   const injectedRequire = name => {
     if (name === 'vue') return vue;
+    if (transferScenario && name.endsWith('/ProfileTransfer.vue')) {
+      const component = parse(readFileSync(new URL('../src/components/ProfileTransfer.vue', import.meta.url), 'utf8')).descriptor;
+      const code = ts.transpileModule(compileScript(component, { id: 'pam-transfer-test', inlineTemplate: true, templateOptions: { compilerOptions: { hoistStatic: false } } }).content, { compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.CommonJS } }).outputText;
+      const result = {}; new Function('require', 'exports', code)(injectedRequire, result); return result;
+    }
     if (proposalScenario && name.endsWith('/ModalDialog.vue')) return { __esModule: true, default: vue.defineComponent({
       setup: (_props, { slots }) => () => vue.h('section', slots.default?.({ requestClose() {} })),
     }) };
@@ -153,6 +166,44 @@ test('une sauvegarde refusée laisse la récupération disponible et affiche l�
   assert.match(f.text(), /Sauvegarde impossible ; original conservé/);
   assert.ok(f.button('Récupérer le profil'));
   assert.doesNotMatch(f.text(), /Original sauvegardé/);
+});
+
+test('PAM-11 Vue : export local, aperçu explicite des préférences, édition et annulation sans remplacement', async t => {
+  const f = await mountApp(t, { healthy: true, transferScenario: true });
+  await f.all().find(n => n.props['aria-label'] === 'Préférences').props.onClick(); await f.settle();
+  await f.click('Afficher l’export du profil');
+  const exported = f.all().find(n => n.props['aria-label'] === 'Export du profil');
+  assert.ok(exported.props.readonly !== undefined); assert.match(exported.props.value, /Éditeur valide/);
+  const content = f.all().find(n => n.props['aria-label'] === 'Profil à importer');
+  content.props['onUpdate:modelValue']('{"version":2}'); await f.settle();
+  await f.click('Vérifier l’import');
+  assert.match(f.text(), /1 applications et 2 formulations/); assert.match(f.text(), /désactivée/); assert.match(f.text(), /80 %/);
+  content.props['onUpdate:modelValue']('{"version":1}'); await f.settle();
+  assert.equal(f.button('Confirmer le remplacement du profil'), undefined);
+  await f.click('Vérifier l’import'); await f.click('Annuler l’import');
+  assert.equal(f.calls.some(call => call.method === 'import_config'), false);
+});
+test('PAM-11 Vue : confirmation liée à l’aperçu, résultat et erreur de remplacement', async t => {
+  for (const transferFailure of [false, true]) {
+    const f = await mountApp(t, { healthy: true, transferScenario: true, transferFailure });
+    await f.all().find(n => n.props['aria-label'] === 'Préférences').props.onClick(); await f.settle();
+    f.all().find(n => n.props['aria-label'] === 'Profil à importer').props['onUpdate:modelValue']('import-content'); await f.settle();
+    await f.click('Vérifier l’import'); await f.click('Confirmer le remplacement du profil');
+    const payload = f.calls.find(call => call.method === 'import_config').payload;
+    assert.equal(payload.content, 'import-content'); assert.equal(payload.confirmed, true);
+    assert.equal(payload.fingerprint, 'before'); assert.equal(payload.importFingerprint, 'import-digest');
+    assert.equal(f.button('Confirmer le remplacement du profil'), undefined);
+    assert.match(f.text(), transferFailure ? /Le profil a changé/ : /Profil importé.*previous.json/);
+    if (transferFailure) assert.doesNotMatch(f.text(), /Profil importé/);
+  }
+});
+test('PAM-11 Vue : restauration affiche le contenu sauvegardé et confirme ses empreintes', async t => {
+  const f = await mountApp(t, { healthy: true, backupScenario: true });
+  await f.all().find(n => n.props['aria-label'] === 'Préférences').props.onClick(); await f.settle();
+  await f.click('Préparer une restauration'); assert.match(f.text(), /Éditeur sauvegardé/); assert.match(f.text(), /3 formulations/);
+  assert.equal(f.calls.some(call => call.method === 'recover_config'), false);
+  await f.click('Restaurer la dernière copie valide');
+  assert.deepEqual(f.calls.find(call => call.method === 'recover_config').payload, { confirmed: true, fingerprint: 'previewed-current', restoreBackup: true, backupFingerprint: 'previewed-backup' });
 });
 
 test('PAM-10 Vue : vingt-cinq demandes conservent toutes les validations non résolues', async t => {
