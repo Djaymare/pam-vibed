@@ -8,20 +8,38 @@ copie supplémentaire du contrat PAM-13.
 | Module | Responsabilité et isolation |
 | --- | --- |
 | `bridge` | Acteur unique, file bornée, pipe, budgets, corrélation et absence de rejeu. `with_services` remplace l’horloge et la création de processus ; `RequestTransport` permet de tester l’admission et les réponses de `host` sans Node. |
-| `supervision` | Interfaces `Process`, `ProcessFactory`, `Clock`, `Transport`, propriété `OwnedProcess` et sonde périodique. Les tests de décision et d’erreur peuvent fonctionner sans processus réel. |
+| `supervision` | Interfaces `Process`, `ProcessFactory`, `Clock`, propriété `OwnedProcess` et politique de cycle de vie/reprise. Les tests de décision et d’erreur peuvent fonctionner sans processus réel. |
 | `job` | Job Object interne avec `KILL_ON_JOB_CLOSE`, configuration et assignation Windows ; propriétaire `OwnedHandle`. |
-| `desktop` | Fenêtre, tray, raccourci, ressources et branchement du moniteur sur le transport. |
+| `desktop` | Fenêtre, tray, raccourci et ressources. Le bridge possède sa surveillance. |
 | `windows_resources` | Initialisation STA COM ou MTA WinRT et désinitialisation symétrique. |
 | `applications/native` | Lecture du catalogue Shell, propriétés et icônes dans un STA. |
 | `process_tests` | Hôte de test optionnel et création de raccourcis jetables, avec les mêmes fonctions IPC que l’application. |
 
-La sonde conserve son intervalle de 15 secondes. Elle s’arrête si le transport
-est arrêté et n’interroge que les transports déjà démarrés et inactifs. Les
-attentes de canal/pipe restent de vraies attentes système ; injecter une horloge
-ne simule pas l’ordonnanceur Windows. Les tests natifs restent indispensables.
+Le bridge possède l’acteur et le contrôleur de délais, avec leurs handles de fin.
+L’acteur sérialise aussi les sondes `status`, après 15 secondes d’inactivité d’un
+transport déjà utilisé. Les états sont démarrage, prêt (IPC), reprise, arrêt
+demandé et arrêté. Après panne de transport/démarrage ou de modèle, les délais
+sont 1, 2, 4, 8, 16, 32 puis 60 secondes, plafond conservé jusqu’à un retour
+durable de 60 secondes vérifié par des réponses. Une demande pendant ce délai
+échoue avec `transport_busy` ; elle n’est pas conservée pour un rejeu. Une reprise
+automatique ne fait que `status` et son warmup, jamais une inférence métier ou
+un effet externe. Le contrôleur de délais peut tuer le job sans verrou de pipe,
+y compris pour une sonde sans appelant. Il ne crée aucun processus.
+
+`shutdown` ferme l’admission, interrompt le job, réveille les appelants dans une
+tranche de 50 ms et joint les deux threads avec un budget commun de 2 secondes.
+Son résultat indique si les handles ont tous été joints. Un appel natif déjà
+engagé peut dépasser ce budget ; aucun nouveau démarrage ni effet n’est alors
+autorisé. La transition retardée journalise le dépassement lorsque cet appel
+revient. Le destructeur ne répète pas le budget après un arrêt explicite.
+Les transitions sont enregistrées dans les diagnostics locaux filtrés PAM-12.
+Les attentes de canal/pipe restent de vraies attentes système ; injecter une
+horloge ne simule pas l’ordonnanceur Windows. Les tests natifs restent nécessaires.
 
 Le processus du sidecar est possédé avant toute configuration faillible du job.
-Tout abandon tue et attend ce processus. Une fois publié dans le contrôle du
+Tout abandon tue puis collecte la sortie du processus pendant au plus 500 ms.
+Le Job Object conserve la terminaison des descendants internes sous Windows.
+Une fois publié dans le contrôle du
 bridge, une interruption termine le job sans prendre le verrou du pipe. Lors
 du retrait, le job est fermé avant l’attente des lecteurs pour fermer aussi
 les pipes hérités par les enfants internes. Une application demandée par

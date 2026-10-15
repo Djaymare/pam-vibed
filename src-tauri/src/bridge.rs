@@ -2,7 +2,9 @@
 use crate::{
     applications::Catalogue,
     contracts, diagnostics, launch,
-    supervision::{Clock, OwnedProcess, ProcessFactory, SystemClock, SystemProcess},
+    supervision::{
+        Clock, Lifecycle, OwnedProcess, Phase, ProcessFactory, SystemClock, SystemProcess,
+    },
 };
 use serde_json::{json, Value};
 use std::{
@@ -60,7 +62,7 @@ impl Error {
         self.diagnostic.as_deref().cloned().unwrap_or_else(|| {
             let code = if self.code.contains("timeout") {
                 "request_timeout"
-            } else if self.code == "bridge_queue_full" {
+            } else if matches!(self.code, "bridge_queue_full" | "bridge_backoff") {
                 "transport_busy"
             } else if self.code == "bridge_protocol" {
                 "transport_protocol"
@@ -167,6 +169,7 @@ struct ProcessState {
     child: Option<OwnedProcess>,
     invalidated: bool,
     active: Option<Arc<Attempt>>,
+    lifecycle: Lifecycle,
 }
 impl ProcessState {
     fn kill(&mut self) {
@@ -182,6 +185,7 @@ struct Control {
     // Held only for process bookkeeping/kill, never for pipe I/O or effects.
     state: Mutex<ProcessState>,
     stopped: AtomicBool,
+    shutdown_timed_out: AtomicBool,
     started: AtomicBool,
     pending: AtomicUsize,
     journal: Mutex<Option<Arc<diagnostics::Journal>>>,
@@ -193,6 +197,7 @@ impl Default for Control {
             process_factory: Arc::new(SystemProcess),
             state: Mutex::new(ProcessState::default()),
             stopped: AtomicBool::new(false),
+            shutdown_timed_out: AtomicBool::new(false),
             started: AtomicBool::new(false),
             pending: AtomicUsize::new(0),
             journal: Mutex::new(None),
@@ -200,6 +205,20 @@ impl Default for Control {
     }
 }
 impl Control {
+    fn event(&self, name: &str, id: &str, stage: &str) {
+        if let Some(journal) = self
+            .journal
+            .lock()
+            .unwrap_or_else(|e| e.into_inner())
+            .as_ref()
+        {
+            let _ = journal.record(
+                &diagnostics::Error::new("transport_unavailable", id, stage),
+                "rust",
+                name,
+            );
+        }
+    }
     fn cancel(&self, attempt: &Attempt) {
         attempt.cancelled.store(true, Ordering::Release);
         let mut state = self.state.lock().unwrap_or_else(|e| e.into_inner());
@@ -226,7 +245,8 @@ pub(crate) struct Bridge {
     control: Arc<Control>,
     next_id: AtomicU64,
     timeout: Duration,
-    _actor: JoinHandle<()>,
+    actor: Mutex<Option<JoinHandle<()>>>,
+    watchdog: Mutex<Option<JoinHandle<()>>>,
 }
 impl Bridge {
     pub fn new(config: Config) -> Result<Self, String> {
@@ -261,12 +281,40 @@ impl Bridge {
             .name("pam-bridge".into())
             .spawn(move || run_actor(config, receiver, actor_control))
             .map_err(|e| e.to_string())?;
+        let watchdog_control = control.clone();
+        let watchdog = match thread::Builder::new()
+            .name("pam-bridge-deadline".into())
+            .spawn(move || {
+                while !watchdog_control.stopped.load(Ordering::Acquire) {
+                    let active = watchdog_control
+                        .state
+                        .lock()
+                        .unwrap_or_else(|e| e.into_inner())
+                        .active
+                        .clone();
+                    if let Some(attempt) = active {
+                        if watchdog_control.clock.now() >= attempt.deadline {
+                            watchdog_control.cancel(&attempt);
+                        }
+                    }
+                    thread::sleep(Duration::from_millis(10));
+                }
+            }) {
+            Ok(handle) => handle,
+            Err(error) => {
+                control.stopped.store(true, Ordering::Release);
+                control.interrupt();
+                let _ = actor.join();
+                return Err(error.to_string());
+            }
+        };
         Ok(Self {
             sender,
             control,
             next_id: AtomicU64::new(1),
             timeout,
-            _actor: actor,
+            actor: Mutex::new(Some(actor)),
+            watchdog: Mutex::new(Some(watchdog)),
         })
     }
     pub fn request(&self, method: &str, payload: Value) -> Result<Value, Error> {
@@ -401,7 +449,21 @@ impl Bridge {
                 }
             });
         }
-        match response.recv_timeout(deadline.saturating_duration_since(self.control.clock.now())) {
+        let received = loop {
+            if self.control.stopped.load(Ordering::Acquire) {
+                return Err(Error::new("bridge_stopped", "Le bridge est arrêté."));
+            }
+            let remaining = deadline.saturating_duration_since(self.control.clock.now());
+            match response.recv_timeout(remaining.min(Duration::from_millis(50))) {
+                Err(RecvTimeoutError::Timeout)
+                    if !remaining.is_zero() && self.control.clock.now() < deadline =>
+                {
+                    continue
+                }
+                result => break result,
+            }
+        };
+        match received {
             Ok(result) if self.control.clock.now() < deadline => result,
             Ok(_) | Err(RecvTimeoutError::Timeout) => {
                 self.control.cancel(&attempt);
@@ -416,24 +478,58 @@ impl Bridge {
     pub fn restart(&self) {
         self.control.interrupt();
     }
-    pub fn shutdown(&self) {
+    pub fn shutdown(&self) -> bool {
         self.control.stopped.store(true, Ordering::Release);
+        self.control
+            .state
+            .lock()
+            .unwrap_or_else(|e| e.into_inner())
+            .lifecycle
+            .stop();
         self.control.interrupt();
+        // One bounded join also owns the monitoring loop. A native host call
+        // already issued is never retried; it may finish after this budget.
+        let deadline = Instant::now() + Duration::from_secs(2);
+        if let Ok(mut watchdog) = self.watchdog.try_lock() {
+            while watchdog.as_ref().is_some_and(|a| !a.is_finished()) && Instant::now() < deadline {
+                thread::sleep(Duration::from_millis(5));
+            }
+            if watchdog.as_ref().is_some_and(|a| a.is_finished()) {
+                let _ = watchdog.take().unwrap().join();
+            }
+        }
+        if let Ok(mut actor) = self.actor.try_lock() {
+            while actor.as_ref().is_some_and(|a| !a.is_finished()) && Instant::now() < deadline {
+                thread::sleep(Duration::from_millis(5));
+            }
+            if actor.as_ref().is_some_and(|a| a.is_finished()) {
+                let _ = actor.take().unwrap().join();
+            } else if actor.is_some() {
+                // Do not perform disk I/O after exhausting the join budget.
+                // The actor records this when the in-flight native call returns.
+                self.control
+                    .shutdown_timed_out
+                    .store(true, Ordering::Release);
+            }
+        }
+        self.actor.try_lock().is_ok_and(|a| a.is_none())
+            && self.watchdog.try_lock().is_ok_and(|a| a.is_none())
     }
-    pub fn is_stopped(&self) -> bool {
-        self.control.stopped.load(Ordering::Acquire)
-    }
+    #[cfg(test)]
     pub fn is_idle(&self) -> bool {
         self.control.pending.load(Ordering::Acquire) == 0
     }
+    #[cfg(test)]
     pub fn has_started(&self) -> bool {
         self.control.started.load(Ordering::Acquire)
     }
 }
 impl Drop for Bridge {
     fn drop(&mut self) {
-        // Exit never joins an actor that might be inside a native effect.
-        self.shutdown();
+        // Join within the same bounded shutdown budget.
+        if !self.control.stopped.load(Ordering::Acquire) {
+            self.shutdown();
+        }
     }
 }
 
@@ -459,8 +555,11 @@ impl RequestTransport for Bridge {
 
 fn run_actor(config: Config, receiver: Receiver<Operation>, control: Arc<Control>) {
     let mut worker: Option<Worker> = None;
+    let mut last_probe = control.clock.now();
+    let mut probe_id = 9_007_199_254_740_991u64; // exact in both JSON runtimes
     loop {
         if control.stopped.load(Ordering::Acquire) {
+            control.event("supervisor_stopping", "", "transport");
             while let Ok(operation) = receiver.try_recv() {
                 let _ = operation
                     .reply
@@ -471,7 +570,40 @@ fn run_actor(config: Config, receiver: Receiver<Operation>, control: Arc<Control
         }
         let operation = match receiver.recv_timeout(Duration::from_millis(100)) {
             Ok(operation) => operation,
-            Err(RecvTimeoutError::Timeout) => continue,
+            Err(RecvTimeoutError::Timeout) => {
+                let now = control.clock.now();
+                let state = control.state.lock().unwrap_or_else(|e| e.into_inner());
+                let due = if let Some(at) = state.lifecycle.retry_at {
+                    now >= at
+                } else {
+                    control.started.load(Ordering::Acquire)
+                        && now.saturating_duration_since(last_probe) >= Duration::from_secs(15)
+                };
+                drop(state);
+                if !due || control.pending.load(Ordering::Acquire) != 0 {
+                    continue;
+                }
+                // Only a read-only status/warmup is automatically retried.
+                // Never retain/requeue an expired business operation.
+                let attempt = Arc::new(Attempt {
+                    id: probe_id,
+                    request_id: diagnostics::request_id(),
+                    deadline: now + Duration::from_secs(50),
+                    stage: AtomicU8::new(QUEUED),
+                    cancelled: AtomicBool::new(false),
+                    progress: Mutex::new(None),
+                });
+                probe_id -= 1;
+                let mut bytes = serde_json::to_vec(&json!({"version":contracts::VERSION,"id":attempt.id,"requestId":attempt.request_id,"method":"status","payload":{}})).expect("status frame");
+                bytes.push(b'\n');
+                let (reply, _) = mpsc::sync_channel(1);
+                control.pending.fetch_add(1, Ordering::AcqRel);
+                Operation {
+                    attempt,
+                    bytes,
+                    reply,
+                }
+            }
             Err(RecvTimeoutError::Disconnected) => break,
         };
         let attempt = &operation.attempt;
@@ -489,13 +621,27 @@ fn run_actor(config: Config, receiver: Receiver<Operation>, control: Arc<Control
                         .child
                         .as_mut()
                         .is_some_and(|child| matches!(child.try_wait(), Ok(None)));
+                let unexpected_exit = !alive && !state.invalidated;
                 drop(state);
                 if !alive {
                     worker = None;
                 }
+                if unexpected_exit {
+                    attempt.stage.store(STARTING, Ordering::Release);
+                    return Err(Error::new("bridge_eof", "Le sidecar s’est arrêté."));
+                }
             }
             if worker.is_none() {
+                let mut state = control.state.lock().unwrap_or_else(|e| e.into_inner());
+                if !state.lifecycle.begin(control.clock.now()) {
+                    return Err(Error::new(
+                        "bridge_backoff",
+                        "Reprise différée après plusieurs pannes. Réessayez dans un instant.",
+                    ));
+                }
+                drop(state);
                 attempt.stage.store(STARTING, Ordering::Release);
+                control.event("supervisor_starting", &attempt.request_id, "start");
                 worker = Some(Worker::start(&config, control.clone(), attempt)?);
                 control.started.store(true, Ordering::Release);
             }
@@ -506,18 +652,53 @@ fn run_actor(config: Config, receiver: Receiver<Operation>, control: Arc<Control
         })();
         // Retire the entire stream on any transport fault. A late reply can
         // never satisfy a later request. A sidecar application error is final.
-        if result
-            .as_ref()
-            .is_err_and(|error| error.code != "sidecar_error")
-            && !matches!(attempt.stage.load(Ordering::Acquire), QUEUED)
-        {
+        let model_failure = result.as_ref().is_err_and(|e| {
+            e.diagnostic
+                .as_ref()
+                .is_some_and(|d| d.code == "model_failure")
+        });
+        let transport_failure = result.as_ref().is_err_and(|error| {
+            error.code != "sidecar_error"
+                && error.code != "bridge_interrupted"
+                && error.code != "bridge_stopped"
+        }) && !matches!(attempt.stage.load(Ordering::Acquire), QUEUED);
+        if transport_failure || model_failure {
             worker = None;
         }
-        control
-            .state
-            .lock()
-            .unwrap_or_else(|e| e.into_inner())
-            .active = None;
+        let phase = {
+            let mut state = control.state.lock().unwrap_or_else(|e| e.into_inner());
+            state.active = None;
+            let previous = state.lifecycle.phase;
+            if transport_failure || model_failure {
+                state.lifecycle.failed(control.clock.now());
+            } else if result.is_ok() || result.as_ref().is_err_and(|e| e.code == "sidecar_error") {
+                state.lifecycle.healthy(control.clock.now());
+            }
+            (previous != state.lifecycle.phase).then_some(state.lifecycle.phase)
+        };
+        // Logs contain only stable error categories and transition names.
+        if let Some(phase) = phase {
+            if let Some(journal) = control.journal.lock().unwrap().as_ref() {
+                let event = match phase {
+                    Phase::Ready => "supervisor_ready",
+                    Phase::Recovering => "supervisor_recovering",
+                    _ => "supervisor_stopping",
+                };
+                let error = result
+                    .as_ref()
+                    .err()
+                    .map(Error::envelope)
+                    .unwrap_or_else(|| {
+                        diagnostics::Error::new(
+                            "transport_unavailable",
+                            &attempt.request_id,
+                            "transport",
+                        )
+                    });
+                let _ = journal.record(&error, "rust", event);
+            }
+        }
+        last_probe = control.clock.now();
         let result = match result {
             Err(error) => attempt.partial(&error).ok_or(error),
             result => result,
@@ -526,6 +707,16 @@ fn run_actor(config: Config, receiver: Receiver<Operation>, control: Arc<Control
         control.pending.fetch_sub(1, Ordering::AcqRel);
     }
     drop(worker);
+    control
+        .state
+        .lock()
+        .unwrap_or_else(|e| e.into_inner())
+        .lifecycle
+        .stopped();
+    control.event("supervisor_stopped", "", "transport");
+    if control.shutdown_timed_out.load(Ordering::Acquire) {
+        control.event("supervisor_stop_timeout", "", "host");
+    }
 }
 
 struct Worker {
@@ -568,6 +759,7 @@ impl Worker {
             use std::os::windows::process::CommandExt;
             command.creation_flags(0x08000000);
         }
+        attempt.check(&control)?;
         let child = control.process_factory.spawn(&mut command).map_err(|e| {
             Error::new(
                 "bridge_start",
@@ -580,6 +772,7 @@ impl Worker {
                 format!("Impossible de superviser le sidecar : {e}"),
             )
         })?;
+        attempt.check(&control)?;
         // Command's piped handles exist; guard even unexpected handle failure.
         let (Some(stdin), Some(stdout)) = (child.inner.stdin.take(), child.inner.stdout.take())
         else {

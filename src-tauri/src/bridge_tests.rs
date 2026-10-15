@@ -60,6 +60,33 @@ impl Fixture {
     }
     fn mode(&self, mode: &str) {
         fs::write(self.profile.join("mode"), mode).unwrap();
+        self.wait_for(|| {
+            self.bridge
+                .control
+                .state
+                .lock()
+                .unwrap()
+                .lifecycle
+                .retry_at
+                .is_none_or(|at| Instant::now() >= at)
+        });
+    }
+    fn assert_dead(&self, pid: u64) {
+        let root = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+        self.wait_for(|| {
+            !Command::new(root.join("binaries/pam-node-x86_64-pc-windows-msvc.exe"))
+                .args([
+                    "-e",
+                    "try { process.kill(Number(process.argv[1]), 0); } catch { process.exit(1); }",
+                    &pid.to_string(),
+                ])
+                .stdin(Stdio::null())
+                .stdout(Stdio::null())
+                .stderr(Stdio::null())
+                .status()
+                .unwrap()
+                .success()
+        });
     }
     fn executions(&self) -> Vec<String> {
         fs::read_to_string(self.profile.join("executions"))
@@ -69,15 +96,389 @@ impl Fixture {
             .collect()
     }
 }
+
+struct ManualClock(Mutex<Instant>);
+impl Clock for ManualClock {
+    fn now(&self) -> Instant {
+        *self.0.lock().unwrap()
+    }
+}
+impl ManualClock {
+    fn advance(&self, seconds: u64) {
+        *self.0.lock().unwrap() += Duration::from_secs(seconds);
+    }
+}
+fn controlled_bridge(
+    fixture: &Fixture,
+    clock: Arc<ManualClock>,
+    factory: Arc<dyn ProcessFactory>,
+) -> Bridge {
+    let root = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+    Bridge::with_services(
+        Config {
+            node: root.join("binaries/pam-node-x86_64-pc-windows-msvc.exe"),
+            script: root.join("../tests/fixtures/bridge-sidecar.cjs"),
+            runtime: root.join("runtime"),
+            profile: fixture.profile.clone(),
+            catalogue: Arc::new(Catalogue::default()),
+        },
+        Duration::from_secs(5),
+        4,
+        clock,
+        factory,
+    )
+    .unwrap()
+}
+
+#[test]
+fn persistent_spawn_failures_use_controlled_backoff_and_stop_permanently() {
+    struct Failed(AtomicUsize);
+    impl ProcessFactory for Failed {
+        fn spawn(&self, _: &mut Command) -> std::io::Result<std::process::Child> {
+            self.0.fetch_add(1, Ordering::Relaxed);
+            Err(std::io::Error::other("injected startup fault"))
+        }
+    }
+    let fixture = Fixture::new("echo", Duration::from_secs(5), 4);
+    let clock = Arc::new(ManualClock(Mutex::new(Instant::now())));
+    let factory = Arc::new(Failed(AtomicUsize::new(0)));
+    let bridge = controlled_bridge(&fixture, clock.clone(), factory.clone());
+    assert_eq!(
+        bridge.request("status", json!({})).unwrap_err().code,
+        "bridge_start"
+    );
+    for (index, delay) in [1, 2, 4, 8, 16, 32, 60, 60].into_iter().enumerate() {
+        fixture.wait_for(|| bridge.control.pending.load(Ordering::Acquire) == 0);
+        for _ in 0..8 {
+            assert_eq!(
+                bridge
+                    .request("process_text", json!({"text":"must not execute"}))
+                    .unwrap_err()
+                    .code,
+                "bridge_backoff"
+            );
+        }
+        assert_eq!(factory.0.load(Ordering::Relaxed), index + 1);
+        clock.advance(delay);
+        fixture.wait_for(|| factory.0.load(Ordering::Relaxed) == index + 2);
+    }
+    let began = Instant::now();
+    bridge.shutdown();
+    assert!(began.elapsed() < Duration::from_millis(300));
+    assert!(bridge.actor.lock().unwrap().is_none());
+    assert!(bridge.watchdog.lock().unwrap().is_none());
+    clock.advance(600);
+    bridge.restart();
+    assert_eq!(
+        bridge.request("status", json!({})).unwrap_err().code,
+        "bridge_stopped"
+    );
+    assert_eq!(factory.0.load(Ordering::Relaxed), 9);
+    assert!(fixture.executions().is_empty());
+}
+
+#[test]
+fn shutdown_budget_also_covers_a_stalled_native_spawn() {
+    struct Stalled {
+        entered: AtomicBool,
+        release: (Mutex<bool>, std::sync::Condvar),
+    }
+    impl ProcessFactory for Stalled {
+        fn spawn(&self, _: &mut Command) -> std::io::Result<std::process::Child> {
+            self.entered.store(true, Ordering::Release);
+            let (lock, changed) = &self.release;
+            let _guard = changed
+                .wait_while(lock.lock().unwrap(), |released| !*released)
+                .unwrap();
+            Err(std::io::Error::other("released native spawn fault"))
+        }
+    }
+    let fixture = Fixture::new("echo", Duration::from_secs(10), 4);
+    let factory = Arc::new(Stalled {
+        entered: AtomicBool::new(false),
+        release: (Mutex::new(false), std::sync::Condvar::new()),
+    });
+    let bridge = Arc::new(controlled_bridge(
+        &fixture,
+        Arc::new(ManualClock(Mutex::new(Instant::now()))),
+        factory.clone(),
+    ));
+    let requesting = bridge.clone();
+    let request = thread::spawn(move || requesting.request("status", json!({})));
+    fixture.wait_for(|| factory.entered.load(Ordering::Acquire));
+    let began = Instant::now();
+    let joined = bridge.shutdown();
+    let elapsed = began.elapsed();
+    *factory.release.0.lock().unwrap() = true;
+    factory.release.1.notify_all();
+    assert!(!joined);
+    assert!(elapsed < Duration::from_millis(2500));
+    assert_eq!(request.join().unwrap().unwrap_err().code, "bridge_stopped");
+    fixture.wait_for(|| {
+        bridge
+            .actor
+            .lock()
+            .unwrap()
+            .as_ref()
+            .is_some_and(|a| a.is_finished())
+    });
+    assert!(bridge.shutdown());
+    assert!(bridge.control.state.lock().unwrap().child.is_none());
+    assert_eq!(
+        bridge.control.state.lock().unwrap().lifecycle.phase,
+        Phase::Stopped
+    );
+    assert!(fixture.executions().is_empty());
+}
+
+#[test]
+fn repeated_native_startup_crashes_leave_no_internal_pid() {
+    let fixture = Fixture::new("startup-fail", Duration::from_secs(5), 4);
+    let clock = Arc::new(ManualClock(Mutex::new(Instant::now())));
+    let bridge = controlled_bridge(&fixture, clock.clone(), Arc::new(SystemProcess));
+    assert_eq!(
+        bridge.request("status", json!({})).unwrap_err().code,
+        "bridge_eof"
+    );
+    for (index, delay) in [1, 2, 4].into_iter().enumerate() {
+        fixture.wait_for(|| bridge.control.pending.load(Ordering::Acquire) == 0);
+        let pids = fs::read_to_string(fixture.profile.join("failed-pids")).unwrap();
+        assert_eq!(pids.lines().count(), index + 1);
+        for record in pids.lines() {
+            let record: Value = serde_json::from_str(record).unwrap();
+            fixture.assert_dead(record["pid"].as_u64().unwrap());
+            fixture.assert_dead(record["helper"].as_u64().unwrap());
+        }
+        clock.advance(delay);
+        fixture.wait_for(|| {
+            fs::read_to_string(fixture.profile.join("failed-pids"))
+                .unwrap()
+                .lines()
+                .count()
+                == index + 2
+        });
+    }
+    bridge.shutdown();
+    for record in fs::read_to_string(fixture.profile.join("failed-pids"))
+        .unwrap()
+        .lines()
+    {
+        let record: Value = serde_json::from_str(record).unwrap();
+        fixture.assert_dead(record["pid"].as_u64().unwrap());
+        fixture.assert_dead(record["helper"].as_u64().unwrap());
+    }
+    assert!(fixture.executions().is_empty());
+}
+
+#[test]
+fn automatic_recovery_runs_real_cleanup_without_replaying_emitted_effect() {
+    let fixture = Fixture::new("crash-temporary", Duration::from_secs(5), 4);
+    let config = r#"{"version":2,"applications":[],"language":"fr","autoExecute":false,"confidenceThreshold":0.7}"#;
+    fs::write(fixture.profile.join("applications.json"), config).unwrap();
+    let clock = Arc::new(ManualClock(Mutex::new(Instant::now())));
+    let bridge = controlled_bridge(&fixture, clock.clone(), Arc::new(SystemProcess));
+    assert!(bridge
+        .request("process_text", json!({"text":"emitted once"}))
+        .is_err());
+    fixture.wait_for(|| bridge.control.pending.load(Ordering::Acquire) == 0);
+    let turns = || {
+        fs::read_dir(&fixture.profile)
+            .unwrap()
+            .filter_map(Result::ok)
+            .filter(|e| e.file_name().to_string_lossy().starts_with("turn-"))
+            .map(|e| e.path())
+            .collect::<Vec<_>>()
+    };
+    assert_eq!(turns().len(), 1);
+    assert!(turns()[0].join("clip.wav").is_file());
+    assert!(turns()[0].join("keywords.txt").is_file());
+    let started: Value =
+        serde_json::from_slice(&fs::read(fixture.profile.join("started.json")).unwrap()).unwrap();
+    fixture.assert_dead(started["pid"].as_u64().unwrap());
+    fs::write(fixture.profile.join("mode"), "recovered-temporary").unwrap();
+    clock.advance(1);
+    fixture.wait_for(|| bridge.control.state.lock().unwrap().lifecycle.phase == Phase::Ready);
+    assert!(turns().is_empty());
+    assert_eq!(
+        fs::read_to_string(fixture.profile.join("applications.json")).unwrap(),
+        config
+    );
+    assert_eq!(
+        fs::read_to_string(fixture.profile.join("effects")).unwrap(),
+        "once\n"
+    );
+    assert!(fixture.executions().is_empty());
+    bridge.shutdown();
+    assert!(bridge.actor.lock().unwrap().is_none());
+}
+
+#[test]
+fn automatic_status_probe_has_a_deadline_without_a_waiting_caller() {
+    let fixture = Fixture::new("silent", Duration::from_secs(5), 4);
+    let clock = Arc::new(ManualClock(Mutex::new(Instant::now())));
+    let bridge = Arc::new(controlled_bridge(
+        &fixture,
+        clock.clone(),
+        Arc::new(SystemProcess),
+    ));
+    let requesting = bridge.clone();
+    let request = thread::spawn(move || requesting.request("status", json!({})));
+    fixture.wait_for(|| {
+        bridge
+            .control
+            .state
+            .lock()
+            .unwrap()
+            .active
+            .as_ref()
+            .is_some_and(|a| a.stage.load(Ordering::Acquire) == RESPONSE)
+    });
+    fixture.wait_for(|| fixture.executions().len() == 1);
+    clock.advance(5);
+    assert_eq!(
+        request.join().unwrap().unwrap_err().code,
+        "bridge_response_timeout"
+    );
+    fixture.wait_for(|| bridge.control.pending.load(Ordering::Acquire) == 0);
+    // No caller exists for the next status probe: the watchdog owns its deadline.
+    clock.advance(1);
+    fixture.wait_for(|| {
+        bridge
+            .control
+            .state
+            .lock()
+            .unwrap()
+            .active
+            .as_ref()
+            .is_some_and(|a| a.id > 1 && a.stage.load(Ordering::Acquire) == RESPONSE)
+    });
+    fixture.wait_for(|| fixture.executions().len() == 2);
+    let pid = bridge
+        .control
+        .state
+        .lock()
+        .unwrap()
+        .child
+        .as_ref()
+        .unwrap()
+        .inner
+        .id();
+    clock.advance(50);
+    fixture.wait_for(|| bridge.control.pending.load(Ordering::Acquire) == 0);
+    fixture.assert_dead(pid.into());
+    let state = bridge.control.state.lock().unwrap();
+    assert_eq!(state.lifecycle.phase, Phase::Recovering);
+    assert_eq!(
+        state.lifecycle.retry_at,
+        Some(clock.now() + Duration::from_secs(2))
+    );
+    drop(state);
+    assert_eq!(fixture.executions(), ["status", "status"]);
+    let events = bridge.export_diagnostics().unwrap();
+    for event in ["supervisor_starting", "supervisor_recovering"] {
+        assert!(events["events"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .any(|e| e["event"] == event));
+    }
+    bridge.shutdown();
+}
+
+#[test]
+fn shutdown_joins_monitor_during_warmup_inference_idle_and_blocked_write() {
+    for (mode, method, stage) in [
+        ("silent", "status", RESPONSE),
+        ("silent", "process_audio", RESPONSE),
+        ("never-read-child", "process_audio", WRITING),
+    ] {
+        let fixture = Fixture::new(mode, Duration::from_secs(5), 4);
+        let bridge = fixture.bridge.clone();
+        let active = thread::spawn(move || {
+            bridge.request(
+                method,
+                if method == "process_audio" {
+                    audio()
+                } else {
+                    json!({})
+                },
+            )
+        });
+        fixture.ready();
+        fixture.at_stage(stage);
+        if mode == "never-read-child" {
+            fixture.wait_for(|| {
+                fs::read(fixture.profile.join("started.json"))
+                    .ok()
+                    .and_then(|b| serde_json::from_slice::<Value>(&b).ok())
+                    .is_some_and(|v| v["helper"].is_number())
+            });
+        }
+        let started: Value =
+            serde_json::from_slice(&fs::read(fixture.profile.join("started.json")).unwrap())
+                .unwrap();
+        let bridge = fixture.bridge.clone();
+        let queued = thread::spawn(move || bridge.request("status", json!({})));
+        fixture.wait_for(|| fixture.bridge.control.pending.load(Ordering::Acquire) == 2);
+        let began = Instant::now();
+        fixture.bridge.shutdown();
+        assert!(began.elapsed() < Duration::from_secs(2));
+        assert_eq!(active.join().unwrap().unwrap_err().code, "bridge_stopped");
+        assert_eq!(queued.join().unwrap().unwrap_err().code, "bridge_stopped");
+        assert!(fixture.bridge.actor.lock().unwrap().is_none());
+        assert!(fixture.bridge.watchdog.lock().unwrap().is_none());
+        assert_eq!(
+            fixture.bridge.control.state.lock().unwrap().lifecycle.phase,
+            Phase::Stopped
+        );
+        fixture.assert_dead(started["pid"].as_u64().unwrap());
+        if let Some(pid) = started["helper"].as_u64() {
+            fixture.assert_dead(pid);
+        }
+        let count = fixture.executions().len();
+        fixture.bridge.restart();
+        assert_eq!(
+            fixture
+                .bridge
+                .request("status", json!({}))
+                .unwrap_err()
+                .code,
+            "bridge_stopped"
+        );
+        assert_eq!(fixture.executions().len(), count);
+    }
+    let fixture = Fixture::new("echo", Duration::from_secs(5), 4);
+    fixture.bridge.request("status", json!({})).unwrap();
+    let started: Value =
+        serde_json::from_slice(&fs::read(fixture.profile.join("started.json")).unwrap()).unwrap();
+    let began = Instant::now();
+    fixture.bridge.shutdown();
+    assert!(began.elapsed() < Duration::from_millis(300));
+    assert!(fixture.bridge.actor.lock().unwrap().is_none());
+    fixture.assert_dead(started["pid"].as_u64().unwrap());
+}
 impl Drop for Fixture {
     fn drop(&mut self) {
         self.bridge.shutdown();
         let deadline = Instant::now() + Duration::from_secs(5);
-        while !self.bridge._actor.is_finished() && Instant::now() < deadline {
+        while self
+            .bridge
+            .actor
+            .lock()
+            .unwrap()
+            .as_ref()
+            .is_some_and(|a| !a.is_finished())
+            && Instant::now() < deadline
+        {
             thread::sleep(Duration::from_millis(5));
         }
         assert!(
-            self.bridge._actor.is_finished(),
+            self.bridge
+                .actor
+                .lock()
+                .unwrap()
+                .as_ref()
+                .is_none_or(|a| a.is_finished()),
             "actor/reader must terminate before removing fixture"
         );
         assert!(
@@ -131,7 +532,14 @@ fn injected_spawn_failure_is_correlated_without_start_or_replay() {
     assert!(!fixture.profile.join("started.json").exists());
     assert!(fixture.executions().is_empty());
     bridge.shutdown();
-    fixture.wait_for(|| bridge._actor.is_finished());
+    fixture.wait_for(|| {
+        bridge
+            .actor
+            .lock()
+            .unwrap()
+            .as_ref()
+            .is_none_or(|a| a.is_finished())
+    });
 }
 
 #[test]
@@ -140,9 +548,6 @@ fn injected_clock_expires_attempt_before_any_process_effect() {
     impl Clock for FixedClock {
         fn now(&self) -> Instant {
             self.0
-        }
-        fn sleep(&self, _: Duration) {
-            panic!("bridge must not poll by sleeping");
         }
     }
     let clock = Arc::new(FixedClock(Instant::now() + Duration::from_secs(60)));

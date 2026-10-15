@@ -170,7 +170,19 @@ impl Journal {
         } else {
             "rust"
         };
-        let event = if matches!(event, "failure" | "stderr" | "request" | "complete") {
+        let event = if matches!(
+            event,
+            "failure"
+                | "stderr"
+                | "request"
+                | "complete"
+                | "supervisor_ready"
+                | "supervisor_starting"
+                | "supervisor_stopped"
+                | "supervisor_stop_timeout"
+                | "supervisor_recovering"
+                | "supervisor_stopping"
+        ) {
             event
         } else {
             "failure"
@@ -220,7 +232,21 @@ impl Journal {
                         .unwrap_or("rust");
                     let event = value["event"]
                         .as_str()
-                        .filter(|s| matches!(*s, "failure" | "stderr" | "request" | "complete"))
+                        .filter(|s| {
+                            matches!(
+                                *s,
+                                "failure"
+                                    | "stderr"
+                                    | "request"
+                                    | "complete"
+                                    | "supervisor_ready"
+                                    | "supervisor_starting"
+                                    | "supervisor_stopped"
+                                    | "supervisor_stop_timeout"
+                                    | "supervisor_recovering"
+                                    | "supervisor_stopping"
+                            )
+                        })
                         .unwrap_or("failure");
                     events.push(json!({"time":value["time"].as_u64().unwrap_or(0),"source":source,"event":event,"error":error}));
                 }

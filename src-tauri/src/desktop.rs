@@ -1,6 +1,5 @@
 //! Tauri windows, tray and shortcut integration.
 use crate::{applications, bridge, host::AssistantBridge};
-use serde_json::json;
 use std::{
     path::{Path, PathBuf},
     sync::Arc,
@@ -145,26 +144,5 @@ pub(crate) fn setup(app: &mut tauri::App) -> Result<(), Box<dyn std::error::Erro
         })?,
         shortcut_error,
     });
-    let handle = app.handle().clone();
-    std::thread::spawn(move || {
-        crate::supervision::monitor(&crate::supervision::SystemClock, || {
-            let state = handle.state::<AssistantBridge>();
-            crate::supervision::monitor_tick(state.inner())
-        })
-    });
     Ok(())
-}
-impl crate::supervision::Transport for AssistantBridge {
-    fn stopped(&self) -> bool {
-        self.transport.is_stopped()
-    }
-    fn idle(&self) -> bool {
-        self.transport.is_idle()
-    }
-    fn started(&self) -> bool {
-        self.transport.has_started()
-    }
-    fn probe(&self) {
-        let _ = self.request("status", json!({}));
-    }
 }

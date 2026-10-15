@@ -1,9 +1,24 @@
-// Disposable IPC fixture; no engine, audio file or user application.
+// Disposable IPC fixture; synthetic temporary bytes and simulated effects only.
 const fs=require('node:fs'),path=require('node:path'),readline=require('node:readline');
 const profile=process.argv[3],mode=fs.readFileSync(path.join(profile,'mode'),'utf8').trim();
+if(mode==='recovered-temporary') { require('../../sidecar/main.cjs'); return; }
 fs.writeFileSync(path.join(profile,'started.json'),JSON.stringify({pid:process.pid,mode}));
 setInterval(()=>{},1000);
-if(mode==='never-read-child') {
+if(mode==='crash-temporary') {
+  void (async()=>{
+    const turn=await require('../../sidecar/temporary-files.cjs').createTemporaryFiles(profile).createTurn();
+    fs.writeFileSync(path.join(turn.directory,'clip.wav'),'SYNTHETIC_WAV');
+    fs.writeFileSync(path.join(turn.directory,'keywords.txt'),'SYNTHETIC_KEYWORDS');
+    fs.appendFileSync(path.join(profile,'effects'),'once\n'); // simulated already-emitted effect
+    process.exit(70);
+  })();
+} else if(mode==='startup-fail') {
+  const helper=require('node:child_process').spawn(process.execPath,['-e','setInterval(()=>{},1000)'],{shell:false,windowsHide:true,stdio:['ignore','inherit','ignore']});
+  helper.once('spawn',()=>{
+    fs.appendFileSync(path.join(profile,'failed-pids'),JSON.stringify({pid:process.pid,helper:helper.pid})+'\n');
+    process.exit(70);
+  });
+} else if(mode==='never-read-child') {
   const helper=require('node:child_process').spawn(process.execPath,['-e','setInterval(()=>{},1000)'],{shell:false,windowsHide:true,stdio:['inherit','inherit','ignore']});
   helper.once('spawn',()=>fs.writeFileSync(path.join(profile,'started.json'),JSON.stringify({pid:process.pid,mode,helper:helper.pid})));
 } else if(mode!=='never-read') {

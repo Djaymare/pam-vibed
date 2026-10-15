@@ -8,7 +8,6 @@ use std::{
 pub(crate) trait Process: Send {
     fn try_wait(&mut self) -> io::Result<Option<ExitStatus>>;
     fn kill(&mut self) -> io::Result<()>;
-    fn wait(&mut self) -> io::Result<ExitStatus>;
 }
 impl Process for Child {
     fn try_wait(&mut self) -> io::Result<Option<ExitStatus>> {
@@ -16,9 +15,6 @@ impl Process for Child {
     }
     fn kill(&mut self) -> io::Result<()> {
         Child::kill(self)
-    }
-    fn wait(&mut self) -> io::Result<ExitStatus> {
-        Child::wait(self)
     }
 }
 pub(crate) trait ProcessFactory: Send + Sync {
@@ -32,15 +28,11 @@ impl ProcessFactory for SystemProcess {
 }
 pub(crate) trait Clock: Send + Sync {
     fn now(&self) -> Instant;
-    fn sleep(&self, duration: Duration);
 }
 pub(crate) struct SystemClock;
 impl Clock for SystemClock {
     fn now(&self) -> Instant {
         Instant::now()
-    }
-    fn sleep(&self, duration: Duration) {
-        std::thread::sleep(duration);
     }
 }
 pub(crate) struct OwnedProcess<P: Process = Child> {
@@ -81,53 +73,95 @@ impl<P: Process> Drop for OwnedProcess<P> {
         #[cfg(windows)]
         drop(self.job.take()); // release descendant pipe handles before joins
         let _ = self.inner.kill();
-        let _ = self.inner.wait();
+        // Never wait indefinitely for a misbehaving process implementation.
+        let deadline = Instant::now() + Duration::from_millis(500);
+        while matches!(self.inner.try_wait(), Ok(None)) && Instant::now() < deadline {
+            std::thread::sleep(Duration::from_millis(5));
+        }
     }
 }
 
-pub(crate) trait Transport {
-    fn stopped(&self) -> bool;
-    fn idle(&self) -> bool;
-    fn started(&self) -> bool;
-    fn probe(&self);
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub(crate) enum Phase {
+    Starting,
+    Ready,
+    Recovering,
+    Stopping,
+    Stopped,
 }
-pub(crate) fn monitor_tick(transport: &impl Transport) -> bool {
-    if transport.stopped() {
-        return false;
-    }
-    if transport.idle() && transport.started() {
-        transport.probe();
-    }
-    true
+
+/// Pure policy; the transport actor is the only process/monitor owner.
+pub(crate) struct Lifecycle {
+    pub phase: Phase,
+    failures: u32,
+    pub retry_at: Option<Instant>,
+    healthy_since: Option<Instant>,
 }
-pub(crate) fn monitor(clock: &dyn Clock, mut tick: impl FnMut() -> bool) {
-    loop {
-        clock.sleep(Duration::from_secs(15));
-        if !tick() {
-            break;
+impl Default for Lifecycle {
+    fn default() -> Self {
+        Self {
+            phase: Phase::Starting,
+            failures: 0,
+            retry_at: None,
+            healthy_since: None,
         }
+    }
+}
+impl Lifecycle {
+    pub fn begin(&mut self, now: Instant) -> bool {
+        if matches!(self.phase, Phase::Stopping | Phase::Stopped)
+            || self.retry_at.is_some_and(|at| now < at)
+        {
+            return false;
+        }
+        self.phase = Phase::Starting;
+        self.healthy_since = None;
+        true
+    }
+    pub fn failed(&mut self, now: Instant) {
+        if matches!(self.phase, Phase::Stopping | Phase::Stopped) {
+            return;
+        }
+        self.failures = self.failures.saturating_add(1);
+        let seconds = (1u64 << self.failures.saturating_sub(1).min(6)).min(60);
+        self.retry_at = Some(now + Duration::from_secs(seconds));
+        self.healthy_since = None;
+        self.phase = Phase::Recovering;
+    }
+    pub fn healthy(&mut self, now: Instant) {
+        if matches!(self.phase, Phase::Stopping | Phase::Stopped) {
+            return;
+        }
+        let since = *self.healthy_since.get_or_insert(now);
+        if now.saturating_duration_since(since) >= Duration::from_secs(60) {
+            self.failures = 0;
+        }
+        self.retry_at = None;
+        self.phase = Phase::Ready;
+    }
+    pub fn stop(&mut self) {
+        if self.phase != Phase::Stopped {
+            self.phase = Phase::Stopping;
+        }
+    }
+    pub fn stopped(&mut self) {
+        self.phase = Phase::Stopped;
     }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::sync::{
-        atomic::{AtomicUsize, Ordering},
-        Arc, Mutex,
-    };
+    use std::sync::{Arc, Mutex};
     struct FakeProcess(Arc<Mutex<Vec<&'static str>>>);
     impl Process for FakeProcess {
         fn try_wait(&mut self) -> io::Result<Option<ExitStatus>> {
-            Ok(None)
+            self.0.lock().unwrap().push("reap");
+            Err(io::Error::other("fixture"))
         }
         fn kill(&mut self) -> io::Result<()> {
             self.0.lock().unwrap().push("kill");
             Err(io::Error::other("already exited"))
-        }
-        fn wait(&mut self) -> io::Result<ExitStatus> {
-            self.0.lock().unwrap().push("wait");
-            Err(io::Error::other("fixture"))
         }
     }
     #[test]
@@ -142,67 +176,45 @@ mod tests {
             Err(io::Error::other("pipe setup failed"))
         };
         assert!(attempt().is_err());
-        assert_eq!(*calls.lock().unwrap(), ["kill", "wait"]);
-    }
-    struct FakeTransport {
-        stopped: bool,
-        idle: bool,
-        started: bool,
-        probes: AtomicUsize,
-    }
-    impl Transport for FakeTransport {
-        fn stopped(&self) -> bool {
-            self.stopped
-        }
-        fn idle(&self) -> bool {
-            self.idle
-        }
-        fn started(&self) -> bool {
-            self.started
-        }
-        fn probe(&self) {
-            self.probes.fetch_add(1, Ordering::Relaxed);
-        }
+        assert_eq!(*calls.lock().unwrap(), ["kill", "reap"]);
     }
     #[test]
-    fn supervisor_probes_only_started_idle_transport_and_stops() {
-        for stopped in [false, true] {
-            for idle in [false, true] {
-                for started in [false, true] {
-                    let t = FakeTransport {
-                        stopped,
-                        idle,
-                        started,
-                        probes: AtomicUsize::new(0),
-                    };
-                    assert_eq!(monitor_tick(&t), !stopped);
-                    assert_eq!(
-                        t.probes.load(Ordering::Relaxed),
-                        usize::from(!stopped && idle && started)
-                    );
-                }
-            }
+    fn repeated_failures_back_off_and_stable_health_resets_the_delay() {
+        let mut now = Instant::now();
+        let mut lifecycle = Lifecycle::default();
+        for seconds in [1, 2, 4, 8, 16, 32, 60, 60, 60] {
+            assert!(lifecycle.begin(now));
+            lifecycle.failed(now);
+            assert_eq!(lifecycle.phase, Phase::Recovering);
+            assert!(!lifecycle.begin(now + Duration::from_millis(999)));
+            now += Duration::from_secs(seconds);
+            assert_eq!(lifecycle.retry_at, Some(now));
         }
-    }
-    struct FakeClock(AtomicUsize);
-    impl Clock for FakeClock {
-        fn now(&self) -> Instant {
-            Instant::now()
-        }
-        fn sleep(&self, duration: Duration) {
-            assert_eq!(duration, Duration::from_secs(15));
-            self.0.fetch_add(1, Ordering::Relaxed);
-        }
+        assert!(lifecycle.begin(now));
+        lifecycle.healthy(now);
+        lifecycle.healthy(now + Duration::from_secs(59));
+        lifecycle.failed(now + Duration::from_secs(59));
+        assert_eq!(lifecycle.failures, 10); // a brief success never resets it
+        now += Duration::from_secs(119);
+        assert!(lifecycle.begin(now));
+        lifecycle.healthy(now);
+        now += Duration::from_secs(60);
+        lifecycle.healthy(now);
+        lifecycle.failed(now);
+        assert_eq!(lifecycle.retry_at, Some(now + Duration::from_secs(1)));
     }
     #[test]
-    fn monitor_uses_injected_clock_without_waiting() {
-        let clock = FakeClock(AtomicUsize::new(0));
-        let mut ticks = 0;
-        monitor(&clock, || {
-            ticks += 1;
-            ticks < 3
-        });
-        assert_eq!(ticks, 3);
-        assert_eq!(clock.0.load(Ordering::Relaxed), 3);
+    fn stopping_is_terminal_even_after_late_success_or_failure() {
+        let now = Instant::now();
+        let mut lifecycle = Lifecycle::default();
+        lifecycle.stop();
+        lifecycle.healthy(now);
+        lifecycle.failed(now);
+        assert_eq!(lifecycle.phase, Phase::Stopping);
+        assert!(!lifecycle.begin(now + Duration::from_secs(600)));
+        lifecycle.stopped();
+        lifecycle.stop();
+        assert_eq!(lifecycle.phase, Phase::Stopped);
+        assert!(!lifecycle.begin(now + Duration::from_secs(600)));
     }
 }
