@@ -1,32 +1,46 @@
-import { ref } from 'vue';
-
+import { computed, ref } from 'vue';
 import type { CommandAction, Methods } from '../contracts.generated';
 import { describeError } from '../errors';
+import type { OperationToken } from './useAsyncScope';
 import type { Profile } from './useProfile';
 import type { Proposals } from './useProposals';
-/** Text and explicit action requests share one typed submission path. */
+
 export function useRequests(
   profile: Profile,
   proposals: Proposals,
   canRequest: () => boolean,
   isLocked: () => boolean,
 ) {
-  const { request, busy, error, updateHealth } = profile;
+  const { request, error, updateHealth, beginMutation, mutation } = profile;
   const text = ref('');
+  const processing = computed(
+    () =>
+      mutation.pending.value &&
+      ['process_text', 'process_audio', 'prepare_action'].includes(mutation.kind.value),
+  );
+  const voiceProcessing = computed(
+    () => processing.value && mutation.kind.value === 'process_audio',
+  );
   async function process<M extends 'process_text' | 'process_audio' | 'prepare_action'>(
     method: M,
     payload: Methods[M]['payload'],
+    reservation?: OperationToken,
   ) {
-    busy.value = true;
+    const token = reservation ?? beginMutation(method);
+    if (!token || !token.current()) return;
     error.value = '';
     try {
       const turn = await request(method, payload);
+      if (!token.current()) return;
       proposals.add(turn);
       text.value = '';
     } catch (caught) {
-      error.value = describeError(caught);
+      if (token.current()) {
+        token.fail();
+        error.value = describeError(caught);
+      }
     } finally {
-      busy.value = false;
+      token.finish();
       void updateHealth();
     }
   }
@@ -43,7 +57,6 @@ export function useRequests(
     if (!isLocked())
       await process('prepare_action', { applicationId, action, arguments: args, label });
   }
-
-  return { text, process, submitText, prepareMediaAction };
+  return { text, process, submitText, prepareMediaAction, processing, voiceProcessing };
 }
 export type Requests = ReturnType<typeof useRequests>;

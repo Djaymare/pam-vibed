@@ -9,6 +9,7 @@ const {
   status,
   config,
   diagnosticExport,
+  diagnostics,
   exportDiagnostics,
   beginRecovery,
   profileRequest,
@@ -142,8 +143,13 @@ const desktop = (action: 'hide' | 'quit') => emit('desktop', action);
       chemins personnels. Conservation : 7 jours, avec purge au prochain accès ; 3 fichiers de 64
       Kio. Aucun envoi automatique.
     </p>
-    <button class="secondary small" :disabled="locked" @click="exportDiagnostics">
-      Préparer un export de diagnostic
+    <button
+      class="secondary small"
+      :disabled="locked || diagnostics.pending"
+      :aria-busy="diagnostics.pending"
+      @click="exportDiagnostics"
+    >
+      {{ diagnostics.pending ? 'Préparation du diagnostic…' : 'Préparer un export de diagnostic' }}
     </button>
     <div v-if="diagnosticExport">
       <p>Copiez cet export JSON pour le conserver ou le partager volontairement.</p>

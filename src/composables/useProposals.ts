@@ -11,10 +11,15 @@ export function useProposals(
   isLocked: () => boolean,
   rememberDialogTrigger: () => void,
 ) {
-  const { request, busy, error, config, status, activeApps, updateHealth } = profile;
+  const { request, error, config, status, activeApps, updateHealth, beginMutation, scope } =
+    profile;
   const turns = ref<Turn[]>([]);
   const correction = ref<Turn>();
   const correctionError = ref('');
+  scope.onInvalidate(() => {
+    correction.value = undefined;
+    correctionError.value = '';
+  });
   const correctionForm = reactive({
     text: '',
     applicationId: '',
@@ -39,6 +44,7 @@ export function useProposals(
       correctionApp.value?.arguments.some((arg) => arg.includes('{input}')),
   );
   function editTurn(turn: Turn) {
+    if (isLocked()) return;
     rememberDialogTrigger();
     correction.value = turn;
     correctionError.value = '';
@@ -65,7 +71,9 @@ export function useProposals(
     if (!correction.value || isLocked()) return;
     const original = correction.value;
     let prepared = false;
-    busy.value = true;
+    const token = beginMutation('correct_request');
+    if (!token) return;
+    const current = () => token.current() && correction.value === original;
     correctionError.value = '';
     try {
       const turn = await request('correct_request', {
@@ -86,14 +94,18 @@ export function useProposals(
           correctionForm.saveCommandAlias && !!correctionApp.value && !!correctionForm.action,
         commandPhrase: correctionForm.commandPhrase,
       });
+      if (!current()) return;
       prepared = true;
       try {
-        status.value = await request('status');
-        config.value = status.value.config;
+        const next = await request('status');
+        if (!current()) return;
+        status.value = next;
+        config.value = next.config;
       } catch (caught) {
-        error.value = describeError(caught);
+        if (current()) error.value = describeError(caught);
       }
       await nextTick();
+      if (!current()) return;
       turns.value = retainTurns([
         turn,
         ...turns.value.map((item) =>
@@ -107,10 +119,13 @@ export function useProposals(
         ),
       ]);
     } catch (caught) {
-      correctionError.value = describeError(caught);
+      if (current()) {
+        token.fail();
+        correctionError.value = describeError(caught);
+      }
     } finally {
-      busy.value = false;
-      if (prepared) correction.value = undefined;
+      if (prepared && current()) correction.value = undefined;
+      token.finish();
       void updateHealth();
     }
   }
@@ -118,17 +133,22 @@ export function useProposals(
     if (isLocked()) return;
     turns.value = reconcileTurns(turns.value);
     if (turns.value.find((item) => item.id === turn.id)?.status !== 'pending') return;
-    busy.value = true;
+    const token = beginMutation(accept ? 'confirm' : 'discard');
+    if (!token) return;
     error.value = '';
     try {
       const updated = await request(accept ? 'confirm' : 'discard', { id: turn.id });
+      if (!token.current()) return;
       turns.value = turns.value.map((item) =>
         item.id === turn.id ? { ...item, ...updated } : item,
       );
     } catch (caught) {
-      error.value = describeError(caught);
+      if (token.current()) {
+        token.fail();
+        error.value = describeError(caught);
+      }
     } finally {
-      busy.value = false;
+      token.finish();
       void updateHealth();
     }
   }

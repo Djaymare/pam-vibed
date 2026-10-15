@@ -1,7 +1,7 @@
 # Modules de l’interface et du sidecar
 
-`App.vue` compose les écrans et conserve la navigation, le focus de retour et
-les deux abonnements aux raccourcis globaux. Le client `ipc.ts` et les contrats
+`App.vue` compose les écrans et conserve la navigation et le focus de retour.
+`useVoiceShortcuts` possède les deux abonnements globaux. Le client `ipc.ts` et les contrats
 de PAM-13 restent l’unique frontière Vue/Rust/Node. Aucun gestionnaire d’état
 ou routeur supplémentaire n’est nécessaire.
 
@@ -20,6 +20,8 @@ ou routeur supplémentaire n’est nécessaire.
 | `composables/useRequests.ts` | Texte et soumission commune des trois types de demande. |
 | `composables/useProposals.ts` | Historique, réconciliation, expiration, correction et confirmation unique. |
 | `composables/useAudio.ts` | Enregistreur, niveau, durée, arrêt et annulation. |
+| `composables/useAsyncScope.ts` | Génération de navigation/démontage, jetons de livraison et réservations d’opérations. |
+| `composables/useVoiceShortcuts.ts` | Installation, reprise après erreur et libération des abonnements globaux ; doublons rapprochés filtrés. |
 
 Les composables retournent des refs et des méthodes de leur fonctionnalité.
 Le shell les relie une seule fois ; ses modèles réactifs sont présentés aux
@@ -34,12 +36,35 @@ utilisent le `RequestFunction` généré et des payloads discriminés.
 | Microphone, intervalle de durée, limite de 29,5 s | `useAudio` ; arrêt/annulation et démontage. Une permission tardive ne recrée pas les ressources après démontage. |
 | Vérification du runtime toutes les 15 s | `useProfile` ; démontage, y compris si la première réponse arrive tard. |
 | Réconciliation locale des propositions toutes les secondes | `useProposals` ; démontage. |
-| Listeners `pam-toggle-voice` et `pam-cancel-voice` | `App.vue` ; désabonnement au démontage, ou immédiatement si l’inscription se termine après celui-ci. |
+| Listeners `pam-toggle-voice` et `pam-cancel-voice` | `useVoiceShortcuts` ; désabonnement au démontage, immédiatement après inscription tardive, ou de tout le groupe en cas d’échec partiel. Une erreur visible permet de réessayer. |
 | Focus modal, inert et clavier | `ModalDialog.vue` existant ; sa fermeture/démontage, avec le déclencheur mémorisé dans le shell. |
 
-La portée Vue du composable possède ses watchers. Les politiques d’état partagé,
-la conservation des brouillons entre fermetures et les évolutions du parcours
-microphone restent des chantiers distincts.
+La portée Vue du composable possède ses watchers. La génération de navigation
+est fournie au profil par le shell ; chaque opération vérifie son jeton après
+ses attentes, avant toute mise à jour. Les dialogues disposent aussi d’une portée
+locale qui invalide leurs lectures lors d’une fermeture ou d’un changement de cible.
+
+## Opérations et annulation (PAM-17)
+
+Une opération suit `idle → pending → success/error`. Navigation, fermeture ou
+démontage la rendent `cancelled` et interdisent la livraison de sa réponse. Une
+nouvelle demande autorisée reprend depuis `pending` avec un autre identifiant.
+Chaque jeton combine génération de portée et numéro d’opération. Il n’y a aucun
+rejeu automatique ni prétention d’annuler un effet natif déjà commencé.
+
+| Opération | Politique et état local |
+| --- | --- |
+| Mutations du profil, soumission, correction, confirmation, test de lancement | Une réservation exclusive commune aux effets, acquise dans le handler avant le premier `await`. Son type identifie l’opération ; `busy` est une vue calculée de cette réservation, jamais assignée par plusieurs handlers. Elle reste occupée jusqu’à la fin réelle d’un effet invalidé. |
+| Santé et rechargement | Les sondages simultanés sont regroupés ; un rechargement explicite remplace une ancienne lecture. Un début de mutation invalide les lectures précédentes. `loading` concerne uniquement le rechargement. |
+| Découverte, sessions média, sélecteur natif, transfert et diagnostic | Réservations et erreurs locales, protégées contre les doublons ; résultats ignorés après fermeture/navigation/démontage. Un sélecteur système ouvert peut finir, sans modifier le nouveau formulaire. |
+| Voix | `idle → permission → recording → finishing → idle`, ou `cancelling → idle`. Permission tardive, double arrêt et annulation pendant la capture ne recréent ni minuterie ni traitement. Les messages de traitement vocal dépendent seulement de `process_audio`. |
+| Raccourcis | Inscription exclusive du groupe ; une inscription tardive est immédiatement libérée et n’en lance pas une seconde. Les événements toggle espacés de moins de 300 ms sont regroupés. |
+
+La navigation ferme les dialogues appartenant à l’ancien écran. Les appels IPC
+en cours peuvent terminer côté natif ; leurs réponses ne réécrivent pas le nouvel
+écran ni le profil. Les contrôles de contrat, confirmations, limites audio et
+la sérialisation Node/Rust restent inchangés. Le détail matériel du microphone
+reste le périmètre de PAM-24.
 
 ## Node
 

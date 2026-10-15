@@ -2,12 +2,12 @@ import { computed, ref, reactive, watch } from 'vue';
 import type { Application, InstalledApplication, MediaSession, WindowsApplication } from '../types';
 
 import { open } from '@tauri-apps/plugin-dialog';
-import { discoverApplications as ipcDiscoverApplications } from '../ipc';
+import { useAsyncScope } from './useAsyncScope';
 import { describeError } from '../errors';
 import type { Profile } from './useProfile';
 /** useApplicationEditor owns its state and releases its subscriptions at component unmount. */
 export function useApplicationEditor(profile: Profile, rememberDialogTrigger: () => void) {
-  const { request, busy, config, status, updateHealth } = profile;
+  const { request, busy, config, status, updateHealth, beginMutation } = profile;
   const editorOpen = ref(false);
   const editingId = ref<string>();
   const form = reactive({
@@ -28,7 +28,7 @@ export function useApplicationEditor(profile: Profile, rememberDialogTrigger: ()
   );
   const formError = ref('');
   const pickerOpen = ref(false);
-  const discoveryLoading = ref(false);
+
   const discoveryError = ref('');
   const installedApplications = ref<InstalledApplication[]>([]);
   const replacingTarget = ref(false);
@@ -37,23 +37,47 @@ export function useApplicationEditor(profile: Profile, rememberDialogTrigger: ()
   );
   const testResult = ref<{ success: boolean; message: string }>();
   const testInput = ref('');
-  const testing = ref(false);
+
+  const scope = useAsyncScope(() =>
+    [editorOpen.value, pickerOpen.value, editingId.value].join(':'),
+  );
+  const discovery = scope.operation('latest'),
+    media = scope.operation('latest'),
+    browseTask = scope.operation(),
+    viewTask = scope.operation('latest');
+  const discoveryLoading = discovery.pending;
+  const testing = computed(() => busy.value && profile.mutation.kind.value === 'test_application');
+  profile.scope.onInvalidate(() => {
+    scope.invalidate();
+    editorOpen.value = false;
+    pickerOpen.value = false;
+  });
   const testNeedsInput = computed(() => !form.windowsApp && form.arguments.includes('{input}'));
   async function refreshMediaSessions() {
+    if (!editorOpen.value || media.pending.value) return;
+    const token = media.begin();
+    if (!token) return;
     mediaError.value = '';
     try {
-      mediaSessions.value = await request('media_sessions');
+      const next = await request('media_sessions');
+      if (token.current()) mediaSessions.value = next;
     } catch (caught) {
-      mediaError.value = describeError(caught);
+      if (token.current()) {
+        token.fail();
+        mediaError.value = describeError(caught);
+      }
+    } finally {
+      token.finish();
     }
   }
   function editApplication(application?: Application, preserveTrigger = false) {
+    if (profile.isLocked()) return;
     if (!preserveTrigger) rememberDialogTrigger();
     editingId.value = application?.id;
     form.windowsApp = application?.windowsApp;
     mediaSource.value = application?.media?.sourceAppId || '';
     deezerPlugin.value = application?.media?.deezer || false;
-    void refreshMediaSessions();
+
     Object.assign(
       form,
       application
@@ -75,23 +99,30 @@ export function useApplicationEditor(profile: Profile, rememberDialogTrigger: ()
     testResult.value = undefined;
     testInput.value = '';
     editorOpen.value = true;
+    void refreshMediaSessions();
   }
   async function addApplication() {
+    if (profile.isLocked() || pickerOpen.value) return;
     replacingTarget.value = false;
     rememberDialogTrigger();
     pickerOpen.value = true;
     if (!installedApplications.value.length) await discoverApplications();
   }
   async function discoverApplications() {
-    if (discoveryLoading.value) return;
-    discoveryLoading.value = true;
+    if (!pickerOpen.value || discovery.pending.value) return;
+    const token = discovery.begin();
+    if (!token) return;
     discoveryError.value = '';
     try {
-      installedApplications.value = await ipcDiscoverApplications();
+      const next = await request('discover_applications');
+      if (token.current()) installedApplications.value = next;
     } catch (caught) {
-      discoveryError.value = describeError(caught);
+      if (token.current()) {
+        token.fail();
+        discoveryError.value = describeError(caught);
+      }
     } finally {
-      discoveryLoading.value = false;
+      token.finish();
     }
   }
   function selectInstalled(application: InstalledApplication) {
@@ -135,6 +166,7 @@ export function useApplicationEditor(profile: Profile, rememberDialogTrigger: ()
     }
   }
   async function replaceTarget() {
+    if (profile.isLocked() || pickerOpen.value) return;
     replacingTarget.value = true;
     editorOpen.value = false;
     pickerOpen.value = true;
@@ -180,23 +212,36 @@ export function useApplicationEditor(profile: Profile, rememberDialogTrigger: ()
     };
   }
   async function testLaunch() {
-    busy.value = true;
-    testing.value = true;
+    if (!editorOpen.value || profile.isLocked()) return;
+    const token = beginMutation('test_application');
+    if (!token) return;
+    const view = viewTask.begin();
+    if (!view) {
+      token.finish();
+      return;
+    }
     formError.value = '';
     testResult.value = undefined;
     try {
-      testResult.value = await request('test_application', {
+      const result = await request('test_application', {
         ...applicationPayload(),
         input: testNeedsInput.value ? testInput.value : undefined,
       });
+      if (token.current() && view.current()) testResult.value = result;
     } catch (caught) {
-      formError.value = describeError(caught);
+      if (token.current() && view.current()) {
+        token.fail();
+        formError.value = describeError(caught);
+      }
     } finally {
-      busy.value = false;
-      testing.value = false;
+      view.finish();
+      token.finish();
     }
   }
   async function browse() {
+    if (!editorOpen.value || profile.isLocked()) return;
+    const token = browseTask.begin();
+    if (!token) return;
     try {
       const selected = await open({
         title: 'Choisir une application Windows',
@@ -204,27 +249,47 @@ export function useApplicationEditor(profile: Profile, rememberDialogTrigger: ()
         directory: false,
         filters: [{ name: 'Application Windows', extensions: ['exe'] }],
       });
-      if (typeof selected === 'string') form.executable = selected;
+      if (token.current() && typeof selected === 'string') form.executable = selected;
     } catch (caught) {
-      formError.value = describeError(caught);
+      if (token.current()) {
+        token.fail();
+        formError.value = describeError(caught);
+      }
+    } finally {
+      token.finish();
     }
   }
   async function saveApplication() {
-    busy.value = true;
+    if (!editorOpen.value || profile.isLocked()) return;
+    const token = beginMutation('save_application');
+    if (!token) return;
+    const view = viewTask.begin();
+    if (!view) {
+      token.finish();
+      return;
+    }
     formError.value = '';
     try {
-      config.value = await request('save_application', applicationPayload());
-      editorOpen.value = false;
+      const next = await request('save_application', applicationPayload());
+      if (token.current() && view.current()) {
+        config.value = next;
+        editorOpen.value = false;
+      }
     } catch (caught) {
-      formError.value = describeError(caught);
+      if (token.current() && view.current()) {
+        token.fail();
+        formError.value = describeError(caught);
+      }
     } finally {
-      busy.value = false;
+      view.finish();
+      token.finish();
       void updateHealth();
     }
   }
   watch(
     () => [form.executable, form.arguments, form.windowsApp?.appId, testInput.value],
     () => {
+      viewTask.cancel();
       testResult.value = undefined;
     },
   );

@@ -4,12 +4,20 @@ import type { Method, Methods } from '../contracts.generated';
 import { isTauri } from '@tauri-apps/api/core';
 import { describeError } from '../errors';
 import type { RequestFunction } from '../ipc';
-/** useProfile owns its state and releases its subscriptions at component unmount. */
+import { useAsyncScope, type OperationToken } from './useAsyncScope';
+
 export function useProfile(
   request: RequestFunction,
   isLocked: () => boolean,
   onStatus: (value: RuntimeStatus) => void,
+  context?: () => unknown,
 ) {
+  const scope = useAsyncScope(context);
+  const mutation = scope.operation(),
+    health = scope.operation('latest'),
+    diagnostics = scope.operation();
+  const busy = mutation.pending;
+  const loading = computed(() => health.pending.value && health.kind.value === 'refresh');
   const status = ref<RuntimeStatus>();
   const config = ref<Config>({
     version: 2,
@@ -19,24 +27,65 @@ export function useProfile(
     autoExecute: true,
     confidenceThreshold: 0.7,
   });
-  const error = ref('');
-  const diagnosticExport = ref('');
+  const error = ref(''),
+    diagnosticExport = ref(''),
+    recoveryOpen = ref(false),
+    recoveryBackup = ref('');
+  const recoveryChoice = ref<RuntimeStatus['profileBackup']>();
+  scope.onInvalidate(() => {
+    recoveryOpen.value = false;
+    diagnosticExport.value = '';
+  });
+  function beginMutation(kind: string) {
+    const token = mutation.begin(kind);
+    if (token) health.cancel();
+    return token;
+  }
+  async function fetchStatus(mode: 'refresh' | 'health', parent?: OperationToken) {
+    if (parent && !parent.current()) return;
+    const token = health.begin(mode);
+    if (!token) return;
+    if (mode === 'refresh') error.value = '';
+    try {
+      const next = await request('status');
+      if (!token.current() || (parent && !parent.current())) return;
+      if (mode === 'refresh' || !status.value || next.configError || status.value?.configError)
+        config.value = next.config;
+      status.value = next;
+      onStatus(next);
+    } catch (caught) {
+      if (token.current() && (!parent || parent.current())) {
+        token.fail();
+        error.value = describeError(caught);
+      }
+    } finally {
+      token.finish();
+    }
+  }
+  const refresh = () => (busy.value ? Promise.resolve() : fetchStatus('refresh'));
+  async function updateHealth() {
+    if (isLocked() || busy.value || health.pending.value || !isTauri()) return;
+    await fetchStatus('health');
+  }
   async function exportDiagnostics() {
-    busy.value = true;
+    const token = diagnostics.begin('export');
+    if (!token) return;
     error.value = '';
     diagnosticExport.value = '';
     try {
-      diagnosticExport.value = JSON.stringify(await request('export_diagnostics'), null, 2);
+      const result = await request('export_diagnostics');
+      if (token.current()) diagnosticExport.value = JSON.stringify(result, null, 2);
     } catch (caught) {
-      error.value = describeError(caught);
+      if (token.current()) {
+        token.fail();
+        error.value = describeError(caught);
+      }
     } finally {
-      busy.value = false;
+      token.finish();
     }
   }
-  const recoveryOpen = ref(false);
-  const recoveryBackup = ref('');
-  const recoveryChoice = ref<RuntimeStatus['profileBackup']>();
   function beginRecovery() {
+    if (isLocked()) return;
     const details = status.value?.configError ?? status.value?.profileBackup;
     if (!details?.fingerprint) return;
     recoveryChoice.value = {
@@ -56,49 +105,29 @@ export function useProfile(
     method: M,
     payload?: Methods[M]['payload'],
   ): Promise<Methods[M]['result']> {
-    busy.value = true;
+    const token = beginMutation(method);
+    if (!token) throw new Error('Une opération est déjà en cours.');
     try {
       const result = await request(method, payload);
+      if (!token.current()) throw new Error('Opération interrompue après navigation.');
       if (method === 'import_config') {
         config.value = (result as { config: Config }).config;
         recoveryOpen.value = false;
-        await refresh();
+        await fetchStatus('refresh', token);
       }
       return result;
-    } finally {
-      busy.value = false;
-    }
-  }
-  const busy = ref(false);
-  const loading = ref(true);
-  async function refresh() {
-    loading.value = true;
-    error.value = '';
-    try {
-      status.value = await request('status');
-      config.value = status.value.config;
-      onStatus(status.value);
     } catch (caught) {
-      error.value = describeError(caught);
+      token.fail();
+      throw caught;
     } finally {
-      loading.value = false;
-    }
-  }
-  async function updateHealth() {
-    if (isLocked() || !isTauri()) return;
-    try {
-      const next = await request('status');
-      if (next.configError || status.value?.configError) config.value = next.config;
-      status.value = next;
-      onStatus(next);
-    } catch (caught) {
-      error.value = describeError(caught);
+      token.finish();
     }
   }
   async function recoverProfile(restoreBackup = false) {
     const fingerprint = recoveryChoice.value?.fingerprint;
     if (!fingerprint || isLocked()) return;
-    busy.value = true;
+    const token = beginMutation('recover');
+    if (!token) return;
     error.value = '';
     try {
       const result = await request('recover_config', {
@@ -108,113 +137,104 @@ export function useProfile(
           ? { restoreBackup: true, backupFingerprint: recoveryChoice.value?.backupFingerprint }
           : {}),
       });
+      if (!token.current()) return;
       config.value = result.config;
       recoveryBackup.value = result.backupPath;
       recoveryOpen.value = false;
-      await refresh();
+      await fetchStatus('refresh', token);
     } catch (caught) {
-      const message = describeError(caught);
+      if (!token.current()) return;
+      token.fail();
       recoveryOpen.value = false;
-      await refresh();
-      error.value = message;
+      await fetchStatus('refresh', token);
+      if (token.current()) error.value = describeError(caught);
     } finally {
-      busy.value = false;
+      token.finish();
     }
   }
   async function restartEngine() {
-    busy.value = true;
+    if (isLocked()) return;
+    const token = beginMutation('restart');
+    if (!token) return;
     error.value = '';
     try {
       await request('restart_engine');
-      status.value = await request('status');
+      await fetchStatus('refresh', token);
     } catch (caught) {
-      error.value = describeError(caught);
+      if (token.current()) {
+        token.fail();
+        error.value = describeError(caught);
+      }
     } finally {
-      busy.value = false;
+      token.finish();
     }
   }
-  async function toggleApplication(application: Application) {
-    busy.value = true;
+  async function changeConfig<
+    M extends
+      | 'settings'
+      | 'set_application_enabled'
+      | 'delete_application'
+      | 'save_command_alias'
+      | 'delete_command_alias',
+  >(method: M, payload: Methods[M]['payload'], propagate = false) {
+    if (isLocked()) return;
+    const token = beginMutation(method);
+    if (!token) return;
     error.value = '';
     try {
-      config.value = await request('set_application_enabled', {
-        id: application.id,
-        enabled: !application.enabled,
-      });
+      const next = await request(method, payload);
+      if (token.current()) config.value = next;
     } catch (caught) {
-      error.value = describeError(caught);
+      if (!token.current()) return;
+      token.fail();
+      if (method === 'settings') await fetchStatus('refresh', token);
+      if (token.current()) {
+        if (propagate) throw caught;
+        error.value = describeError(caught);
+      }
     } finally {
-      busy.value = false;
+      token.finish();
       void updateHealth();
     }
   }
-  async function deleteApplication(application: Application) {
-    busy.value = true;
-    error.value = '';
-    try {
-      config.value = await request('delete_application', { id: application.id });
-    } catch (caught) {
-      error.value = describeError(caught);
-    } finally {
-      busy.value = false;
-    }
-  }
-  async function saveSettings() {
-    busy.value = true;
-    error.value = '';
-    try {
-      config.value = await request('settings', {
-        language: config.value.language,
-        autoExecute: config.value.autoExecute,
-        confidenceThreshold: Number(config.value.confidenceThreshold),
-      });
-    } catch (caught) {
-      const message = describeError(caught);
-      await refresh();
-      error.value = message;
-    } finally {
-      busy.value = false;
-    }
-  }
-  async function saveCommandAlias(alias: Omit<CommandAlias, 'id'> & { id?: string }) {
-    busy.value = true;
-    try {
-      config.value = await request('save_command_alias', alias);
-    } finally {
-      busy.value = false;
-    }
-  }
-  async function deleteCommandAlias(id: string) {
-    busy.value = true;
-    try {
-      config.value = await request('delete_command_alias', { id });
-    } finally {
-      busy.value = false;
-    }
-  }
+  const toggleApplication = (application: Application) =>
+    changeConfig('set_application_enabled', { id: application.id, enabled: !application.enabled });
+  const deleteApplication = (application: Application) =>
+    changeConfig('delete_application', { id: application.id });
+  const saveSettings = () =>
+    changeConfig('settings', {
+      language: config.value.language,
+      autoExecute: config.value.autoExecute,
+      confidenceThreshold: Number(config.value.confidenceThreshold),
+    });
+  const saveCommandAlias = (alias: Omit<CommandAlias, 'id'> & { id?: string }) =>
+    changeConfig('save_command_alias', alias, true);
+  const deleteCommandAlias = (id: string) => changeConfig('delete_command_alias', { id }, true);
   const activeApps = computed(() => config.value.applications.filter((app) => app.enabled));
   function unavailable(application: Application) {
     return status.value?.applicationAvailability?.[application.id]?.available === false;
   }
-  let disposed = false;
   let healthTimer: number | undefined;
   onMounted(async () => {
     await refresh();
-    if (!disposed)
+    if (scope.alive())
       healthTimer = window.setInterval(() => {
         void updateHealth();
       }, 15000);
   });
-  onBeforeUnmount(() => {
-    disposed = true;
-    window.clearInterval(healthTimer);
-  });
+  onBeforeUnmount(() => window.clearInterval(healthTimer));
   return {
     request,
+    scope,
+    mutation,
+    beginMutation,
+    isLocked,
+    health,
     status,
     config,
     error,
     diagnosticExport,
+    diagnostics,
     exportDiagnostics,
     recoveryOpen,
     recoveryBackup,

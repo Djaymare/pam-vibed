@@ -15,7 +15,7 @@ const props = defineProps<{
   canRequest: boolean;
 }>();
 const { locked } = toRefs(props);
-const { config, busy, activeApps } = toRefs(props.profile);
+const { config, activeApps } = toRefs(props.profile);
 const {
   recording,
   requestingMic,
@@ -25,7 +25,9 @@ const {
   finishRecording,
   cancelRecording,
 } = toRefs(props.audio);
-const { text, submitText, prepareMediaAction } = toRefs(props.requests);
+const { text, submitText, prepareMediaAction, processing, voiceProcessing } = toRefs(
+  props.requests,
+);
 const { turns, editTurn, resolveTurn, labels, outcomeLabels } = toRefs(props.proposals);
 const emit = defineEmits<{ applications: [add: boolean] }>();
 const { canRequest } = toRefs(props);
@@ -40,7 +42,11 @@ const { canRequest } = toRefs(props);
     <div class="card-top">
       <span class="subtle-label"
         ><span class="status-dot" :class="{ listening: recording }" />{{
-          recording ? 'MICROPHONE ACTIF' : busy ? 'TRAITEMENT LOCAL' : 'PRÊT À VOUS ÉCOUTER'
+          recording
+            ? 'MICROPHONE ACTIF'
+            : voiceProcessing
+              ? 'TRAITEMENT LOCAL'
+              : 'PRÊT À VOUS ÉCOUTER'
         }}</span
       ><span class="clip-limit">{{ recording ? `${seconds} / 30 s` : '30 s maximum' }}</span>
     </div>
@@ -62,7 +68,7 @@ const { canRequest } = toRefs(props);
             ? 'Autorisez votre microphone'
             : recording
               ? 'Je vous écoute…'
-              : busy
+              : voiceProcessing
                 ? 'Je traite votre demande…'
                 : 'Appuyez pour parler'
         }}
@@ -104,7 +110,8 @@ const { canRequest } = toRefs(props);
     /><button
       class="send-button"
       :disabled="!canRequest || !text.trim()"
-      aria-label="Envoyer la demande"
+      :aria-label="processing ? 'Traitement de la demande' : 'Envoyer la demande'"
+      :aria-busy="processing"
     >
       <Icon name="arrow" :size="20" />
     </button>

@@ -1,7 +1,6 @@
 <script setup lang="ts">
-import { computed, reactive, ref, onMounted, onBeforeUnmount } from 'vue';
+import { computed, reactive, ref } from 'vue';
 import { isTauri } from '@tauri-apps/api/core';
-import { listen, type UnlistenFn } from '@tauri-apps/api/event';
 import { request as ipcRequest, desktopAction, type RequestFunction } from './ipc';
 import { describeError } from './errors';
 import Icon from './components/Icon.vue';
@@ -17,6 +16,7 @@ import { useProposals } from './composables/useProposals';
 import { useRequests } from './composables/useRequests';
 import { useAudio } from './composables/useAudio';
 import { useApplicationEditor } from './composables/useApplicationEditor';
+import { useVoiceShortcuts } from './composables/useVoiceShortcuts';
 const page = ref<'assistant' | 'applications' | 'settings'>('assistant');
 const dialogReturnFocus = ref<HTMLElement | null>(null);
 function rememberDialogTrigger() {
@@ -34,6 +34,7 @@ const profile = useProfile(
   request,
   () => locked.value,
   (value) => proposals.reconcile(value.proposals),
+  () => page.value,
 );
 const proposals = useProposals(profile, () => locked.value, rememberDialogTrigger);
 const requests = useRequests(
@@ -66,11 +67,19 @@ const locked = computed(
 const canRequest = computed(
   () => !!status.value?.ready && activeApps.value.length > 0 && !locked.value,
 );
+const desktopTask = profile.scope.operation();
 async function desktop(action: 'hide' | 'quit') {
+  const token = desktopTask.begin();
+  if (!token) return;
   try {
     await desktopAction(action);
   } catch (caught) {
-    error.value = describeError(caught);
+    if (token.current()) {
+      token.fail();
+      error.value = describeError(caught);
+    }
+  } finally {
+    token.finish();
   }
 }
 const ui = reactive({ profile, proposals, requests, audio, applicationEditor });
@@ -78,37 +87,18 @@ function showApplications(add: boolean) {
   page.value = 'applications';
   if (add) void applicationEditor.addApplication();
 }
-// This shell owns only global shortcut subscriptions. Feature timers/audio belong to their composable.
-const unlisten: UnlistenFn[] = [];
-let disposed = false;
-onMounted(async () => {
-  if (!isTauri()) return;
-  for (const [event, callback] of [
-    [
-      'pam-toggle-voice',
-      () => {
-        if (editorOpen.value || pickerOpen.value || correction.value) return;
-        page.value = 'assistant';
-        if (recording.value) void audio.finishRecording();
-        else if (canRequest.value) void audio.startRecording();
-      },
-    ],
-    [
-      'pam-cancel-voice',
-      () => {
-        void audio.cancelRecording();
-      },
-    ],
-  ] as const) {
-    const stop = await listen(event, callback);
-    if (disposed) stop();
-    else unlisten.push(stop);
-  }
-});
-onBeforeUnmount(() => {
-  disposed = true;
-  unlisten.forEach((stop) => stop());
-});
+const shortcuts = useVoiceShortcuts(
+  () => {
+    if (editorOpen.value || pickerOpen.value || correction.value) return;
+    page.value = 'assistant';
+    if (recording.value) void audio.finishRecording();
+    else if (canRequest.value) void audio.startRecording();
+  },
+  () => {
+    void audio.cancelRecording();
+  },
+);
+const shortcutError = shortcuts.error;
 </script>
 <template>
   <div class="app-shell">
@@ -187,6 +177,12 @@ onBeforeUnmount(() => {
       </div>
       <div class="content">
         <ProfileRecovery :profile="ui.profile" :locked="locked" />
+        <div v-if="shortcutError" class="notice error" role="alert">
+          <span>{{ shortcutError }}</span>
+          <button :disabled="shortcuts.registration.pending.value" @click="shortcuts.install">
+            Réessayer les raccourcis
+          </button>
+        </div>
         <div v-if="status?.desktop?.shortcutError" class="notice error" role="alert">
           {{ status.desktop.shortcutError }} Vous pouvez utiliser le microphone ou le menu de PAM
           dans la zone de notification.
