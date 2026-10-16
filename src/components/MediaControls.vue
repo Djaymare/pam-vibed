@@ -1,10 +1,8 @@
 <script setup lang="ts">
 import { vField } from '../composables/fieldAccessibility';
-import { describeError } from '../errors';
-import { computed, onMounted, ref, watch } from 'vue';
-import { request } from '../ipc';
-import { useAsyncScope } from '../composables/useAsyncScope';
-import type { Application, CommandAction, MediaSession } from '../types';
+import { computed, ref, watch, useId } from 'vue';
+import { useMediaSessions } from '../composables/useMediaSessions';
+import type { Application, CommandAction } from '../types';
 import {
   deezerPages as pages,
   deezerContent,
@@ -23,11 +21,7 @@ const emit = defineEmits<{
     label: string,
   ];
 }>();
-const sessions = ref<MediaSession[]>([]);
-const error = ref('');
-const scope = useAsyncScope();
-const read = scope.operation();
-const loading = read.pending;
+const availabilityId = useId();
 const selected = ref('');
 const query = ref('');
 const kind = ref('track');
@@ -39,16 +33,21 @@ const searchFields = actionParameters('deezer_search');
 const contentFields = actionParameters('deezer_content');
 const selectionFields = actionParameters('deezer_smarttracklist');
 const mediaApps = computed(() => props.applications.filter((app) => app.enabled && app.media));
-const app = computed(
-  () => mediaApps.value.find((app) => app.id === selected.value) || mediaApps.value[0],
-);
+const app = computed(() => mediaApps.value.find((app) => app.id === selected.value));
+let selectionInitialized = false;
 watch(
   mediaApps,
   (players) => {
-    if (!players.some((player) => player.id === selected.value))
-      selected.value = players[0]?.id || '';
+    if (!selectionInitialized && players.length) {
+      selected.value = players[0].id;
+      selectionInitialized = true;
+    } else if (!players.some((player) => player.id === selected.value)) selected.value = '';
   },
   { immediate: true },
+);
+const { sessions, error, loading, refresh } = useMediaSessions(
+  () => (app.value ? `${app.value.id}:${app.value.media?.sourceAppId}` : ''),
+  () => props.locked,
 );
 const matching = computed(() =>
   sessions.value.filter(
@@ -56,34 +55,32 @@ const matching = computed(() =>
   ),
 );
 const session = computed(() => (matching.value.length === 1 ? matching.value[0] : undefined));
-async function refresh() {
-  if (props.locked) return;
-  const token = read.begin();
-  if (!token) return;
-  error.value = '';
-  try {
-    const next = await request('media_sessions');
-    if (token.current()) sessions.value = next;
-  } catch (caught) {
-    if (token.current()) {
-      token.fail();
-      error.value = describeError(caught);
-    }
-  } finally {
-    token.finish();
-  }
+function unavailable(capability: string, label: string) {
+  if (props.locked) return 'Une opération est en cours ou le moteur est indisponible.';
+  if (loading.value) return 'Actualisation des sessions en cours.';
+  if (error.value) return 'Les sessions Windows sont indisponibles. Réessayez l’actualisation.';
+  if (!app.value) return 'Choisissez un lecteur.';
+  if (!matching.value.length) return `Aucune session Windows compatible pour ${app.value.name}.`;
+  if (matching.value.length > 1) return 'Plusieurs sessions de ce lecteur : cible ambiguë.';
+  if (session.value?.error) return session.value.error;
+  const capabilities: Partial<Record<string, boolean>> = session.value?.capabilities || {};
+  if (capabilities[capability] === undefined)
+    return `La capacité « ${label} » du lecteur est inconnue.`;
+  if (!capabilities[capability]) return `Le lecteur ne propose pas « ${label} » actuellement.`;
+  return '';
 }
+const availability = computed(() =>
+  mediaActions.map((action) => ({
+    ...action,
+    reason: unavailable(action.capability, action.label),
+  })),
+);
 function prepare(action: CommandAction, args: Record<string, string>, label: string) {
+  const media = availability.value.find((item) => item.action === action);
+  if (media?.reason) return;
   if (app.value && !props.locked)
     emit('action', app.value.id, action, args, `${label} dans ${app.value.name}`);
 }
-onMounted(refresh);
-watch(
-  () => props.locked,
-  (locked) => {
-    if (!locked && read.state.value === 'idle') void refresh();
-  },
-);
 </script>
 <template>
   <section
@@ -99,6 +96,7 @@ watch(
     </div>
     <label
       >Lecteur<select v-field v-model="selected" :disabled="locked">
+        <option value="" disabled>Choisir un lecteur</option>
         <option v-for="player in mediaApps" :key="player.id" :value="player.id">
           {{ player.name }}
         </option>
@@ -108,7 +106,7 @@ watch(
     <template v-else-if="app">
       <p v-if="!matching.length" class="muted">
         Aucune session Windows compatible pour {{ app.name }}. Ouvrez un média dans ce lecteur puis
-        actualisez.
+        attendez l’actualisation automatique.
       </p>
       <p v-else-if="matching.length > 1" class="result-error">
         Plusieurs sessions de ce lecteur : fermez les médias supplémentaires pour choisir sans
@@ -118,19 +116,28 @@ watch(
       <p v-else class="muted">
         {{ session?.title || 'Média sans titre'
         }}<span v-if="session?.artist"> · {{ session.artist }}</span> ·
-        {{ session?.playbackStatus }}
+        {{ session?.playbackStatus || 'État de lecture inconnu' }}
       </p>
       <div class="media-buttons">
         <button
-          v-for="action in mediaActions"
+          v-for="action in availability"
           :key="action.action"
           class="secondary small"
-          :disabled="locked || loading || !session?.capabilities?.[action.capability]"
+          :disabled="!!action.reason"
+          :title="action.reason || undefined"
+          :aria-describedby="action.reason ? `${availabilityId}-${action.action}` : undefined"
           @click="prepare(action.action, {}, action.label)"
         >
           {{ action.label }}
         </button>
       </div>
+      <ul v-if="availability.some((action) => action.reason)" class="muted">
+        <template v-for="action in availability" :key="action.action">
+          <li v-if="action.reason" :id="`${availabilityId}-${action.action}`">
+            {{ action.label }} : {{ action.reason }}
+          </li>
+        </template>
+      </ul>
       <slot v-if="!app.media?.deezer" />
       <p class="muted">
         Les boutons disponibles correspondent aux capacités actuelles du lecteur. « Piste suivante »
@@ -243,11 +250,12 @@ watch(
           </form>
           <p class="muted">
             Utilisez un identifiant de sélection fourni par Deezer. Le lien de lecture ne renvoie
-            aucune confirmation ; actualisez la session pour vérifier le résultat.
+            aucune confirmation ; la session Windows est actualisée pour observer le résultat.
           </p>
         </details>
       </div>
     </template>
+    <p v-else class="muted">Le lecteur sélectionné a été retiré. Choisissez un lecteur.</p>
     <p class="muted">Chaque bouton affiche ici une action à vérifier avant de l’exécuter.</p>
   </section>
 </template>

@@ -30,6 +30,7 @@
     "test:confidence": "node scripts/smoke-confidence.mjs",
     "test:deezer:routing": "node scripts/smoke-deezer-routing.mjs",
     "test:media:commands": "node scripts/smoke-media-commands.mjs",
+    "test:media:refresh": "node scripts/test-media-refresh.mjs",
     "test:media:players": "node scripts/smoke-media.mjs --players",
     "test:media:deezer": "node scripts/smoke-media.mjs --deezer",
     "package:windows": "npm run check:development && tauri build --target x86_64-pc-windows-msvc -- --locked",

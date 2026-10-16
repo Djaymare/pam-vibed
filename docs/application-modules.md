@@ -21,6 +21,7 @@ ou routeur supplémentaire n’est nécessaire.
 | `composables/useProposals.ts` | Historique, réconciliation, expiration, correction et confirmation unique. |
 | `composables/useAudio.ts` | Enregistreur, niveau, durée, arrêt et annulation. |
 | `composables/useAsyncScope.ts` | Génération de navigation/démontage, jetons de livraison et réservations d’opérations. |
+| `composables/useMediaSessions.ts` | Sessions du lecteur choisi, actualisation après déverrouillage, changement de cible et retour au premier plan ; réponses périmées écartées. |
 | `composables/useVoiceShortcuts.ts` | Installation, reprise après erreur et libération des abonnements globaux ; doublons rapprochés filtrés. |
 
 Les composables retournent des refs et des méthodes de leur fonctionnalité.
@@ -36,6 +37,7 @@ utilisent le `RequestFunction` généré et des payloads discriminés.
 | Microphone, intervalle de durée, limite de 29,5 s | `useAudio` ; arrêt/annulation et démontage. Une permission tardive ne recrée pas les ressources après démontage. |
 | Vérification du runtime toutes les 15 s | `useProfile` ; démontage, y compris si la première réponse arrive tard. |
 | Réconciliation locale des propositions toutes les secondes | `useProposals` ; démontage. |
+| Sessions média, temporisation 5–30 s et événements focus/visibilité | `useMediaSessions` ; suspension hors premier plan, pendant une opération ou sans lecteur sélectionné ; nettoyage au démontage. |
 | Listeners `pam-toggle-voice` et `pam-cancel-voice` | `useVoiceShortcuts` ; désabonnement au démontage, immédiatement après inscription tardive, ou de tout le groupe en cas d’échec partiel. Une erreur visible permet de réessayer. |
 | Focus modal, inert et clavier | `ModalDialog.vue` existant ; sa fermeture/démontage, avec le déclencheur mémorisé dans le shell. |
 
@@ -132,3 +134,16 @@ et `npm run test:modals`. `PAM_TEST_DEPENDENCY_ROOT` permet des dépendances Win
 isolées ; `PAM_TEST_SOURCE_ROOT` permet de rejouer exactement la même suite sur
 une copie de référence. Ces tests simulent les services natifs et n’utilisent
 aucune application personnelle.
+
+Les sessions média utilisent une seule lecture exclusive. Une invalidation
+pendant la lecture réserve au plus une lecture suivante ; les rendus sans
+changement de cible ne déclenchent rien. La temporisation repart après la fin
+réelle de l’appel : 5 s, puis 10/20/30 s après erreurs. Aucun sondage n’est
+armé pendant un verrouillage, sans lecteur, hors premier plan ou après démontage.
+La fin d’une requête/confirmation déverrouille le composant et relit aussi après
+une issue incertaine. Ces observations ne prouvent pas que PAM a causé un effet.
+
+`npm run test:media:refresh` exerce le composant Vue en renderer mémoire avec
+le vrai bridge GSMTC et le lecteur Windows jetable décrit dans
+`tests/fixtures/media-player/README.md`. Les tests unitaires simulent les durées,
+la visibilité et les réponses inversées ; le parcours WebView2 reste distinct.

@@ -12,12 +12,17 @@ export const status = (name='Initial') => ({ready:true,config:config(name),propo
 export const turn = (id='turn') => ({id, transcript:'Fixture',status:'pending',proposal:{state:'pending',createdAt:Date.now(),expiresAt:Date.now()+600000,reason:null},calls:[],results:[],durationMs:0,confidence:null,reasoning:''});
 export function harness(t, options={}) {
   for (const name of ['document','Document','ShadowRoot']) {
-    const previous=globalThis[name];globalThis[name]=name==='document'?{activeElement:null}:class{};
+    const previous=globalThis[name];globalThis[name]=name==='document'?{activeElement:null,visibilityState:'visible',hasFocus:()=>true}:class{};
     t.after(()=>{if(previous===undefined)delete globalThis[name];else globalThis[name]=previous;});
   }
   const calls=[], timers=new Map(), events=new Map(), errors=[];
   let sequence=0, disposed=0, starts=0, finishes=0;
   const window={setInterval(fn,ms){const id=++sequence;timers.set(id,{fn,ms});return id;},clearInterval(id){timers.delete(id);},setTimeout(fn,ms){const id=++sequence;timers.set(id,{fn,ms});return id;},clearTimeout(id){timers.delete(id);}};
+  const domEvents=new Map();
+  for(const [target,prefix] of [[window,'window'],[globalThis.document,'document']]) {
+    target.addEventListener=(name,fn)=>{const key=prefix+':'+name;const group=domEvents.get(key)||new Set();group.add(fn);domEvents.set(key,group);};
+    target.removeEventListener=(name,fn)=>{const key=prefix+':'+name;const group=domEvents.get(key);group?.delete(fn);if(!group?.size)domEvents.delete(key);};
+  }
   const request=async(method,payload={})=>{
     calls.push({method,payload});
     if(options.request) {const result=options.request(method,payload);if(result!==undefined)return result;}
@@ -81,5 +86,5 @@ export function harness(t, options={}) {
     return {root,get value(){return value;}};
   }
   function unmount(){if(mounted){mounted=false;app.unmount();}}
-  return {calls,timers,events,errors,request,feature,mount,unmount,get resources(){return {disposed,starts,finishes};}};
+  return {calls,timers,events,errors,request,feature,mount,unmount,window,document:globalThis.document,domEvents,dispatch:(name,target='window')=>{for(const fn of domEvents.get(target+':'+name)||[])fn();},get resources(){return {disposed,starts,finishes};}};
 }
