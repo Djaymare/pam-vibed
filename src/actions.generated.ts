@@ -194,7 +194,8 @@ export const actionRegistry = {
           "input": {
             "type": "string",
             "maxLength": 2048,
-            "default": ""
+            "default": "",
+            "label": "Texte transmis"
           }
         },
         "required": [],
@@ -399,7 +400,8 @@ export const actionRegistry = {
         "properties": {
           "mix": {
             "type": "string",
-            "options": "mixes"
+            "options": "mixes",
+            "label": "Sélection"
           }
         },
         "required": [
@@ -437,7 +439,8 @@ export const actionRegistry = {
         "properties": {
           "page": {
             "type": "string",
-            "options": "pages"
+            "options": "pages",
+            "label": "Page"
           }
         },
         "required": [

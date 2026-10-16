@@ -96,6 +96,7 @@ async function mountApp(t, { recoveryFailure = false, healthy = false, proposalS
     const code = ts.transpileModule(content, { compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.CommonJS } }).outputText;
     const result = {}; features.set(filename, result);
     const requireFeature = name => {
+      if (name === '../presentation' || (filename.endsWith('presentation.ts') && name === './actions') || (filename.endsWith('actions.ts') && name === './actions.generated')) return loadFeature(resolve(dirname(filename), name + '.ts'));
       if (name === '../deletion') return loadFeature(resolve(dirname(filename), '../deletion.ts'));
       if (name.startsWith('.') && (name.includes('/composables/') || name.includes('/views/') || (name.startsWith('./') && dirname(filename).endsWith('composables')))) {
         const target = resolve(dirname(filename), name);
@@ -108,7 +109,7 @@ async function mountApp(t, { recoveryFailure = false, healthy = false, proposalS
   };
   const stub = vue.defineComponent({ render: () => vue.h('span') });
   const injectedRequire = name => {
-    if (name.endsWith('/StatusAnnouncements.vue')) return loadFeature(fileURLToPath(new URL('../src/components/StatusAnnouncements.vue', import.meta.url)));
+    if (name.endsWith('/StatusAnnouncements.vue') || name.endsWith('/TurnCard.vue')) return loadFeature(fileURLToPath(new URL('../src/components/' + name.split('/').at(-1), import.meta.url)));
     if (name.endsWith('/ipc')) return {request:(method,payload={})=>invoke('assistant_request',{method,payload}),desktopAction:action=>invoke('desktop_action',{action}),discoverApplications:()=>invoke('discover_applications')};
     if (name.includes('/composables/') || name.includes('/views/')) return loadFeature(fileURLToPath(new URL('../src/' + name.replace(/^(?:\.\.?\/)+/,''), import.meta.url)) + (name.endsWith('.vue') ? '' : '.ts'));
     if (name === './errors' || name === '../errors') {

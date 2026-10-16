@@ -193,7 +193,8 @@
           "input": {
             "type": "string",
             "maxLength": 2048,
-            "default": ""
+            "default": "",
+            "label": "Texte transmis"
           }
         },
         "required": [],
@@ -398,7 +399,8 @@
         "properties": {
           "mix": {
             "type": "string",
-            "options": "mixes"
+            "options": "mixes",
+            "label": "Sélection"
           }
         },
         "required": [
@@ -436,7 +438,8 @@
         "properties": {
           "page": {
             "type": "string",
-            "options": "pages"
+            "options": "pages",
+            "label": "Page"
           }
         },
         "required": [

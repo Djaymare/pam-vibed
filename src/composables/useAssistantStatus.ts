@@ -101,7 +101,7 @@ export function useAssistantStatus(
       return state(
         'CONFIRMATION ATTENDUE',
         'Une proposition attend votre choix',
-        'Exécutez ou annulez la proposition dans l’activité récente. Une nouvelle demande reste possible.',
+        'Vérifiez la proposition près des commandes du lecteur ou dans l’activité récente, puis choisissez Exécuter ou Annuler.',
       );
     if (profile.error.value)
       return state(

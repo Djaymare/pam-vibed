@@ -1,13 +1,14 @@
 <script setup lang="ts">
 import { ref, watch } from 'vue';
 import type { Turn } from '../types';
+import { observedState, resultLabel } from '../presentation';
 const props = defineProps<{ stage: string; turns: Turn[]; error: string }>();
 const result = ref(''),
   resultKey = ref(0);
 const seen = new Map<string, string>();
 const labels: Record<Turn['status'], string> = {
   pending: 'Proposition à valider. Vérifiez les actions puis choisissez Exécuter ou Annuler.',
-  executed: 'Demande terminée.',
+  executed: 'Envoi des commandes terminé. Vérifiez les effets dans l’application.',
   partial: 'Exécution interrompue. Vérifiez les actions déjà effectuées.',
   failed: 'Échec de la demande.',
   cancelled: 'Proposition annulée. Aucune action exécutée.',
@@ -28,7 +29,10 @@ watch(
         turn.transcript,
         ...turn.calls.map((call) => `${call.actionLabel || 'Ouvrir'} ${call.applicationName}`),
         turn.message,
-        ...turn.results.map((item) => `${item.applicationName} : ${item.message}`),
+        ...turn.results.map(
+          (item, index) =>
+            `Étape ${(item.index ?? index) + 1}. ${item.applicationName} : ${resultLabel(item)}. ${item.message} ${observedState(item) || (item.success ? 'Effet non observé par PAM.' : '')}`,
+        ),
       ]
         .filter(Boolean)
         .join(' ');

@@ -35,7 +35,7 @@ async function launch(application, args, { budget, beforeEffect } = {}) {
   return {
     applicationName: application.name,
     success: true,
-    message: `${application.name} lancé.`,
+    message: `Commande de lancement envoyée à ${application.name}. L’ouverture effective n’est pas observée par PAM.`,
   };
 }
 function createExecutor({ configDirectory, media, launchApplication = launch }) {

@@ -69,7 +69,7 @@ try {
     await evaluate('document.querySelector("[data-dialog-fallback], #fallback").focus()');
     check('Background focus is inert', await evaluate('document.querySelector("dialog[open]").contains(document.activeElement)'));
   };
-  if (!process.argv.includes('--status-only')) {
+  if (!process.argv.includes('--status-only') && !process.argv.includes('--proposals-only')) {
   await wait('!!document.querySelector("#trigger")');
   await enter('#trigger'); await wait('!!document.querySelector("dialog[open]")');
   check('Component initial input', await active('#initial'));
@@ -226,6 +226,7 @@ try {
   check('PAM-20 individual confirmed deletion preserves app identity and leaves no duplicate/orphan',await evaluate('window.pamDeletionFixture.config.commandAliases.length===0 && window.pamDeletionFixture.config.applications.length===1 && window.pamDeletionFixture.config.applications[0].id==="22222222-2222-4222-8222-222222222222"'));
   await enter('nav button:nth-of-type(2)');await enter('[aria-label="Supprimer Autre"]');await wait('!!document.querySelector("#delete-title")');check('PAM-20 zero associated formulations explicitly shown',await evaluate('document.querySelector("dialog").textContent.includes("0 formulation(s)") && document.querySelectorAll(".deletion-aliases li").length===0'));await key('Escape');
   }
+  if (!process.argv.includes('--proposals-only')) {
   // Leave time to foreground this disposable host for a real screen reader.
   if (process.env.PAM_NVDA_SPEECH_LOG && process.argv.includes('--status-only')) await delay(15000);
   const nvdaOffset = process.env.PAM_NVDA_SPEECH_LOG ? (await readFile(process.env.PAM_NVDA_SPEECH_LOG, 'utf8')).trim().split('\n').length : 0;
@@ -270,6 +271,29 @@ try {
       check(`PAM-21 NVDA announces ${label} exactly once`,speech.filter(text=>text.includes(phrase)).length===1);
     }
     check('PAM-21 NVDA receives runtime recovery and processing stages',speech.some(t=>t.includes('Moteurs en reprise')) && speech.some(t=>t.includes('Préparation de la demande')) && speech.some(t=>t.includes('Exécution de la demande')));
+  }
+  }
+  if (!process.argv.includes('--status-only')) {
+    await cdp('Page.navigate', {url:`${url}?proposals`});
+    await wait('!!window.pamProposalFixture && !!document.querySelector(".deezer-controls") && [...document.querySelectorAll(".deezer-controls button")].some(b=>b.textContent.trim()==="Démarrer Flow" && !b.disabled)');
+    await evaluate('window.pamProposalFixture.flow=()=>[...document.querySelectorAll(".deezer-controls button")].find(b=>b.textContent.trim()==="Démarrer Flow")');
+    for(const mode of ['complete','partial','unknown','expired']) {
+      await evaluate(`window.pamProposalFixture.mode=${JSON.stringify(mode)};window.pamProposalFixture.flow().focus()`);await key('Enter');
+      await wait('document.activeElement.matches(".media-controls .turn-card")');
+      check(`PAM-22 ${mode}: Flow reveals and focuses the nearby card`,await evaluate('document.querySelectorAll(".media-controls .turn-card").length===1 && ![...document.querySelectorAll(".history .turn-card")].some(p=>p.dataset.turnId===document.activeElement.dataset.turnId)'));
+      check(`PAM-22 ${mode}: card is inside the viewport`,await evaluate('(()=>{const r=document.activeElement.getBoundingClientRect();return r.top>=0 && r.top<innerHeight && r.bottom>0})()'));
+      const ax=await cdp('Accessibility.getFullAXTree');check(`PAM-22 ${mode}: accessible named article`,ax.nodes.some(n=>!n.ignored&&n.role?.value==='article'&&n.name?.value.includes('À valider : Flow Fixture')));
+      if(mode==='expired') {
+        await wait('document.querySelector(".media-controls .turn-card").textContent.includes("expirée")');
+        check('PAM-22 expired: Execute is removed',await evaluate('!document.querySelector(".media-controls .approval")'));continue;
+      }
+      await key('Tab');check(`PAM-22 ${mode}: first Tab reaches Execute`,await evaluate('document.activeElement.textContent.trim()==="Exécuter"'));
+      await key('Enter');await wait('!!document.querySelector(".media-controls .plan-results")');
+      check(`PAM-22 ${mode}: terminal result has no replay`,await evaluate('!document.querySelector(".media-controls .approval")'));
+      if(mode==='complete')check('PAM-22 accepted Flow never claims observed playback',await evaluate('document.querySelector(".media-controls .turn-card").textContent.includes("Commande acceptée") && document.querySelector(".media-controls .turn-card").textContent.includes("Effet non observé") && !document.querySelector("[data-result-announcement]").textContent.includes("Effectuée")'));
+      if(mode==='partial')check('PAM-22 partial: every step and no blind retry',await evaluate('document.querySelectorAll(".media-controls .plan-results > li").length===3 && document.querySelector(".media-controls .turn-card").textContent.includes("ne peut pas être relancé")'));
+      if(mode==='unknown')check('PAM-22 unknown: issued command remains uncertain',await evaluate('document.querySelector(".media-controls .plan-results").textContent.includes("Commande émise · issue inconnue")'));
+    }
   }
   console.log(JSON.stringify({ runtime: await evaluate('navigator.userAgent'), checks: results.length, results }, null, 2));
 } finally {

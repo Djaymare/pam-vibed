@@ -62,7 +62,7 @@ test('PAM-21 live result/error regions stay mounted, deduplicate polling and nev
   s.turns=[turn('one')];await settle();const firstSpan=region.children[0];assert.match(text(region),/Proposition à valider/);
   s.turns=[{...turn('one'),durationMs:983,proposal:{...turn('one').proposal,expiresAt:12}}];await settle();
   assert.equal(result(),region);assert.equal(region.children[0],firstSpan,'No repeated result DOM insertion from health/countdown polling');
-  s.turns=[{...turn('one'),status:'executed',results:[{applicationName:'Fixture',message:'Action effectuée',success:true}]}];await settle();assert.match(text(region),/Demande terminée.*Action effectuée/);
+  s.turns=[{...turn('one'),status:'executed',results:[{applicationName:'Fixture',message:'Action effectuée',success:true}]}];await settle();assert.match(text(region),/Envoi des commandes terminé.*Action effectuée/);
   const errorRegion=error();s.error='Échec récupérable';await settle();assert.equal(error(),errorRegion);assert.equal(text(errorRegion),'Échec récupérable');assert.equal(errorRegion.props.role,'alert');
   assert.equal(globalThis.document.activeElement,null);assert.deepEqual(h.errors,[]);
 });

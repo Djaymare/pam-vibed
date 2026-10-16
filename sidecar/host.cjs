@@ -55,7 +55,7 @@ function hostLauncher(request) {
     options.budget?.check('lancement hôte');
     const result = await request('launch_application', { ...application, arguments: argv }, options);
     if (result?.accepted !== true) throw new Error('Windows a refusé le lancement.');
-    return { applicationName: application.name, success: true, message: `${application.name} lancé.`, details: result };
+    return { applicationName: application.name, success: true, message: `Commande de lancement acceptée pour ${application.name}. L’ouverture effective n’est pas observée par PAM.`, details: result };
   };
 }
 

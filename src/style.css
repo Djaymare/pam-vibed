@@ -121,3 +121,8 @@ dialog.modal{max-width:calc(100vw - 32px);max-height:calc(100vh - 32px)}
   color: var(--text-secondary);
   margin: 0 0 1rem;
 }
+.action-summary { display: grid; grid-template-columns: minmax(90px, auto) 1fr; gap: 6px 16px; margin: 10px 0 18px; }
+.action-summary dt { font-weight: 600; }
+.action-summary dd { margin: 0; overflow-wrap: anywhere; }
+.plan-steps, .plan-results { padding-left: 24px; }
+.turn-card:focus { outline: 3px solid var(--accent); outline-offset: 4px; }

@@ -4,6 +4,11 @@ const availabilityScenario = new URLSearchParams(location.search).has('availabil
 const draftScenario = new URLSearchParams(location.search).has('drafts');
 const deletionScenario = new URLSearchParams(location.search).has('deletion');
 const statusScenario = new URLSearchParams(location.search).has('status');
+const proposalScenario = new URLSearchParams(location.search).has('proposals');
+if (proposalScenario) {
+  const app=config.applications[0];app.name='Deezer Fixture';app.media={sourceAppId:'Deezer.exe',deezer:true};app.windowsApp={appId:'Deezer.62021768415AF_q7m17pa7q8kj0!Deezer.Music',kind:'store',icon:null};
+  window.pamProposalFixture={config,calls:[],mode:'complete',sequence:0};
+}
 if (statusScenario) window.pamStatusFixture = { config, calls: [], phase:'starting', activity:'idle', hold:false, fail:false, release:()=>{} };
 if (deletionScenario) {
   config.applications[0].aliases = ['Mon éditeur'];
@@ -38,6 +43,13 @@ export async function invoke(command, input) {
   }
 }
 async function handle(method, payload) {
+  if(proposalScenario) {
+    const f=window.pamProposalFixture;f.calls.push({method,payload});
+    const call={name:'fixture_flow',applicationId:config.applications[0].id,applicationName:'Deezer Fixture',action:'deezer_start',actionLabel:'Démarrer Flow',arguments:{mix:'flow'}};
+    if(method==='prepare_action')return {...turn('proposal-'+(++f.sequence),'Flow Fixture'),calls:[call],proposal:{state:'pending',createdAt:Date.now(),expiresAt:Date.now()+(f.mode==='expired'?1000:600000),reason:null}};
+    if(method==='confirm')return {...turn(payload.id,'Flow Fixture'),status:f.mode==='complete'?'executed':'partial',calls:f.mode==='partial'?[call,call,call]:[call],results:f.mode==='complete'?[{applicationName:'Deezer Fixture',success:true,outcome:'performed',message:'Lecture demandée à Deezer. Le protocole ne fournit pas de confirmation de lecture.',details:{accepted:true}}]:f.mode==='partial'?[{index:0,applicationName:'Deezer Fixture',success:true,outcome:'performed',message:'Commande acceptée.',details:{accepted:true}},{index:1,applicationName:'Deezer Fixture',success:false,outcome:'unknown',message:'Réponse perdue.'},{index:2,applicationName:'Deezer Fixture',success:false,outcome:'not_started',message:'Action non démarrée.'}]:[{applicationName:'Deezer Fixture',success:false,outcome:'unknown',message:'Réponse perdue.'}]};
+    if(method==='discard')return {...turn(payload.id,'Flow Fixture'),status:'cancelled'};
+  }
   if (method === 'supervisor_status') return statusScenario ? {phase:window.pamStatusFixture.phase,activity:window.pamStatusFixture.activity} : {phase:'ready',activity:'idle'};
   if (method === 'desktop_action') return null;
   if (method === 'discover_applications') return [{ name: 'Détectée', appId: 'Fixture.Detected', kind: 'desktop', icon: null }];

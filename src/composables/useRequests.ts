@@ -34,7 +34,7 @@ export function useRequests(
     try {
       const turn = await request(method, payload);
       if (!token.current()) return;
-      proposals.add(turn);
+      proposals.add(turn, method === 'prepare_action');
       text.value = '';
     } catch (caught) {
       if (token.current()) {

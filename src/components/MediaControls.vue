@@ -130,6 +130,7 @@ watch(
           {{ action.label }}
         </button>
       </div>
+      <slot v-if="!app.media?.deezer" />
       <p class="muted">
         Les boutons disponibles correspondent aux capacités actuelles du lecteur. « Piste suivante »
         passe au prochain élément déjà présent dans la file.
@@ -194,6 +195,7 @@ watch(
             Recharger Deezer
           </button>
         </div>
+        <slot />
         <details>
           <summary>Autres liens Deezer</summary>
           <form
@@ -242,7 +244,7 @@ watch(
         </details>
       </div>
     </template>
-    <p class="muted">Chaque bouton prépare une action à vérifier dans l’activité récente.</p>
+    <p class="muted">Chaque bouton affiche ici une action à vérifier avant de l’exécuter.</p>
   </section>
 </template>
 <style scoped>

@@ -14,6 +14,7 @@ export function useProposals(
   const { request, error, config, status, activeApps, updateHealth, beginMutation, scope } =
     profile;
   const turns = ref<Turn[]>([]);
+  const revealedId = ref('');
   const correction = ref<Turn>();
   const correctionError = ref('');
   const correctionStage = ref<'editing' | 'memorization' | 'inference'>('editing');
@@ -223,6 +224,24 @@ export function useProposals(
       if (token.current()) {
         token.fail();
         error.value = describeError(caught);
+        if (accept)
+          turns.value = turns.value.map((item) =>
+            item.id === turn.id
+              ? {
+                  ...item,
+                  status: 'invalidated',
+                  proposal: {
+                    createdAt: null,
+                    expiresAt: null,
+                    ...item.proposal,
+                    state: 'unknown',
+                    reason: 'confirmation_failed',
+                  },
+                  message:
+                    'La confirmation a été envoyée mais son résultat est inconnu. Vérifiez l’application et les résultats avant une nouvelle demande. Cette confirmation ne sera pas relancée.',
+                }
+              : item,
+          );
       }
     } finally {
       token.finish();
@@ -230,7 +249,7 @@ export function useProposals(
     }
   }
   const labels: Record<Turn['status'], string> = {
-    executed: 'Terminé',
+    executed: 'Commandes envoyées',
     pending: 'À valider',
     unsupported: 'Aucune action disponible',
     silence: 'Aucune parole détectée',
@@ -243,7 +262,7 @@ export function useProposals(
   };
   const outcomeLabels = {
     not_started: 'Non démarrée',
-    performed: 'Effectuée',
+    performed: 'Commande envoyée',
     failed: 'Échouée',
     unknown: 'Résultat inconnu',
   };
@@ -276,8 +295,9 @@ export function useProposals(
   function reconcile(proposals?: RuntimeStatus['proposals']) {
     turns.value = reconcileTurns(turns.value, proposals);
   }
-  function add(turn: Turn) {
+  function add(turn: Turn, reveal = false) {
     turns.value = retainTurns([turn, ...reconcileTurns(turns.value)]);
+    if (reveal) revealedId.value = turn.id;
   }
   let timer: number | undefined;
   onMounted(() => {
@@ -286,6 +306,7 @@ export function useProposals(
   onBeforeUnmount(() => window.clearInterval(timer));
   return {
     turns,
+    revealedId,
     correction,
     correctionError,
     correctionStage,

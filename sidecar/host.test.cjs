@@ -17,7 +17,10 @@ test('host launches correlate replies and preserve literal arguments', async () 
   host.receive({ version:1,requestId,type: 'host_response', id: sent[1].id, ok: false, error: failure });
   await assert.rejects(second, e=>e.diagnostic.code==='target_missing');
   host.receive({ version:1,requestId,type: 'host_response', id: sent[0].id, ok: true, result: { accepted: true, pid: 42 } });
-  assert.equal((await first).details.pid, 42);
+  const result = await first;
+  assert.equal(result.details.pid, 42);
+  assert.match(result.message, /acceptée.*pas observée/);
+  assert.doesNotMatch(result.message, /lancé\./);
   assert.equal(host.receive({ id: 1 }), false);
   assert.equal(host.receive({ version:1,type: 'host_response', id: sent[0].id, ok: true }), true);
 });
