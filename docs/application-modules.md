@@ -147,3 +147,13 @@ une issue incertaine. Ces observations ne prouvent pas que PAM a causé un effet
 le vrai bridge GSMTC et le lecteur Windows jetable décrit dans
 `tests/fixtures/media-player/README.md`. Les tests unitaires simulent les durées,
 la visibilité et les réponses inversées ; le parcours WebView2 reste distinct.
+
+`LaunchArguments` garde le JSON comme brouillon et transport ; chaque champ simple
+représente un argv exact, sans découpage ou règles de shell. Les conversions et
+l’aperçu sont vérifiés par `tests/guided-inputs.test.mjs`. `deezerLink.ts` convertit
+uniquement les liens HTTPS directs de contenu vers les paramètres du registre ;
+le backend continue de valider ces paramètres et construit l’URI native autorisée.
+Le brouillon de lien appartient à `useProposals`, afin de survivre à la navigation.
+`node scripts/test-modals.mjs --guided-only` teste ces formulaires au clavier dans
+WebView2 avec des services natifs simulés ; voir `docs/tickets/PAM-27.md` pour le
+corpus admis/refusé et les limites des preuves.

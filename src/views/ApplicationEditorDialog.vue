@@ -1,7 +1,8 @@
 <script setup lang="ts">
-import { vField, argumentsError } from '../composables/fieldAccessibility';
+import { vField } from '../composables/fieldAccessibility';
 import { toRefs, type UnwrapNestedRefs } from 'vue';
 import Icon from '../components/Icon.vue';
+import LaunchArguments from '../components/LaunchArguments.vue';
 import type { Profile } from '../composables/useProfile';
 import type { ApplicationEditor } from '../composables/useApplicationEditor';
 import ModalDialog from '../components/ModalDialog.vue';
@@ -214,24 +215,13 @@ const closeEditor = () =>
             @change="deezerPlugin && (mediaSource = 'Deezer.exe')"
           /><span>Activer le plugin Deezer Music : contenus, recherche et Flow</span></label
         >
-        <details v-if="!form.windowsApp" class="advanced">
-          <summary>Arguments de lancement</summary>
-          <label
-            >Tableau JSON<textarea
-              v-field="() => argumentsError(form.arguments)"
-              v-model="form.arguments"
-              class="code-input"
-              rows="3"
-              :aria-describedby="`application-arguments-help ${formError ? 'application-form-error' : ''}`"
-              :disabled="busy"
-            />
-          </label>
-          <p id="application-arguments-help">
-            Utilisez <code>[]</code> pour un lancement simple, ou <code>["{input}"]</code> pour
-            transmettre le texte, le fichier ou l’URL demandé. Chaque élément reste un argument
-            distinct.
-          </p>
-        </details>
+        <LaunchArguments
+          v-if="!form.windowsApp"
+          v-model="form.arguments"
+          :executable="form.executable"
+          :input="testInput"
+          :disabled="busy"
+        />
         <div class="launch-test">
           <label v-if="testNeedsInput"
             >Texte, fichier ou URL pour le test<input

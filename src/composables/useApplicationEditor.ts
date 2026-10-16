@@ -5,6 +5,7 @@ import { open } from '@tauri-apps/plugin-dialog';
 import { useAsyncScope } from './useAsyncScope';
 import { describeError } from '../errors';
 import type { Profile } from './useProfile';
+import { parseLaunchArguments } from '../launchArguments';
 /** useApplicationEditor owns its state and releases its subscriptions at component unmount. */
 export function useApplicationEditor(profile: Profile, rememberDialogTrigger: () => void) {
   const { request, busy, config, status, updateHealth, beginMutation } = profile;
@@ -196,14 +197,7 @@ export function useApplicationEditor(profile: Profile, rememberDialogTrigger: ()
     mediaSource.value = '';
   }
   function applicationPayload() {
-    let args: unknown;
-    try {
-      args = JSON.parse(form.arguments);
-    } catch {
-      throw new Error(
-        'Les arguments doivent être un tableau JSON, par exemple ["--new-window", "{input}"].',
-      );
-    }
+    const args = parseLaunchArguments(form.arguments);
     return {
       ...form,
       media: mediaSource.value
@@ -214,7 +208,7 @@ export function useApplicationEditor(profile: Profile, rememberDialogTrigger: ()
         .split(',')
         .map((alias) => alias.trim())
         .filter(Boolean),
-      arguments: args as string[],
+      arguments: args,
     };
   }
   async function testLaunch() {

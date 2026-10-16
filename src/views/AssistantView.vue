@@ -30,7 +30,7 @@ const {
   state: audioState,
 } = toRefs(props.audio);
 const { text, submitText, prepareMediaAction, processing, sent } = toRefs(props.requests);
-const { turns, editTurn, resolveTurn, revealedId } = toRefs(props.proposals);
+const { turns, editTurn, resolveTurn, revealedId, mediaDraft } = toRefs(props.proposals);
 const revealedTurn = computed(() =>
   config.value.applications.some((app) => app.enabled && app.media)
     ? turns.value.find((turn) => turn.id === revealedId.value)
@@ -127,6 +127,7 @@ const { canRequest } = toRefs(props);
   </p>
   <MediaControls
     :applications="config.applications"
+    v-model:draft="mediaDraft.contentLink"
     :locked="locked || !profile.runtimeReady"
     @action="prepareMediaAction"
   >

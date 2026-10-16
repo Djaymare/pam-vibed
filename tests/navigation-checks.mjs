@@ -48,7 +48,7 @@ export async function navigationChecks({ cdp, url, evaluate, wait, active, key, 
   await fill('textarea[required]', 'Application jetable');
   await go('textarea[required]'); await delay(1000);
   await fill('.path-field input', 'C:\\fixture.exe');
-  await enter('.advanced summary');
+  await enter('.launch-arguments > button');
   await fill('.code-input', 'broken');
   await enter('.modal-footer button.primary');
   check('PAM-23 malformed JSON is linked only to the arguments field', await evaluate('document.querySelector(".code-input").getAttribute("aria-invalid")==="true" && document.querySelector("input[data-dialog-initial-focus]").getAttribute("aria-invalid")==="false" && document.querySelector(".code-input").getAttribute("aria-describedby").includes(document.querySelector(".code-input").id+"-error")'));
@@ -84,6 +84,7 @@ export async function navigationChecks({ cdp, url, evaluate, wait, active, key, 
   await cdp('Page.navigate', { url: `${url}?proposals` });
   await wait('!!document.querySelector(".deezer-controls")');
   await associations(); check('PAM-23 media and Deezer field associations resolve uniquely', true);
+  await enter('.deezer-controls > details > summary');
   await fill('.deezer-controls input[inputmode=numeric]', 'bad'); await key('Tab');
   check('PAM-23 Deezer pattern error is attached to the content ID', await evaluate('document.querySelector(".deezer-controls input[inputmode=numeric]").getAttribute("aria-invalid")==="true"'));
   await fill('.text-request input', 'Correction accessible'); await key('Enter');

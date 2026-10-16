@@ -15,6 +15,7 @@ export function useProposals(
     profile;
   const turns = ref<Turn[]>([]);
   const revealedId = ref('');
+  const mediaDraft = reactive({ contentLink: '' });
   const correction = ref<Turn>();
   const correctionError = ref('');
   const correctionStage = ref<'editing' | 'memorization' | 'inference'>('editing');
@@ -305,6 +306,7 @@ export function useProposals(
   });
   onBeforeUnmount(() => window.clearInterval(timer));
   return {
+    mediaDraft,
     turns,
     revealedId,
     correction,

@@ -6,6 +6,7 @@ import { basename, dirname, join, resolve } from 'node:path';
 import { pathToFileURL, fileURLToPath } from 'node:url';
 import { createServer as createNetServer } from 'node:net';
 import { navigationChecks } from '../tests/navigation-checks.mjs';
+import { guidedInputChecks } from '../tests/guided-input-checks.mjs';
 
 // Real Windows WebView2 + Vue components, with only native services simulated.
 // Build src-tauri/examples/modal-test-host.rs first and set PAM_MODAL_TEST_HOST.
@@ -71,7 +72,7 @@ try {
     await evaluate('document.querySelector("[data-dialog-fallback], #fallback").focus()');
     check('Background focus is inert', await evaluate('document.querySelector("dialog[open]").contains(document.activeElement)'));
   };
-  if (!process.argv.includes('--navigation-only') && !process.argv.includes('--status-only') && !process.argv.includes('--proposals-only')) {
+  if (!process.argv.includes('--guided-only') && !process.argv.includes('--navigation-only') && !process.argv.includes('--status-only') && !process.argv.includes('--proposals-only')) {
   await wait('!!document.querySelector("#trigger")');
   await enter('#trigger'); await wait('!!document.querySelector("dialog[open]")');
   check('Component initial input', await active('#initial'));
@@ -228,7 +229,7 @@ try {
   check('PAM-20 individual confirmed deletion preserves app identity and leaves no duplicate/orphan',await evaluate('window.pamDeletionFixture.config.commandAliases.length===0 && window.pamDeletionFixture.config.applications.length===1 && window.pamDeletionFixture.config.applications[0].id==="22222222-2222-4222-8222-222222222222"'));
   await enter('nav button:nth-of-type(2)');await enter('[aria-label="Supprimer Autre"]');await wait('!!document.querySelector("#delete-title")');check('PAM-20 zero associated formulations explicitly shown',await evaluate('document.querySelector("dialog").textContent.includes("0 formulation(s)") && document.querySelectorAll(".deletion-aliases li").length===0'));await key('Escape');
   }
-  if (!process.argv.includes('--navigation-only') && !process.argv.includes('--proposals-only')) {
+  if (!process.argv.includes('--guided-only') && !process.argv.includes('--navigation-only') && !process.argv.includes('--proposals-only')) {
   // Leave time to foreground this disposable host for a real screen reader.
   if (process.env.PAM_NVDA_SPEECH_LOG && process.argv.includes('--status-only')) await delay(15000);
   const nvdaOffset = process.env.PAM_NVDA_SPEECH_LOG ? (await readFile(process.env.PAM_NVDA_SPEECH_LOG, 'utf8')).trim().split('\n').length : 0;
@@ -275,7 +276,7 @@ try {
     check('PAM-21 NVDA receives runtime recovery and processing stages',speech.some(t=>t.includes('Moteurs en reprise')) && speech.some(t=>t.includes('Préparation de la demande')) && speech.some(t=>t.includes('Exécution de la demande')));
   }
   }
-  if (!process.argv.includes('--navigation-only') && !process.argv.includes('--status-only')) {
+  if (!process.argv.includes('--guided-only') && !process.argv.includes('--navigation-only') && !process.argv.includes('--status-only')) {
     await cdp('Page.navigate', {url:`${url}?proposals`});
     await wait('!!window.pamProposalFixture && !!document.querySelector(".deezer-controls") && [...document.querySelectorAll(".deezer-controls button")].some(b=>b.textContent.trim()==="Démarrer Flow" && !b.disabled)');
     await evaluate('window.pamProposalFixture.flow=()=>[...document.querySelectorAll(".deezer-controls button")].find(b=>b.textContent.trim()==="Démarrer Flow")');
@@ -297,8 +298,9 @@ try {
       if(mode==='unknown')check('PAM-22 unknown: issued command remains uncertain',await evaluate('document.querySelector(".media-controls .plan-results").textContent.includes("Commande émise · issue inconnue")'));
     }
   }
-  if (!process.argv.includes('--status-only') && !process.argv.includes('--proposals-only'))
+  if (!process.argv.includes('--guided-only') && !process.argv.includes('--status-only') && !process.argv.includes('--proposals-only'))
     await navigationChecks({ cdp, url, evaluate, wait, active, key, go, enter, fill, check, delay });
+  if (process.argv.includes('--guided-only')) await guidedInputChecks({ cdp, url, evaluate, wait, key, enter, fill, check });
   console.log(JSON.stringify({ runtime: await evaluate('navigator.userAgent'), checks: results.length, results }, null, 2));
 } finally {
   socket?.close();

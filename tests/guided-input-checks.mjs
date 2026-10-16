@@ -1,0 +1,36 @@
+export async function guidedInputChecks({ cdp, url, evaluate, wait, key, enter, fill, check }) {
+  await cdp('Page.navigate', {url});
+  await wait('!!document.querySelector(".page-intro") && !document.querySelector(".voice-button")?.disabled');
+  await enter('nav button:nth-of-type(2)');
+  await enter('.page-intro button.primary');await enter('.discovery-footer button');
+  await wait('!!document.querySelector(".launch-arguments")');
+  await fill('input[data-dialog-initial-focus]', 'Arguments fixture');
+  await fill('textarea[required]', 'Fixture sans effet');
+  await fill('.path-field input','C:\\Programme avec espaces\\fixture.exe');
+  const args=['--file','C:\\Mes fichiers\\un "titre".txt','','  espaces  ','{input}','--name={input}'];
+  await enter('.launch-arguments > button');
+  const json=JSON.stringify(args,null,2);await fill('.code-input',json);
+  await enter('.launch-arguments > button');
+  check('PAM-27 simple inputs preserve literal spaces, quotes and empty argv',await evaluate(`JSON.stringify([...document.querySelectorAll('.argument-row textarea')].map(x=>x.value))===${JSON.stringify(JSON.stringify(args))}`));
+  await fill('.launch-test input','C:\\Un fichier\\"texte" & x.txt');
+  check('PAM-27 preview uses one value per argv after placeholder replacement',await evaluate('document.querySelectorAll(".launch-preview li").length===6 && document.querySelectorAll(".launch-preview li")[4].textContent.includes("Un fichier") && document.querySelectorAll(".launch-preview li")[5].textContent.includes("--name=")'));
+  await enter('.launch-arguments > button');
+  check('PAM-27 switching back to JSON preserves original text',await evaluate(`document.querySelector('.code-input').value===${JSON.stringify(json)}`));
+  await fill('.code-input','["inachevé"');await enter('.launch-arguments > button');
+  check('PAM-27 invalid JSON prevents conversion and retains draft',await evaluate('document.querySelector(".code-input").value===\'["inachevé"\' && document.querySelector(".launch-arguments [role=alert]").textContent.includes("conservé")'));
+  await fill('.code-input',json);await enter('.launch-arguments > button');
+  await enter('.modal-footer button.primary');await wait('!!document.querySelector("#application-form-error")');
+  check('PAM-27 save failure retains all guided arguments',await evaluate(`JSON.stringify([...document.querySelectorAll('.argument-row textarea')].map(x=>x.value))===${JSON.stringify(JSON.stringify(args))}`));
+  await enter('[aria-label="Supprimer l’argument 6"]');
+  check('PAM-27 deleting an argument restores focus to the adjacent field',await evaluate('document.querySelectorAll(".argument-row textarea").length===5 && document.activeElement===document.querySelectorAll(".argument-row textarea")[4]'));
+  await cdp('Page.navigate',{url:`${url}?proposals`});await wait('!!document.querySelector(".deezer-controls")');
+  const selector='.deezer-controls input[placeholder^="https:"]';
+  await fill(selector,'https://www.deezer.com.evil/track/1');await key('Tab');
+  check('PAM-27 hostile domain has a linked field error',await evaluate(`(()=>{const f=document.querySelector(${JSON.stringify(selector)});return f.getAttribute('aria-invalid')==='true' && f.getAttribute('aria-describedby').includes(f.id+'-error') && document.getElementById(f.id+'-error').textContent.includes('HTTPS')})()`));
+  await fill(selector,'https://www.deezer.com/fr/album/3135556?utm_source=share');await key('Tab');
+  check('PAM-27 valid link clears the stale error and names the resolved content',await evaluate(`document.querySelector(${JSON.stringify(selector)}).getAttribute('aria-invalid')==='false' && document.querySelector('.deezer-controls form').textContent.includes('Album · 3135556')`));
+  await enter('nav button:nth-of-type(2)');await enter('nav button:nth-of-type(1)');await wait('!!document.querySelector(".deezer-controls")');
+  check('PAM-27 Deezer link survives navigation',await evaluate(`document.querySelector(${JSON.stringify(selector)}).value==='https://www.deezer.com/fr/album/3135556?utm_source=share'`));
+  await enter('.deezer-controls form button');await wait('!!document.querySelector(".media-controls .turn-card")');
+  check('PAM-27 link sends only existing type/id parameters to preparation',await evaluate('(()=>{const c=window.pamProposalFixture.calls.find(c=>c.method==="prepare_action");return c && c.payload.action==="deezer_content" && c.payload.arguments.kind==="album" && c.payload.arguments.id==="3135556" && !JSON.stringify(c.payload.arguments).includes("https:")})()'));
+}

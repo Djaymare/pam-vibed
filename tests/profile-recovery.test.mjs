@@ -98,6 +98,7 @@ async function mountApp(t, { recoveryFailure = false, healthy = false, proposalS
     const requireFeature = name => {
       if (name === '../presentation' || (filename.endsWith('presentation.ts') && name === './actions') || (filename.endsWith('actions.ts') && name === './actions.generated')) return loadFeature(resolve(dirname(filename), name + '.ts'));
       if (name === '../deletion') return loadFeature(resolve(dirname(filename), '../deletion.ts'));
+      if (name === '../launchArguments') return loadFeature(resolve(dirname(filename), '../launchArguments.ts'));
       if (name.startsWith('.') && (name.includes('/composables/') || name.includes('/views/') || (name.startsWith('./') && dirname(filename).endsWith('composables')))) {
         const target = resolve(dirname(filename), name);
         return loadFeature(target.endsWith('.vue') ? target : target + '.ts');

@@ -6,7 +6,12 @@ export default [
   { ignores: ['artifacts/**', 'node_modules/**', 'dist/**'] },
   ...ts.configs.recommended.map((config) => ({
     ...config,
-    files: ['src/composables/**/*.ts', 'src/deletion.ts'],
+    files: [
+      'src/composables/**/*.ts',
+      'src/deletion.ts',
+      'src/launchArguments.ts',
+      'src/deezerLink.ts',
+    ],
   })),
   ...vue.configs['flat/essential'],
   { files: ['src/**/*.vue'], languageOptions: { parserOptions: { parser: ts.parser } } },

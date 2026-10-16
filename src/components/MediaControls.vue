@@ -3,6 +3,7 @@ import { vField } from '../composables/fieldAccessibility';
 import { computed, ref, watch, useId } from 'vue';
 import { useMediaSessions } from '../composables/useMediaSessions';
 import type { Application, CommandAction } from '../types';
+import { parseDeezerLink } from '../deezerLink';
 import {
   deezerPages as pages,
   deezerContent,
@@ -12,8 +13,13 @@ import {
   actionParameters,
   validActionField,
 } from '../actions';
-const props = defineProps<{ applications: Application[]; locked: boolean }>();
+const props = defineProps<{
+  applications: Application[];
+  locked: boolean;
+  draft?: string;
+}>();
 const emit = defineEmits<{
+  'update:draft': [value: string];
   action: [
     applicationId: string,
     action: CommandAction,
@@ -26,6 +32,28 @@ const selected = ref('');
 const query = ref('');
 const kind = ref('track');
 const contentId = ref('');
+const localLink = ref('');
+const contentLink = computed({
+  get: () => props.draft ?? localLink.value,
+  set: (value: string) => {
+    localLink.value = value;
+    emit('update:draft', value);
+  },
+});
+const linkError = computed(() => {
+  if (!contentLink.value) return '';
+  try {
+    parseDeezerLink(contentLink.value);
+    return '';
+  } catch (caught) {
+    return (caught as Error).message;
+  }
+});
+function prepareLink() {
+  if (!contentLink.value || linkError.value) return;
+  const args = parseDeezerLink(contentLink.value);
+  prepare('deezer_content', args, `Afficher ${deezerContent[args.kind]} ${args.id}`);
+}
 const page = ref('home');
 const selectionId = ref('');
 const selectionMode = ref('display');
@@ -145,6 +173,30 @@ function prepare(action: CommandAction, args: Record<string, string>, label: str
       </p>
       <div v-if="app.media?.deezer" class="deezer-controls">
         <h3>Deezer Music</h3>
+        <form @submit.prevent="prepareLink">
+          <label
+            >Coller un lien Deezer<input
+              v-field="() => linkError"
+              v-model="contentLink"
+              required
+              type="text"
+              maxlength="2048"
+              placeholder="https://www.deezer.com/fr/track/3135556"
+              :disabled="locked"
+            /><small
+              >Lien HTTPS direct de deezer.com ou www.deezer.com : chanson, album, artiste,
+              playlist, podcast, épisode ou profil. Les liens courts et redirections ne sont pas
+              suivis. Les paramètres de partage usuels sont ignorés.</small
+            ></label
+          >
+          <button class="secondary small" :disabled="locked || !contentLink || !!linkError">
+            Afficher le contenu du lien
+          </button>
+          <p v-if="contentLink && !linkError" class="muted">
+            {{ deezerContent[parseDeezerLink(contentLink).kind] }} ·
+            {{ parseDeezerLink(contentLink).id }}
+          </p>
+        </form>
         <form @submit.prevent="prepare('deezer_search', { query }, 'Rechercher ' + query)">
           <label
             >Rechercher une chanson ou un artiste<input
@@ -157,33 +209,45 @@ function prepare(action: CommandAction, args: Record<string, string>, label: str
             Afficher les résultats
           </button>
         </form>
-        <form
-          @submit.prevent="
-            prepare('deezer_content', { kind, id: contentId }, 'Afficher ' + kind + ' ' + contentId)
-          "
-        >
-          <label
-            >Contenu<select v-field v-model="kind" :disabled="locked">
-              <option v-for="(label, value) in deezerContent" :key="value" :value="value">
-                {{ label }}
-              </option>
-            </select></label
-          ><label
-            >Identifiant Deezer<input
-              v-field
-              v-model="contentId"
-              inputmode="numeric"
-              :pattern="contentFields.id.pattern"
-              :maxlength="contentFields.id.maxLength"
-              placeholder="Ex. : 3135556"
-              :disabled="locked" /></label
-          ><button
-            class="secondary small"
-            :disabled="locked || !validActionField('deezer_content', 'id', contentId)"
+        <details>
+          <summary>Saisir un identifiant de contenu</summary>
+          <form
+            @submit.prevent="
+              prepare(
+                'deezer_content',
+                { kind, id: contentId },
+                'Afficher ' + kind + ' ' + contentId,
+              )
+            "
           >
-            Afficher le contenu
-          </button>
-        </form>
+            <label
+              >Contenu<select v-field v-model="kind" :disabled="locked">
+                <option v-for="(label, value) in deezerContent" :key="value" :value="value">
+                  {{ label }}
+                </option>
+              </select></label
+            ><label
+              >Identifiant Deezer<input
+                v-field
+                v-model="contentId"
+                inputmode="numeric"
+                :pattern="contentFields.id.pattern"
+                :maxlength="contentFields.id.maxLength"
+                placeholder="Ex. : 3135556"
+                :disabled="locked" /></label
+            ><button
+              class="secondary small"
+              :disabled="locked || !validActionField('deezer_content', 'id', contentId)"
+            >
+              Afficher le contenu
+            </button>
+          </form>
+          <p class="muted">
+            L’identifiant numérique est fourni par Deezer dans le lien du contenu après son type,
+            par exemple track/3135556. Il ne correspond pas au titre de la chanson ; PAM ne le
+            recherche pas à votre place.
+          </p>
+        </details>
         <p class="muted">
           Ces liens affichent le contenu ; ils ne démarrent pas une chanson et ne l’insèrent pas en
           prochaine position. Choisissez ces actions dans Deezer.
@@ -250,7 +314,9 @@ function prepare(action: CommandAction, args: Record<string, string>, label: str
           </form>
           <p class="muted">
             Utilisez un identifiant de sélection fourni par Deezer. Le lien de lecture ne renvoie
-            aucune confirmation ; la session Windows est actualisée pour observer le résultat.
+            aucune confirmation ; la session Windows est actualisée pour observer le résultat. Cet
+            identifiant avancé n’est ni un titre ni le numéro d’un album ou d’une chanson. Sans
+            identifiant fourni par Deezer, utilisez la recherche ou le lien de contenu.
           </p>
         </details>
       </div>
