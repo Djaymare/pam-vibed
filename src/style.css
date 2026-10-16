@@ -142,3 +142,26 @@ dialog.modal{max-width:calc(100vw - 32px);max-height:calc(100vh - 32px)}
 .microphone-panel label { display: block; margin: .75rem 0; }
 .microphone-panel select { max-width: 100%; margin-left: .5rem; }
 .microphone-panel meter { display: block; width: min(100%, 26rem); height: 1.5rem; }
+
+:where(.first-use, .shortcut-settings) select {
+  max-width: 100%;
+}
+.first-use ol {
+  padding-left: 1.5rem;
+}
+.first-use li {
+  margin: 1rem 0;
+}
+.first-use li > strong,
+.first-use label,
+.shortcut-settings label {
+  display: block;
+  margin-bottom: 0.5rem;
+}
+.first-use button,
+.shortcut-settings button {
+  margin: 0.3rem 0.5rem 0.3rem 0;
+}
+.application-options {
+  margin: 1rem 0;
+}

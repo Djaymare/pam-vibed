@@ -3,7 +3,6 @@ use crate::{applications, bridge, contracts, diagnostics};
 use serde_json::{json, Value};
 pub(crate) struct AssistantBridge {
     pub transport: bridge::Bridge,
-    pub shortcut_error: String,
 }
 impl AssistantBridge {
     pub fn request(&self, method: &str, payload: Value) -> Result<Value, String> {
@@ -18,7 +17,6 @@ impl AssistantBridge {
 
 fn catalogue_request(
     transport: &impl bridge::RequestTransport,
-    shortcut_error: &str,
     catalogue: &applications::Catalogue,
     method: &str,
     payload: &mut Value,
@@ -67,7 +65,6 @@ fn catalogue_request(
     let mut result = request(method, payload.clone())?;
     if method == "status" {
         catalogue.annotate_status(&mut result);
-        result["desktop"] = json!({"shortcut":"Ctrl + Maj + Espace","shortcutAvailable":shortcut_error.is_empty(),"shortcutError":shortcut_error,"closeToTray":true});
     }
     Ok(result)
 }
@@ -79,12 +76,11 @@ pub(crate) fn handle_assistant_request(
     catalogue: &applications::Catalogue,
     value: Value,
 ) -> Result<Value, diagnostics::Error> {
-    dispatch(&state.transport, &state.shortcut_error, catalogue, value)
+    dispatch(&state.transport, catalogue, value)
 }
 
 fn dispatch(
     transport: &impl bridge::RequestTransport,
-    shortcut_error: &str,
     catalogue: &applications::Catalogue,
     value: Value,
 ) -> Result<Value, diagnostics::Error> {
@@ -109,7 +105,6 @@ fn dispatch(
         }
         _ => catalogue_request(
             transport,
-            shortcut_error,
             catalogue,
             method,
             &mut request.call.payload(),
@@ -176,7 +171,7 @@ mod tests {
             wire("status", json!({"unexpected":true})),
             json!({"version":0}),
         ] {
-            assert!(dispatch(&transport, "", &applications::Catalogue::default(), wire).is_err());
+            assert!(dispatch(&transport, &applications::Catalogue::default(), wire).is_err());
         }
         assert!(transport.0.lock().unwrap().is_empty());
     }
@@ -185,7 +180,6 @@ mod tests {
         let transport = FakeTransport::default();
         let response = dispatch(
             &transport,
-            "",
             &applications::Catalogue::default(),
             wire("supervisor_status", json!({})),
         )
@@ -202,7 +196,6 @@ mod tests {
         let transport = FakeTransport::default();
         let response = dispatch(
             &transport,
-            "",
             &applications::Catalogue::default(),
             wire("status", json!({})),
         )

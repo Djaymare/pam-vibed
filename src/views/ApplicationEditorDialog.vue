@@ -31,6 +31,8 @@ const {
   testResult,
   testInput,
   testing,
+  guidance,
+  suggestDescription,
   testNeedsInput,
   refreshMediaSessions,
   replaceTarget,
@@ -137,8 +139,14 @@ const closeEditor = () =>
             placeholder="Ex. : Ouvrir l’éditeur de code et travailler sur un projet."
             :aria-describedby="formError ? 'application-form-error' : undefined"
             :disabled="busy"
-          /><small>Cette description aide Needle à choisir la bonne application.</small></label
+          /><small
+            >Décrivez uniquement les actions que PAM peut demander à cette application.</small
+          ></label
         >
+        <button type="button" class="text-button" :disabled="busy" @click="suggestDescription">
+          Utiliser la description suggérée
+        </button>
+        <p class="muted">{{ guidance.limit }} Exemple : « {{ guidance.examples[0] }} ».</p>
         <div v-if="!form.windowsApp" class="executable-field">
           <label for="application-executable">Exécutable Windows</label>
           <div class="path-field">
@@ -161,67 +169,71 @@ const closeEditor = () =>
             </button>
           </div>
         </div>
-        <label
-          >Autres noms <span class="optional">facultatif</span
-          ><input
-            v-field
-            v-model="form.aliases"
-            placeholder="Ex. : VS Code, éditeur de code"
+        <details class="application-options">
+          <summary>Options de l’application : autres noms et commandes du lecteur</summary>
+          <label
+            >Autres noms <span class="optional">facultatif</span
+            ><input
+              v-field
+              v-model="form.aliases"
+              placeholder="Ex. : VS Code, éditeur de code"
+              :aria-describedby="formError ? 'application-form-error' : undefined"
+              :disabled="busy"
+            /><small>Séparez les noms par des virgules.</small></label
+          >
+          <label
+            >Lecteur Windows <span class="optional">facultatif</span
+            ><select v-field v-model="mediaSource" :disabled="busy || deezerPlugin">
+              <option value="">Sans commandes multimédias</option>
+              <option
+                v-if="
+                  mediaSource &&
+                  !mediaSessions.some((session) => session.sourceAppId === mediaSource)
+                "
+                :value="mediaSource"
+              >
+                {{ mediaSource }} · session absente
+              </option>
+              <option
+                v-for="(session, index) in mediaSessions"
+                :key="index"
+                :value="session.sourceAppId"
+              >
+                {{ session.sourceAppId }} · {{ session.title || 'Média sans titre' }}
+              </option></select
+            ><small
+              >Choisissez la session de cette application pour activer lecture, pause et piste
+              suivante. Les capacités sont vérifiées à chaque commande.</small
+            ></label
+          >
+          <button
+            type="button"
+            class="text-button"
             :aria-describedby="formError ? 'application-form-error' : undefined"
             :disabled="busy"
-          /><small>Séparez les noms par des virgules.</small></label
-        >
-        <label
-          >Session multimédia Windows <span class="optional">facultatif</span
-          ><select v-field v-model="mediaSource" :disabled="busy || deezerPlugin">
-            <option value="">Sans commandes multimédias</option>
-            <option
-              v-if="
-                mediaSource && !mediaSessions.some((session) => session.sourceAppId === mediaSource)
-              "
-              :value="mediaSource"
-            >
-              {{ mediaSource }} · session absente
-            </option>
-            <option
-              v-for="(session, index) in mediaSessions"
-              :key="index"
-              :value="session.sourceAppId"
-            >
-              {{ session.sourceAppId }} · {{ session.title || 'Média sans titre' }}
-            </option></select
-          ><small
-            >Choisissez la session de cette application pour activer lecture, pause et piste
-            suivante. Les capacités sont vérifiées à chaque commande.</small
-          ></label
-        >
-        <button
-          type="button"
-          class="text-button"
-          :aria-describedby="formError ? 'application-form-error' : undefined"
-          :disabled="busy"
-          @click="refreshMediaSessions"
-        >
-          Actualiser les sessions
-        </button>
-        <p v-if="mediaError" class="result-error">{{ mediaError }}</p>
-        <label v-if="deezerTarget" class="alias-choice"
-          ><input
-            v-field
-            v-model="deezerPlugin"
-            type="checkbox"
-            :aria-describedby="formError ? 'application-form-error' : undefined"
+            @click="refreshMediaSessions"
+          >
+            Actualiser les sessions
+          </button>
+          <p v-if="mediaError" class="result-error">{{ mediaError }}</p>
+          <label v-if="deezerTarget" class="alias-choice"
+            ><input
+              v-field
+              v-model="deezerPlugin"
+              type="checkbox"
+              :aria-describedby="formError ? 'application-form-error' : undefined"
+              :disabled="busy"
+              @change="deezerPlugin && (mediaSource = 'Deezer.exe')"
+            /><span>Activer les liens Deezer Music : contenus, recherche et Flow</span></label
+          >
+          <LaunchArguments
+            v-if="!form.windowsApp"
+            v-model="form.arguments"
+            :executable="form.executable"
+            :input="testInput"
             :disabled="busy"
-            @change="deezerPlugin && (mediaSource = 'Deezer.exe')"
-          /><span>Activer le plugin Deezer Music : contenus, recherche et Flow</span></label
-        >
-        <LaunchArguments
-          v-if="!form.windowsApp"
-          v-model="form.arguments"
-          :executable="form.executable"
-          :input="testInput"
-          :disabled="busy"
-        />
+          />
+        </details>
         <div class="launch-test">
           <label v-if="testNeedsInput"
             >Texte, fichier ou URL pour le test<input

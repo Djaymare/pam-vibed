@@ -23,7 +23,6 @@ pub fn run_process_test_host() {
             profile: args[3].clone().into(),
         })
         .expect("process-test bridge"),
-        shortcut_error: String::new(),
     };
     let mut serial = 0u64;
     for line in std::io::stdin().lock().lines() {

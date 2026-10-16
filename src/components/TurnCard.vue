@@ -31,7 +31,7 @@ const pending = computed(
       <strong class="turn-badge" :class="turn.status">{{ turnLabel(turn) }}</strong
       ><span class="turn-metrics"
         >{{ (turn.durationMs / 1000).toFixed(2) }} s<span v-if="turn.confidence !== null">
-          · confiance Needle {{ Math.round(turn.confidence * 100) }} %</span
+          · confiance du choix {{ Math.round(turn.confidence * 100) }} %</span
         ></span
       >
     </div>
@@ -117,7 +117,7 @@ const pending = computed(
     </div>
     <details v-if="turn.reasoning">
       <summary>
-        {{ turn.confidence === null ? 'Détail de la demande' : 'Raisonnement Needle' }}
+        {{ turn.confidence === null ? 'Détail de la demande' : 'Explication du choix' }}
       </summary>
       <p>{{ turn.reasoning }}</p>
     </details>

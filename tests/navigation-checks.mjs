@@ -48,6 +48,7 @@ export async function navigationChecks({ cdp, url, evaluate, wait, active, key, 
   await fill('textarea[required]', 'Application jetable');
   await go('textarea[required]'); await delay(1000);
   await fill('.path-field input', 'C:\\fixture.exe');
+  await enter('.application-options > summary');
   await enter('.launch-arguments > button');
   await fill('.code-input', 'broken');
   await enter('.modal-footer button.primary');
@@ -78,7 +79,7 @@ export async function navigationChecks({ cdp, url, evaluate, wait, active, key, 
     await delay(2000);
     const speech = (await readFile(speechFile,'utf8')).trim().split('\n').slice(offset).map(JSON.parse).filter(e=>e.event==='speech').map(e=>e.text).join('\n');
     check('PAM-23 NVDA announces current page', /page (courante|actuelle)|current page/i.test(speech));
-    check('PAM-23 NVDA announces field and associated help', speech.includes('Cette description aide Needle') && speech.includes('quoi sert'));
+    check('PAM-23 NVDA announces field and associated help', speech.includes('Décrivez uniquement les actions') && speech.includes('quoi sert'));
     check('PAM-23 NVDA announces the matching JSON error', speech.includes('tableau JSON de textes'));
   }
   await cdp('Page.navigate', { url: `${url}?proposals` });

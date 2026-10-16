@@ -1,11 +1,11 @@
 //! Tauri windows, tray and shortcut integration.
+use crate::shortcuts::{NativeRegistrar, VoiceShortcut};
 use crate::{applications, bridge, host::AssistantBridge};
 use std::{
     path::{Path, PathBuf},
     sync::Arc,
 };
 use tauri::{Emitter, Manager};
-use tauri_plugin_global_shortcut::{Code, GlobalShortcutExt, Modifiers, Shortcut};
 fn runtime_path(resources: &Path, relative: &str) -> PathBuf {
     let packaged = resources.join(relative);
     #[cfg(debug_assertions)]
@@ -45,12 +45,23 @@ pub(crate) fn action(window: tauri::WebviewWindow, action: String) -> Result<(),
         }
         "listening" | "idle" => {
             if let Some(tray) = window.app_handle().tray_by_id("pam") {
-                tray.set_tooltip(Some(if action == "listening" {
-                    "PAM — microphone actif"
+                let tooltip = if action == "listening" {
+                    "PAM — microphone actif".to_owned()
                 } else {
-                    "PAM — Ctrl + Maj + Espace pour parler"
-                }))
-                .map_err(|e| e.to_string())?;
+                    let state = window
+                        .app_handle()
+                        .state::<std::sync::Mutex<VoiceShortcut>>();
+                    let preference = state.lock().map_err(|_| "Réglage indisponible")?;
+                    if preference.available {
+                        format!(
+                            "PAM — {} pour parler",
+                            crate::shortcuts::choice(&preference.id).unwrap().0
+                        )
+                    } else {
+                        "PAM — utilisez le menu pour parler".into()
+                    }
+                };
+                tray.set_tooltip(Some(tooltip)).map_err(|e| e.to_string())?;
             }
             Ok(())
         }
@@ -64,18 +75,12 @@ pub(crate) fn setup(app: &mut tauri::App) -> Result<(), Box<dyn std::error::Erro
         tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent},
     };
     let show_item = MenuItem::with_id(app, "show", "Afficher PAM", true, None::<&str>)?;
-    let listen_item = MenuItem::with_id(
-        app,
-        "listen",
-        "Parler / arrêter (Ctrl + Maj + Espace)",
-        true,
-        None::<&str>,
-    )?;
+    let listen_item = MenuItem::with_id(app, "listen", "Parler / arrêter", true, None::<&str>)?;
     let quit_item = MenuItem::with_id(app, "quit", "Quitter PAM", true, None::<&str>)?;
     let menu = Menu::with_items(app, &[&show_item, &listen_item, &quit_item])?;
     TrayIconBuilder::with_id("pam")
         .icon(app.default_window_icon().ok_or("Icône absente")?.clone())
-        .tooltip("PAM — Ctrl + Maj + Espace pour parler")
+        .tooltip("PAM — afficher ou parler depuis le menu")
         .menu(&menu)
         .show_menu_on_left_click(false)
         .on_menu_event(|app, event| match event.id.as_ref() {
@@ -97,13 +102,6 @@ pub(crate) fn setup(app: &mut tauri::App) -> Result<(), Box<dyn std::error::Erro
             }
         })
         .build(app)?;
-    let shortcut = Shortcut::new(Some(Modifiers::CONTROL | Modifiers::SHIFT), Code::Space);
-    let shortcut_error = app
-        .global_shortcut()
-        .register(shortcut)
-        .err()
-        .map(|e| format!("Ctrl + Maj + Espace est indisponible : {e}"))
-        .unwrap_or_default();
     let resources = app.path().resource_dir()?;
     let executable = std::env::current_exe()?;
     let node = executable
@@ -134,6 +132,8 @@ pub(crate) fn setup(app: &mut tauri::App) -> Result<(), Box<dyn std::error::Erro
     } else {
         app.path().app_config_dir()?
     };
+    let preference = VoiceShortcut::load(&config, &NativeRegistrar(app.handle()));
+    app.manage(std::sync::Mutex::new(preference));
     app.manage(AssistantBridge {
         transport: bridge::Bridge::new(bridge::Config {
             catalogue: app.state::<Arc<applications::Catalogue>>().inner().clone(),
@@ -142,7 +142,6 @@ pub(crate) fn setup(app: &mut tauri::App) -> Result<(), Box<dyn std::error::Erro
             runtime: runtime_path(&resources, "runtime"),
             profile: config,
         })?,
-        shortcut_error,
     });
     Ok(())
 }

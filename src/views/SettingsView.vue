@@ -4,7 +4,13 @@ import { toRefs, type UnwrapNestedRefs } from 'vue';
 import type { Profile } from '../composables/useProfile';
 import CommandAliases from '../components/CommandAliases.vue';
 import ProfileTransfer from '../components/ProfileTransfer.vue';
-const props = defineProps<{ profile: UnwrapNestedRefs<Profile>; locked: boolean }>();
+import ShortcutSettings from '../components/ShortcutSettings.vue';
+import type { ShortcutPreference } from '../composables/useShortcutPreference';
+const props = defineProps<{
+  profile: UnwrapNestedRefs<Profile>;
+  locked: boolean;
+  shortcut: UnwrapNestedRefs<ShortcutPreference>;
+}>();
 const { locked } = toRefs(props);
 const {
   status,
@@ -58,7 +64,7 @@ const desktop = (action: 'hide' | 'quit') => emit('desktop', action);
     <div class="setting-row">
       <div>
         <label for="settings-language">Langue de transcription</label>
-        <p id="settings-language-help">Whistle comprend sept langues, ou détecte la langue.</p>
+        <p id="settings-language-help">Choisissez la langue parlée ou la détection automatique.</p>
       </div>
       <select
         v-field
@@ -83,8 +89,8 @@ const desktop = (action: 'hide' | 'quit') => emit('desktop', action);
       <div>
         <strong>Exécuter automatiquement</strong>
         <p id="settings-auto-help">
-          Lancer les actions quand Needle atteint le seuil de confiance.<br />Sinon, les actions
-          restent à valider.
+          Les demandes reconnues avec assez de confiance peuvent s’exécuter sans confirmation.<br />Sinon,
+          les actions restent à valider. Un score élevé ne garantit pas un choix correct.
         </p>
       </div>
       <button
@@ -148,15 +154,7 @@ const desktop = (action: 'hide' | 'quit') => emit('desktop', action);
   </section>
   <section class="settings-card">
     <h2>Accès rapide</h2>
-    <div class="setting-row">
-      <div>
-        <strong>Raccourci global</strong>
-        <p>
-          Ctrl + Maj + Espace démarre ou arrête l’enregistrement, depuis vos autres applications.
-        </p>
-      </div>
-      <span class="muted">{{ status?.desktop?.shortcutAvailable ? 'Actif' : 'Indisponible' }}</span>
-    </div>
+    <ShortcutSettings :shortcut="shortcut" :disabled="locked" />
     <div class="setting-row">
       <div>
         <strong>PAM dans la zone de notification</strong>
@@ -203,7 +201,11 @@ const desktop = (action: 'hide' | 'quit') => emit('desktop', action);
     </div>
   </section>
   <section class="settings-card">
-    <h2>Runtime embarqué</h2>
+    <h2>Diagnostics des moteurs et du lecteur</h2>
+    <p>
+      Whistle transcrit la voix, Needle prépare les actions et GSMTC lit les capacités du lecteur
+      Windows. Ces traitements restent locaux.
+    </p>
     <div class="setting-row">
       <div>
         <strong>{{ profile.runtimeLabel }}</strong>

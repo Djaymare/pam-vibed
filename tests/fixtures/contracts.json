@@ -672,5 +672,67 @@
       "phase": "available",
       "activity": "idle"
     }
+  },
+  {
+    "name": "PAM-26 shortcut get",
+    "valid": true,
+    "request": {
+      "version": 1,
+      "id": 926,
+      "requestId": "11111111-1111-4111-8111-111111111111",
+      "method": "voice_shortcut",
+      "payload": {}
+    }
+  },
+  {
+    "name": "PAM-26 shortcut replace",
+    "valid": true,
+    "request": {
+      "version": 1,
+      "id": 926,
+      "requestId": "11111111-1111-4111-8111-111111111111",
+      "method": "voice_shortcut",
+      "payload": {
+        "shortcut": "ctrl_alt_space"
+      }
+    }
+  },
+  {
+    "name": "PAM-26 shortcut arbitrary",
+    "valid": false,
+    "request": {
+      "version": 1,
+      "id": 926,
+      "requestId": "11111111-1111-4111-8111-111111111111",
+      "method": "voice_shortcut",
+      "payload": {
+        "shortcut": "Ctrl+Alt+Delete"
+      }
+    }
+  },
+  {
+    "name": "PAM-26 shortcut unexpected",
+    "valid": false,
+    "request": {
+      "version": 1,
+      "id": 926,
+      "requestId": "11111111-1111-4111-8111-111111111111",
+      "method": "voice_shortcut",
+      "payload": {
+        "shortcut": "ctrl_alt_space",
+        "extra": true
+      }
+    }
+  },
+  {
+    "name": "PAM-26 unavailable shortcut status",
+    "type": "VoiceShortcutStatus",
+    "valid": true,
+    "value": {
+      "id": "ctrl_shift_space",
+      "label": "Ctrl + Maj + Espace",
+      "available": false,
+      "error": "Occupé"
+    }
   }
 ]

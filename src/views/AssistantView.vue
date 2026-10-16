@@ -9,6 +9,8 @@ import type { Proposals } from '../composables/useProposals';
 import MediaControls from '../components/MediaControls.vue';
 import MicrophonePanel from '../components/MicrophonePanel.vue';
 import TurnCard from '../components/TurnCard.vue';
+import FirstUseGuide from '../components/FirstUseGuide.vue';
+import type { Application } from '../types';
 const props = defineProps<{
   profile: UnwrapNestedRefs<Profile>;
   audio: UnwrapNestedRefs<Audio>;
@@ -47,7 +49,7 @@ watch(revealedId, async () => {
   element?.scrollIntoView?.({ block: 'nearest', behavior: 'instant' });
   element?.focus?.({ preventScroll: true });
 });
-const emit = defineEmits<{ applications: [add: boolean] }>();
+const emit = defineEmits<{ applications: [add: boolean]; repair: [app: Application] }>();
 const { canRequest } = toRefs(props);
 </script>
 <template>
@@ -56,6 +58,14 @@ const { canRequest } = toRefs(props);
     <h1 tabindex="-1">Qu’est-ce qu’on fait ?</h1>
     <p>Parlez à PAM. Vos applications prennent le relais.</p>
   </div>
+  <FirstUseGuide
+    v-if="!turns.some((turn) => turn.status === 'executed')"
+    :profile="profile"
+    :requests="requests"
+    :locked="locked"
+    @add="emit('applications', true)"
+    @repair="emit('repair', $event)"
+  />
   <section class="voice-card" aria-label="Enregistrement vocal">
     <div class="card-top">
       <span class="subtle-label"
@@ -93,12 +103,7 @@ const { canRequest } = toRefs(props);
         Ajouter ma première application <Icon name="arrow" :size="15" />
       </button>
     </div>
-    <div class="pipeline">
-      <span><Icon name="mic" :size="15" />Voix</span><Icon name="chevron" :size="12" /><span
-        >Whistle<small>transcrit</small></span
-      ><Icon name="chevron" :size="12" /><span>Needle<small>comprend</small></span
-      ><Icon name="chevron" :size="12" /><span><Icon name="apps" :size="15" />Application</span>
-    </div>
+    <p class="muted">Votre voix et vos demandes sont traitées sur cet ordinateur.</p>
   </section>
   <MicrophonePanel :audio="audio" :disabled="profile.busy || profile.loading" />
   <form class="text-request" @submit.prevent="submitText">

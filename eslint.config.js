@@ -13,6 +13,7 @@ export default [
       'src/deletion.ts',
       'src/launchArguments.ts',
       'src/deezerLink.ts',
+      'src/firstUse.ts',
     ],
   })),
   ...vue.configs['flat/essential'],

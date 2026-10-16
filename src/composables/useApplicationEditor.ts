@@ -6,6 +6,7 @@ import { useAsyncScope } from './useAsyncScope';
 import { describeError } from '../errors';
 import type { Profile } from './useProfile';
 import { parseLaunchArguments } from '../launchArguments';
+import { applicationGuidance } from '../firstUse';
 /** useApplicationEditor owns its state and releases its subscriptions at component unmount. */
 export function useApplicationEditor(profile: Profile, rememberDialogTrigger: () => void) {
   const { request, busy, config, status, updateHealth, beginMutation } = profile;
@@ -58,6 +59,27 @@ export function useApplicationEditor(profile: Profile, rememberDialogTrigger: ()
     pickerOpen.value = false;
   });
   const testNeedsInput = computed(() => !form.windowsApp && form.arguments.includes('{input}'));
+  const guidance = computed(() =>
+    applicationGuidance(
+      {
+        name: form.name,
+        arguments: [],
+        media: mediaSource.value
+          ? { sourceAppId: mediaSource.value, deezer: deezerPlugin.value && deezerTarget.value }
+          : undefined,
+      },
+      mediaSessions.value,
+    ),
+  );
+  function suggestDescription() {
+    form.description = guidance.value.description;
+  }
+  watch(
+    () => guidance.value.description,
+    (next, previous) => {
+      if (form.description === previous) form.description = next;
+    },
+  );
   async function refreshMediaSessions() {
     if (!editorOpen.value || media.pending.value) return;
     const token = media.begin();
@@ -163,6 +185,7 @@ export function useApplicationEditor(profile: Profile, rememberDialogTrigger: ()
       mediaSource.value = 'Deezer.exe';
     }
     // The native bridge supplies the trusted launch target when saving or testing.
+    suggestDescription();
     initial.value = snapshot();
   }
   function closePicker() {
@@ -313,6 +336,8 @@ export function useApplicationEditor(profile: Profile, rememberDialogTrigger: ()
     testResult,
     testInput,
     testing,
+    guidance,
+    suggestDescription,
     testNeedsInput,
     refreshMediaSessions,
     editApplication,

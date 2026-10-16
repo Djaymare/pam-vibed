@@ -84,7 +84,7 @@ const closeCorrection = () =>
             :aria-describedby="correctionError ? 'correction-form-error' : undefined"
             :disabled="busy"
           >
-            <option value="">Laisser Needle choisir</option>
+            <option value="">Choisir automatiquement l’application</option>
             <option v-for="app in activeApps" :key="app.id" :value="app.id">{{ app.name }}</option>
           </select></label
         >

@@ -55,8 +55,8 @@ function isRegistered(app: InstalledApplication) {
         </button>
       </div>
       <p class="discovery-intro">
-        Choisissez une application de bureau ou du Microsoft Store, puis indiquez à PAM à quoi elle
-        sert.
+        Choisissez une application. PAM propose une description ; testez ensuite son ouverture, puis
+        enregistrez-la pour essayer une phrase.
       </p>
       <label class="discovery-search"
         >Rechercher une application<input

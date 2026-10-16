@@ -14,6 +14,8 @@ test('Vue rejects invalid methods and payloads without invoking native services'
   await assert.rejects(ipc.request('unknown',{}));
   await assert.rejects(ipc.request('confirm',{id:42}));
   await assert.rejects(ipc.desktopAction('unknown'));
+  await assert.rejects(ipc.request('voice_shortcut',{shortcut:'Alt+F4'}));
+  await assert.rejects(ipc.request('voice_shortcut',{shortcut:'ctrl_alt_space',unexpected:true}));
   assert.equal(effects,0);
 });
 test('Vue ignores wrong version, mismatched request and stale response before returning data',async()=>{

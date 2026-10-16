@@ -16,6 +16,7 @@ mod launch;
 pub mod media;
 #[cfg(feature = "process-tests")]
 mod process_tests;
+mod shortcuts;
 mod supervision;
 #[cfg(windows)]
 mod windows_resources;
@@ -31,6 +32,21 @@ async fn assistant_request(
         return Err(diagnostics::Error::new("invalid_request", "", "validation"));
     }
     let decoded = contracts::decode(request.clone())?;
+    if decoded.call.method().name() == "voice_shortcut" {
+        let app = window.app_handle();
+        let state = app.state::<std::sync::Mutex<shortcuts::VoiceShortcut>>();
+        let mut preference = state.lock().map_err(|_| {
+            diagnostics::Error::new("transport_unavailable", &decoded.request_id, "host")
+        })?;
+        let result = if let Some(id) = decoded.call.payload()["shortcut"].as_str() {
+            preference.change(id, &shortcuts::NativeRegistrar(app))
+        } else {
+            preference.snapshot()
+        };
+        return Ok(
+            json!({"version":contracts::VERSION,"id":decoded.id,"requestId":decoded.request_id,"method":"voice_shortcut","ok":true,"result":result}),
+        );
+    }
     if decoded.call.method().name() == "desktop_action" {
         let result = desktop::action(
             window,
@@ -50,11 +66,18 @@ async fn assistant_request(
     }
     let app = window.app_handle().clone();
     tauri::async_runtime::spawn_blocking(move || {
-        host::handle_assistant_request(
+        let mut response = host::handle_assistant_request(
             &app.state::<AssistantBridge>(),
             &app.state::<Arc<applications::Catalogue>>(),
             request,
-        )
+        )?;
+        if response["method"] == "status" && response["ok"] == true {
+            let state = app.state::<std::sync::Mutex<shortcuts::VoiceShortcut>>();
+            let preference = state.lock().map_err(|_| diagnostics::Error::new("transport_unavailable", "", "host"))?;
+            let shortcut = preference.snapshot();
+            response["result"]["desktop"] = json!({"shortcut":shortcut["label"],"shortcutAvailable":shortcut["available"],"shortcutError":shortcut["error"],"closeToTray":true});
+        }
+        Ok(response)
     })
     .await
     .map_err(|_| diagnostics::Error::new("transport_unavailable", "", "transport"))?

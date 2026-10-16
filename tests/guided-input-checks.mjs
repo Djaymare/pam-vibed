@@ -7,6 +7,7 @@ export async function guidedInputChecks({ cdp, url, evaluate, wait, key, enter, 
   await fill('input[data-dialog-initial-focus]', 'Arguments fixture');
   await fill('textarea[required]', 'Fixture sans effet');
   await fill('.path-field input','C:\\Programme avec espaces\\fixture.exe');
+  await enter('.application-options > summary');
   const args=['--file','C:\\Mes fichiers\\un "titre".txt','','  espaces  ','{input}','--name={input}'];
   await enter('.launch-arguments > button');
   const json=JSON.stringify(args,null,2);await fill('.code-input',json);

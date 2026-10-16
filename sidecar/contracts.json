@@ -686,6 +686,22 @@
         "expectedFingerprint?": "string"
       },
       "extra": false
+    },
+    "VoiceShortcutId": {
+      "enum": [
+        "ctrl_shift_space",
+        "ctrl_alt_space",
+        "ctrl_shift_f9"
+      ]
+    },
+    "VoiceShortcutStatus": {
+      "properties": {
+        "id": "VoiceShortcutId",
+        "label": "string",
+        "available": "boolean",
+        "error": "string"
+      },
+      "extra": false
     }
   },
   "methods": {
@@ -806,6 +822,15 @@
         "array": "InstalledApplication",
         "max": 10000
       }
+    ],
+    "voice_shortcut": [
+      {
+        "properties": {
+          "shortcut?": "VoiceShortcutId"
+        },
+        "extra": false
+      },
+      "VoiceShortcutStatus"
     ]
   },
   "hostMethods": {
@@ -816,6 +841,7 @@
     "desktop_action",
     "discover_applications",
     "export_diagnostics",
-    "diagnostic_event"
+    "diagnostic_event",
+    "voice_shortcut"
   ]
 }

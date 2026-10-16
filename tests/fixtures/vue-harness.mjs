@@ -30,6 +30,7 @@ export function harness(t, options={}) {
     if(method==='status')return status();
     if(method==='media_sessions'||method==='discover_applications')return [];
     if(method==='desktop_action')return undefined;
+    if(method==='voice_shortcut')return {id:'ctrl_shift_space',label:'Ctrl + Maj + Espace',available:true,error:''};
     throw Error('Unexpected method '+method);
   };
   const require=createRequire(import.meta.url), cache=new Map();

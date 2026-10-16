@@ -22,6 +22,8 @@ import DiscardDraftDialog from './components/DiscardDraftDialog.vue';
 import DeleteConfirmationDialog from './components/DeleteConfirmationDialog.vue';
 import StatusAnnouncements from './components/StatusAnnouncements.vue';
 import { useAssistantStatus } from './composables/useAssistantStatus';
+import { useShortcutPreference } from './composables/useShortcutPreference';
+import ShortcutSettings from './components/ShortcutSettings.vue';
 const page = ref<'assistant' | 'applications' | 'settings'>('assistant');
 const mainContent = ref<HTMLElement>();
 async function focusContent() {
@@ -132,8 +134,8 @@ async function performDesktop(action: 'hide' | 'quit') {
 }
 const ui = reactive({ profile, proposals, requests, audio, applicationEditor });
 function showApplications(add: boolean) {
-  navigate('applications');
   if (add) void applicationEditor.addApplication();
+  else navigate('applications');
 }
 const shortcuts = useVoiceShortcuts(
   () => {
@@ -147,6 +149,29 @@ const shortcuts = useVoiceShortcuts(
   },
 );
 const shortcutError = shortcuts.error;
+const shortcut = reactive(useShortcutPreference(request));
+let shortcutTrigger: HTMLElement | null = null;
+watch(
+  () => shortcut.pending,
+  async (pending) => {
+    if (pending) {
+      shortcutTrigger =
+        document.activeElement instanceof HTMLElement &&
+        document.activeElement.closest('.shortcut-settings')
+          ? document.activeElement
+          : null;
+      return;
+    }
+    const trigger = shortcutTrigger;
+    shortcutTrigger = null;
+    await nextTick();
+    if (trigger && document.activeElement === document.body) {
+      if (trigger.isConnected) trigger.focus();
+      else await focusContent();
+    }
+  },
+  { flush: 'sync' },
+);
 </script>
 <template>
   <div class="app-shell">
@@ -198,7 +223,7 @@ const shortcutError = shortcuts.error;
       </div>
       <div class="sidebar-footer">
         <span class="small-logo">P</span>
-        <div>Prototype personnel<small>Whistle + Needle</small></div>
+        <div>Prototype personnel<small>Traitement local</small></div>
         <span class="version">v0.1</span>
       </div>
     </aside>
@@ -216,7 +241,11 @@ const shortcutError = shortcuts.error;
         >
       </header>
       <div class="desktop-toolbar">
-        <span><kbd>Ctrl</kbd> + <kbd>Maj</kbd> + <kbd>Espace</kbd> pour parler</span
+        <span aria-live="polite">{{
+          shortcut.status?.available
+            ? `${shortcut.status.label} pour parler`
+            : 'Parlez avec le bouton du microphone'
+        }}</span
         ><button class="text-button" @click="desktop('hide')">
           Réduire dans la zone de notification
         </button>
@@ -246,10 +275,11 @@ const shortcutError = shortcuts.error;
             Réessayer les raccourcis
           </button>
         </div>
-        <div v-if="status?.desktop?.shortcutError" class="notice error" role="alert">
-          {{ status.desktop.shortcutError }} Vous pouvez utiliser le microphone ou le menu de PAM
-          dans la zone de notification.
-        </div>
+        <ShortcutSettings
+          v-if="page !== 'settings' && (shortcut.error || shortcut.status?.error)"
+          :shortcut="shortcut"
+          :disabled="locked"
+        />
         <div v-if="error" class="notice error">
           <Icon name="info" /><span>{{ error }}</span
           ><button v-if="!status?.ready" :disabled="locked" @click="refresh">Réessayer</button
@@ -268,6 +298,7 @@ const shortcutError = shortcuts.error;
           :can-request="canRequest"
           :assistant-status="assistantStatus"
           @applications="showApplications"
+          @repair="ui.applicationEditor.editApplication($event)"
         />
         <ApplicationsView
           v-else-if="page === 'applications'"
@@ -279,6 +310,7 @@ const shortcutError = shortcuts.error;
           <SettingsView
             :profile="ui.profile"
             :locked="locked"
+            :shortcut="shortcut"
             @desktop="desktop"
             @dirty="aliasDirty = $event"
           />
