@@ -17,7 +17,7 @@ const { editApplication, addApplication } = toRefs(props.applicationEditor);
   <div class="page-intro inline">
     <div>
       <div class="eyebrow">VOTRE BOÎTE À OUTILS</div>
-      <h1>Applications</h1>
+      <h1 tabindex="-1">Applications</h1>
       <p>Choisissez les applications que PAM peut lancer.</p>
     </div>
     <button class="primary" :disabled="locked" @click="addApplication()">
@@ -46,7 +46,7 @@ const { editApplication, addApplication } = toRefs(props.applicationEditor);
         <template v-else>{{ app.name.slice(0, 1).toUpperCase() }}</template></span
       >
       <div class="application-body">
-        <h3>{{ app.name }}</h3>
+        <h2>{{ app.name }}</h2>
         <p v-if="unavailable(app)" class="result-error" role="status">
           Indisponible · Réparez la cible ou choisissez une autre application.
         </p>

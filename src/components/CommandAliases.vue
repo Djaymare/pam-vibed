@@ -1,6 +1,7 @@
 <script setup lang="ts">
+import { vField } from '../composables/fieldAccessibility';
 import { describeError } from '../errors';
-import { computed, reactive, ref, watch } from 'vue';
+import { computed, reactive, ref, watch, nextTick } from 'vue';
 import { useAsyncScope } from '../composables/useAsyncScope';
 import Icon from './Icon.vue';
 import DiscardDraftDialog from './DiscardDraftDialog.vue';
@@ -28,6 +29,12 @@ const form = reactive({
 const initial = ref('');
 const dirty = computed(() => editing.value && JSON.stringify(form) !== initial.value);
 const emit = defineEmits<{ dirty: [value: boolean] }>();
+let returnFocus: HTMLElement | null = null;
+watch(editing, async (open) => {
+  await nextTick();
+  if (open) document.querySelector?.<HTMLElement>('.command-alias-editor input')?.focus();
+  else if (returnFocus?.isConnected) returnFocus.focus();
+});
 watch(dirty, (value) => emit('dirty', value));
 const guard = useDraftGuard();
 const active = computed(() => props.applications.filter((app) => app.enabled));
@@ -39,6 +46,7 @@ watch(actions, (values) => {
 });
 function edit(alias?: CommandAlias) {
   if (props.locked || task.pending.value) return;
+  returnFocus = document.activeElement instanceof HTMLElement ? document.activeElement : null;
   guard.run(dirty.value, () => startEdit(alias));
 }
 function startEdit(alias?: CommandAlias) {
@@ -168,6 +176,7 @@ function appName(alias: CommandAlias) {
     >
       <label class="alias-phrase"
         >Formulation à reconnaître<input
+          v-field
           v-model="form.phrase"
           required
           maxlength="200"
@@ -180,6 +189,7 @@ function appName(alias: CommandAlias) {
       >
       <label
         >Application<select
+          v-field
           v-model="form.applicationId"
           required
           :aria-describedby="error ? 'command-alias-error' : undefined"
@@ -193,6 +203,7 @@ function appName(alias: CommandAlias) {
       >
       <label
         >Action<select
+          v-field
           v-model="form.action"
           required
           :aria-describedby="error ? 'command-alias-error' : undefined"

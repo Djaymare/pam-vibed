@@ -174,7 +174,7 @@ async function mountApp(t, { recoveryFailure = false, healthy = false, proposalS
   return { root, calls, button, click, text: () => textOf(root), all: () => all(root), settle,
     resources, timerCallbacks, activeTimers, unmount, permit, register,
     async send(text) {
-      all(root).find(n => n.props['aria-label'] === 'Demande écrite').props['onUpdate:modelValue'](text);
+      all(root).find(n => n.type === 'input' && n.props.id === 'written-request').props['onUpdate:modelValue'](text);
       await settle(); await all(root).find(n => n.type === 'form' && n.props.class === 'text-request').props.onSubmit({ preventDefault() {} }); await settle();
     },
     async tick(ms) { time += ms; timerCallbacks.get(1000)?.(); await settle(); },

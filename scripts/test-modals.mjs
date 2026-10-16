@@ -5,6 +5,7 @@ import { tmpdir } from 'node:os';
 import { basename, dirname, join, resolve } from 'node:path';
 import { pathToFileURL, fileURLToPath } from 'node:url';
 import { createServer as createNetServer } from 'node:net';
+import { navigationChecks } from '../tests/navigation-checks.mjs';
 
 // Real Windows WebView2 + Vue components, with only native services simulated.
 // Build src-tauri/examples/modal-test-host.rs first and set PAM_MODAL_TEST_HOST.
@@ -31,7 +32,7 @@ const results = [];
 try {
   await server.listen();
   const url = `http://127.0.0.1:${server.httpServer.address().port}/tests/fixtures/modal-page.html`;
-  child = spawn(host, [], { windowsHide: true, stdio: 'pipe', env: { ...process.env, PAM_MODAL_TEST_URL: `${url}?component`, PAM_MODAL_TEST_PROFILE: profile, WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS: `--remote-debugging-port=${debugPort}` } });
+  child = spawn(host, [], { windowsHide: true, stdio: 'pipe', env: { ...process.env, PAM_MODAL_TEST_URL: `${url}?component`, PAM_MODAL_TEST_PROFILE: profile, WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS: `--remote-debugging-port=${debugPort}${process.env.PAM_NVDA_SPEECH_LOG ? ' --force-renderer-accessibility' : ''}` } });
   child.on('error', error => console.error(error));
   child.stderr.on('data', data => process.stderr.write(data));
   let target;
@@ -50,6 +51,7 @@ try {
   const cdp = (method, params = {}) => new Promise((done, reject) => { const id = ++seq; const timer = setTimeout(() => { pending.delete(id); reject(Error(`Timeout: ${method}`)); }, 10000); pending.set(id, { resolve: done, reject, timer }); socket.send(JSON.stringify({ id, method, params })); });
   const evaluate = async expression => { const r = await cdp('Runtime.evaluate', { expression, returnByValue: true, awaitPromise: true }); if (r.exceptionDetails) throw Error(JSON.stringify(r.exceptionDetails)); return r.result.value; };
   await cdp('Runtime.enable');
+  await cdp('Accessibility.enable');
   const wait = async expression => { for (let i = 0; i < 100; i++) { if (await evaluate(expression)) return; await delay(30); } throw Error(`Not ready: ${expression}; DOM=${await evaluate('document.body.innerHTML')}`); };
   const active = selector => evaluate(`document.activeElement?.matches(${JSON.stringify(selector)})`);
   const key = async (name, modifiers = 0) => {
@@ -69,7 +71,7 @@ try {
     await evaluate('document.querySelector("[data-dialog-fallback], #fallback").focus()');
     check('Background focus is inert', await evaluate('document.querySelector("dialog[open]").contains(document.activeElement)'));
   };
-  if (!process.argv.includes('--status-only') && !process.argv.includes('--proposals-only')) {
+  if (!process.argv.includes('--navigation-only') && !process.argv.includes('--status-only') && !process.argv.includes('--proposals-only')) {
   await wait('!!document.querySelector("#trigger")');
   await enter('#trigger'); await wait('!!document.querySelector("dialog[open]")');
   check('Component initial input', await active('#initial'));
@@ -181,7 +183,7 @@ try {
   check('PAM-19 navigation announces retained preferences and formulation',await evaluate('document.querySelector(".notice").textContent.includes("brouillon")'));
   await enter('nav button:nth-of-type(3)');
   check('PAM-19 long formulation and preferences survive error and round-trip navigation',await evaluate(`document.querySelector('.alias-phrase input').value === ${JSON.stringify(longPhrase)} && document.querySelector('[aria-label="Exécuter automatiquement"]').getAttribute('aria-checked') === 'true'`));
-  check('PAM-19 errors are linked to editable fields',await evaluate(`document.querySelector('.alias-phrase input').getAttribute('aria-describedby') === 'command-alias-error' && document.querySelector('[aria-label="Exécuter automatiquement"]').getAttribute('aria-describedby') === 'settings-error'`));
+  check('PAM-19 errors and helps are linked to editable fields',await evaluate(`document.querySelector('.alias-phrase input').getAttribute('aria-describedby').split(' ').includes('command-alias-error') && document.querySelector('.alias-phrase input').getAttribute('aria-describedby').includes(document.querySelector('.alias-phrase small').id) && document.querySelector('[aria-label="Exécuter automatiquement"]').getAttribute('aria-describedby').split(' ').includes('settings-error') && document.querySelector('[aria-label="Exécuter automatiquement"]').getAttribute('aria-describedby').includes('settings-auto-help')`));
   await enter('.command-alias-editor button.secondary');await wait('!!document.querySelector("#discard-draft-title")');await key('Escape');
   check('PAM-19 cancelling formulation close retains its exact draft',await evaluate(`document.querySelector('.alias-phrase input').value === ${JSON.stringify(longPhrase)}`));
   await evaluate('[...document.querySelectorAll("button")].find(b=>b.textContent.trim()==="Quitter PAM").focus()');await key('Enter');await wait('!!document.querySelector("#discard-draft-title")');
@@ -226,7 +228,7 @@ try {
   check('PAM-20 individual confirmed deletion preserves app identity and leaves no duplicate/orphan',await evaluate('window.pamDeletionFixture.config.commandAliases.length===0 && window.pamDeletionFixture.config.applications.length===1 && window.pamDeletionFixture.config.applications[0].id==="22222222-2222-4222-8222-222222222222"'));
   await enter('nav button:nth-of-type(2)');await enter('[aria-label="Supprimer Autre"]');await wait('!!document.querySelector("#delete-title")');check('PAM-20 zero associated formulations explicitly shown',await evaluate('document.querySelector("dialog").textContent.includes("0 formulation(s)") && document.querySelectorAll(".deletion-aliases li").length===0'));await key('Escape');
   }
-  if (!process.argv.includes('--proposals-only')) {
+  if (!process.argv.includes('--navigation-only') && !process.argv.includes('--proposals-only')) {
   // Leave time to foreground this disposable host for a real screen reader.
   if (process.env.PAM_NVDA_SPEECH_LOG && process.argv.includes('--status-only')) await delay(15000);
   const nvdaOffset = process.env.PAM_NVDA_SPEECH_LOG ? (await readFile(process.env.PAM_NVDA_SPEECH_LOG, 'utf8')).trim().split('\n').length : 0;
@@ -273,7 +275,7 @@ try {
     check('PAM-21 NVDA receives runtime recovery and processing stages',speech.some(t=>t.includes('Moteurs en reprise')) && speech.some(t=>t.includes('Préparation de la demande')) && speech.some(t=>t.includes('Exécution de la demande')));
   }
   }
-  if (!process.argv.includes('--status-only')) {
+  if (!process.argv.includes('--navigation-only') && !process.argv.includes('--status-only')) {
     await cdp('Page.navigate', {url:`${url}?proposals`});
     await wait('!!window.pamProposalFixture && !!document.querySelector(".deezer-controls") && [...document.querySelectorAll(".deezer-controls button")].some(b=>b.textContent.trim()==="Démarrer Flow" && !b.disabled)');
     await evaluate('window.pamProposalFixture.flow=()=>[...document.querySelectorAll(".deezer-controls button")].find(b=>b.textContent.trim()==="Démarrer Flow")');
@@ -295,6 +297,8 @@ try {
       if(mode==='unknown')check('PAM-22 unknown: issued command remains uncertain',await evaluate('document.querySelector(".media-controls .plan-results").textContent.includes("Commande émise · issue inconnue")'));
     }
   }
+  if (!process.argv.includes('--status-only') && !process.argv.includes('--proposals-only'))
+    await navigationChecks({ cdp, url, evaluate, wait, active, key, go, enter, fill, check, delay });
   console.log(JSON.stringify({ runtime: await evaluate('navigator.userAgent'), checks: results.length, results }, null, 2));
 } finally {
   socket?.close();

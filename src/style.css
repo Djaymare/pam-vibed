@@ -126,3 +126,13 @@ dialog.modal{max-width:calc(100vw - 32px);max-height:calc(100vh - 32px)}
 .action-summary dd { margin: 0; overflow-wrap: anywhere; }
 .plan-steps, .plan-results { padding-left: 24px; }
 .turn-card:focus { outline: 3px solid var(--accent); outline-offset: 4px; }
+/* Visible on keyboard focus, before the sidebar in reading and tab order. */
+.skip-link { position: fixed; left: 16px; top: -100px; z-index: 100; padding: 12px; background: white; color: #173b7a; border: 2px solid currentColor; }
+.skip-link:focus { top: 12px; }
+.field-error:not([hidden]) { display: block; color: var(--danger, #a21d2e); font-size: 12px; line-height: 1.6; }
+.executable-field { margin: 16px 0; }
+.executable-field > label { display: block; margin-bottom: 7px; }
+.page-intro h1:focus-visible { outline: 2px solid currentColor; outline-offset: 5px; }
+.connected .section-heading h2, .history .section-heading h2 { display: flex; align-items: center; gap: 8px; font-size: 14px; letter-spacing: normal; }
+.connected .section-heading h2 > span { font-size: 12px; font-weight: 400; }
+.application-body h2 { font-size: 15px; margin-bottom: 7px; letter-spacing: normal; }

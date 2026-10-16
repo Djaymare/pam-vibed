@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { vField, argumentsError } from '../composables/fieldAccessibility';
 import { toRefs, type UnwrapNestedRefs } from 'vue';
 import Icon from '../components/Icon.vue';
 import type { Profile } from '../composables/useProfile';
@@ -116,6 +117,7 @@ const closeEditor = () =>
         </div>
         <label
           >Nom de l’application<input
+            v-field
             data-dialog-initial-focus
             v-model="form.name"
             required
@@ -126,6 +128,7 @@ const closeEditor = () =>
         /></label>
         <label
           >À quoi sert-elle ?<textarea
+            v-field
             v-model="form.description"
             required
             maxlength="240"
@@ -135,10 +138,12 @@ const closeEditor = () =>
             :disabled="busy"
           /><small>Cette description aide Needle à choisir la bonne application.</small></label
         >
-        <label v-if="!form.windowsApp"
-          >Exécutable Windows
+        <div v-if="!form.windowsApp" class="executable-field">
+          <label for="application-executable">Exécutable Windows</label>
           <div class="path-field">
             <input
+              v-field
+              id="application-executable"
               v-model="form.executable"
               required
               placeholder="C:\…\application.exe"
@@ -153,11 +158,12 @@ const closeEditor = () =>
             >
               <Icon name="folder" :size="18" />Parcourir
             </button>
-          </div></label
-        >
+          </div>
+        </div>
         <label
           >Autres noms <span class="optional">facultatif</span
           ><input
+            v-field
             v-model="form.aliases"
             placeholder="Ex. : VS Code, éditeur de code"
             :aria-describedby="formError ? 'application-form-error' : undefined"
@@ -166,7 +172,7 @@ const closeEditor = () =>
         >
         <label
           >Session multimédia Windows <span class="optional">facultatif</span
-          ><select v-model="mediaSource" :disabled="busy || deezerPlugin">
+          ><select v-field v-model="mediaSource" :disabled="busy || deezerPlugin">
             <option value="">Sans commandes multimédias</option>
             <option
               v-if="
@@ -200,6 +206,7 @@ const closeEditor = () =>
         <p v-if="mediaError" class="result-error">{{ mediaError }}</p>
         <label v-if="deezerTarget" class="alias-choice"
           ><input
+            v-field
             v-model="deezerPlugin"
             type="checkbox"
             :aria-describedby="formError ? 'application-form-error' : undefined"
@@ -211,14 +218,15 @@ const closeEditor = () =>
           <summary>Arguments de lancement</summary>
           <label
             >Tableau JSON<textarea
+              v-field="() => argumentsError(form.arguments)"
               v-model="form.arguments"
               class="code-input"
               rows="3"
-              :aria-describedby="formError ? 'application-form-error' : undefined"
+              :aria-describedby="`application-arguments-help ${formError ? 'application-form-error' : ''}`"
               :disabled="busy"
             />
           </label>
-          <p>
+          <p id="application-arguments-help">
             Utilisez <code>[]</code> pour un lancement simple, ou <code>["{input}"]</code> pour
             transmettre le texte, le fichier ou l’URL demandé. Chaque élément reste un argument
             distinct.
@@ -227,6 +235,7 @@ const closeEditor = () =>
         <div class="launch-test">
           <label v-if="testNeedsInput"
             >Texte, fichier ou URL pour le test<input
+              v-field
               v-model="testInput"
               maxlength="2048"
               :aria-describedby="formError ? 'application-form-error' : undefined"

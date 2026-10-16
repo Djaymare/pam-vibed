@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { vField } from '../composables/fieldAccessibility';
 import { toRefs, type UnwrapNestedRefs } from 'vue';
 import Icon from '../components/Icon.vue';
 import type { Profile } from '../composables/useProfile';
@@ -66,6 +67,7 @@ const closeCorrection = () =>
       >
         <label
           >Ce que vous vouliez dire<textarea
+            v-field
             data-dialog-initial-focus
             v-model="correctionForm.text"
             required
@@ -77,6 +79,7 @@ const closeCorrection = () =>
         </label>
         <label
           >Je voulais cette application<select
+            v-field
             v-model="correctionForm.applicationId"
             :aria-describedby="correctionError ? 'correction-form-error' : undefined"
             :disabled="busy"
@@ -87,6 +90,7 @@ const closeCorrection = () =>
         >
         <label v-if="correctionApp"
           >Je voulais cette action<select
+            v-field
             v-model="correctionForm.action"
             :aria-describedby="correctionError ? 'correction-form-error' : undefined"
             :disabled="busy"
@@ -108,6 +112,7 @@ const closeCorrection = () =>
         />
         <label v-if="correctionInput"
           >Texte, fichier ou URL à transmettre<input
+            v-field
             v-model="correctionForm.input"
             maxlength="2048"
             :aria-describedby="correctionError ? 'correction-form-error' : undefined"
@@ -119,6 +124,7 @@ const closeCorrection = () =>
         >
           <label class="alias-choice"
             ><input
+              v-field
               v-model="correctionForm.saveAlias"
               type="checkbox"
               :aria-describedby="correctionError ? 'correction-form-error' : undefined"
@@ -127,6 +133,7 @@ const closeCorrection = () =>
           >
           <label v-if="correctionForm.saveAlias"
             >Autre nom à retenir<input
+              v-field
               v-model="correctionForm.alias"
               required
               maxlength="40"
@@ -138,6 +145,7 @@ const closeCorrection = () =>
         <template v-if="correctionApp && correctionForm.action">
           <label class="alias-choice"
             ><input
+              v-field
               v-model="correctionForm.saveCommandAlias"
               type="checkbox"
               :aria-describedby="correctionError ? 'correction-form-error' : undefined"
@@ -146,6 +154,7 @@ const closeCorrection = () =>
           >
           <label v-if="correctionForm.saveCommandAlias"
             >Formulation à reconnaître<input
+              v-field
               v-model="correctionForm.commandPhrase"
               required
               maxlength="200"

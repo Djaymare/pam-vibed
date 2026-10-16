@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { vField } from '../composables/fieldAccessibility';
 import { ref, watch } from 'vue';
 import type { ImportPreview } from '../types';
 import { describeError } from '../errors';
@@ -81,7 +82,7 @@ function loadFile(event: Event) {
 <template>
   <section class="settings-card profile-transfer" aria-label="Sauvegarde et transfert du profil">
     <h2>Sauvegarde et transfert du profil</h2>
-    <p>
+    <p id="profile-transfer-help">
       Les applications, préférences et formulations restent sur cet ordinateur. Un export contient
       vos chemins personnels.
     </p>
@@ -91,6 +92,7 @@ function loadFile(event: Event) {
     <div v-if="exported">
       <p>Copiez ce JSON dans un fichier local pour conserver votre export.</p>
       <textarea
+        v-field
         :value="exported"
         readonly
         rows="8"
@@ -101,7 +103,9 @@ function loadFile(event: Event) {
     <label
       >Importer un fichier JSON
       <input
+        v-field
         type="file"
+        aria-describedby="profile-transfer-help"
         accept=".json,application/json"
         :disabled="locked || busy"
         @change="loadFile"
@@ -109,7 +113,9 @@ function loadFile(event: Event) {
     <label
       >Ou collez un export
       <textarea
+        v-field
         v-model="content"
+        aria-describedby="profile-transfer-help"
         :disabled="locked || busy"
         rows="5"
         aria-label="Profil à importer"

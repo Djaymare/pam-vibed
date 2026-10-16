@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { vField } from '../composables/fieldAccessibility';
 import { computed, nextTick, ref, watch, toRefs, type UnwrapNestedRefs } from 'vue';
 import Icon from '../components/Icon.vue';
 import type { Profile } from '../composables/useProfile';
@@ -51,7 +52,7 @@ const { canRequest } = toRefs(props);
 <template>
   <div class="page-intro">
     <div class="eyebrow">UN MOT, UNE ACTION</div>
-    <h1>Qu’est-ce qu’on fait ?</h1>
+    <h1 tabindex="-1">Qu’est-ce qu’on fait ?</h1>
     <p>Parlez à PAM. Vos applications prennent le relais.</p>
   </div>
   <section class="voice-card" aria-label="Enregistrement vocal">
@@ -99,11 +100,14 @@ const { canRequest } = toRefs(props);
     </div>
   </section>
   <form class="text-request" @submit.prevent="submitText">
+    <label class="sr-only" for="written-request">Demande écrite</label>
     <input
+      v-field
+      id="written-request"
+      aria-describedby="written-request-help"
       v-model="text"
       :readonly="locked"
       maxlength="2000"
-      aria-label="Demande écrite"
       placeholder="Vous préférez écrire ? Entrez votre demande…"
     /><button
       class="send-button"
@@ -114,6 +118,9 @@ const { canRequest } = toRefs(props);
       <Icon name="arrow" :size="20" />
     </button>
   </form>
+  <p id="written-request-help" class="sr-only">
+    Entrez votre demande, puis utilisez Envoyer la demande pour préparer une action à vérifier.
+  </p>
   <p class="muted">
     Les propositions sont valables dix minutes et sont retirées au redémarrage de PAM. Reformulez
     pour préparer une nouvelle action.
@@ -136,9 +143,9 @@ const { canRequest } = toRefs(props);
   </MediaControls>
   <section class="connected">
     <div class="section-heading">
-      <h3>
+      <h2>
         Vos applications<span>{{ activeApps.length }}</span>
-      </h3>
+      </h2>
       <button class="text-button" :disabled="locked" @click="emit('applications', false)">
         Gérer <Icon name="arrow" :size="14" />
       </button>

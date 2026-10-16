@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { vField } from '../composables/fieldAccessibility';
 import { describeError } from '../errors';
 import { computed, onMounted, ref, watch } from 'vue';
 import { request } from '../ipc';
@@ -91,13 +92,13 @@ watch(
     aria-label="Lecteurs multimédias"
   >
     <div class="section-heading">
-      <h3>Lecteurs multimédias</h3>
+      <h2>Lecteurs multimédias</h2>
       <button class="text-button" :disabled="locked || loading" @click="refresh">
         {{ loading ? 'Lecture des sessions…' : 'Actualiser les sessions' }}
       </button>
     </div>
     <label
-      >Lecteur<select v-model="selected" :disabled="locked">
+      >Lecteur<select v-field v-model="selected" :disabled="locked">
         <option v-for="player in mediaApps" :key="player.id" :value="player.id">
           {{ player.name }}
         </option>
@@ -140,6 +141,7 @@ watch(
         <form @submit.prevent="prepare('deezer_search', { query }, 'Rechercher ' + query)">
           <label
             >Rechercher une chanson ou un artiste<input
+              v-field
               v-model="query"
               :maxlength="searchFields.query.maxLength"
               placeholder="Titre et artiste"
@@ -154,13 +156,14 @@ watch(
           "
         >
           <label
-            >Contenu<select v-model="kind" :disabled="locked">
+            >Contenu<select v-field v-model="kind" :disabled="locked">
               <option v-for="(label, value) in deezerContent" :key="value" :value="value">
                 {{ label }}
               </option>
             </select></label
           ><label
             >Identifiant Deezer<input
+              v-field
               v-model="contentId"
               inputmode="numeric"
               :pattern="contentFields.id.pattern"
@@ -204,7 +207,7 @@ watch(
             "
           >
             <label
-              >Page<select v-model="page" :disabled="locked">
+              >Page<select v-field v-model="page" :disabled="locked">
                 <option v-for="(label, key) in pages" :key="key" :value="key">{{ label }}</option>
               </select></label
             ><button class="secondary small" :disabled="locked">Afficher la page</button>
@@ -220,12 +223,13 @@ watch(
           >
             <label
               >Identifiant de sélection smarttracklist<input
+                v-field
                 v-model="selectionId"
                 :maxlength="selectionFields.id.maxLength"
                 :pattern="selectionFields.id.pattern"
                 :disabled="locked" /></label
             ><label
-              >Action<select v-model="selectionMode" :disabled="locked">
+              >Action<select v-field v-model="selectionMode" :disabled="locked">
                 <option v-for="(label, value) in deezerModes" :key="value" :value="value">
                   {{ label }}
                 </option>

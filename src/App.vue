@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, reactive, ref } from 'vue';
+import { computed, reactive, ref, nextTick, watch } from 'vue';
 import { isTauri } from '@tauri-apps/api/core';
 import { request as ipcRequest, desktopAction, type RequestFunction } from './ipc';
 import { describeError } from './errors';
@@ -23,6 +23,14 @@ import DeleteConfirmationDialog from './components/DeleteConfirmationDialog.vue'
 import StatusAnnouncements from './components/StatusAnnouncements.vue';
 import { useAssistantStatus } from './composables/useAssistantStatus';
 const page = ref<'assistant' | 'applications' | 'settings'>('assistant');
+const mainContent = ref<HTMLElement>();
+async function focusContent() {
+  await nextTick();
+  if (!document.querySelector || document.querySelector('dialog[open]')) return;
+  const heading = mainContent.value?.querySelector<HTMLElement>('.page-intro h1');
+  (heading || mainContent.value)?.focus();
+}
+watch(page, focusContent, { flush: 'post' });
 const dialogReturnFocus = ref<HTMLElement | null>(null);
 function rememberDialogTrigger() {
   dialogReturnFocus.value =
@@ -136,6 +144,9 @@ const shortcutError = shortcuts.error;
 </script>
 <template>
   <div class="app-shell">
+    <a class="skip-link" href="#main-content" @click.prevent="focusContent"
+      >Aller au contenu principal</a
+    >
     <aside class="sidebar">
       <div class="brand">
         <span class="brand-mark"><Icon name="spark" :size="24" /></span
@@ -148,6 +159,7 @@ const shortcutError = shortcuts.error;
           aria-label="Assistant"
           :disabled="recording || requestingMic"
           :class="{ selected: page === 'assistant' }"
+          :aria-current="page === 'assistant' ? 'page' : undefined"
           @click="navigate('assistant')"
         >
           <Icon name="mic" />Assistant
@@ -156,6 +168,7 @@ const shortcutError = shortcuts.error;
           aria-label="Applications"
           :disabled="recording || requestingMic"
           :class="{ selected: page === 'applications' }"
+          :aria-current="page === 'applications' ? 'page' : undefined"
           @click="navigate('applications')"
         >
           <Icon name="apps" />Applications<span class="nav-count">{{
@@ -166,6 +179,7 @@ const shortcutError = shortcuts.error;
           aria-label="Préférences"
           :disabled="recording || requestingMic"
           :class="{ selected: page === 'settings' }"
+          :aria-current="page === 'settings' ? 'page' : undefined"
           @click="navigate('settings')"
         >
           <Icon name="settings" />Préférences
@@ -182,7 +196,7 @@ const shortcutError = shortcuts.error;
         <span class="version">v0.1</span>
       </div>
     </aside>
-    <main>
+    <main id="main-content" ref="mainContent" tabindex="-1">
       <header class="topbar">
         <span>{{
           page === 'assistant'

@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { vField } from '../composables/fieldAccessibility';
 import { toRefs, type UnwrapNestedRefs } from 'vue';
 import type { Profile } from '../composables/useProfile';
 import CommandAliases from '../components/CommandAliases.vue';
@@ -28,7 +29,7 @@ const desktop = (action: 'hide' | 'quit') => emit('desktop', action);
 <template>
   <div class="page-intro">
     <div class="eyebrow">À VOTRE RYTHME</div>
-    <h1>Préférences</h1>
+    <h1 tabindex="-1">Préférences</h1>
     <p>Une voix, vos règles, votre machine.</p>
   </div>
   <CommandAliases
@@ -56,12 +57,14 @@ const desktop = (action: 'hide' | 'quit') => emit('desktop', action);
     <h2>Écoute et exécution</h2>
     <div class="setting-row">
       <div>
-        <strong>Langue de transcription</strong>
-        <p>Whistle comprend sept langues, ou détecte la langue.</p>
+        <label for="settings-language">Langue de transcription</label>
+        <p id="settings-language-help">Whistle comprend sept langues, ou détecte la langue.</p>
       </div>
       <select
+        v-field
+        id="settings-language"
         v-model="settingsDraft.language"
-        :aria-describedby="settingsError ? 'settings-error' : undefined"
+        :aria-describedby="`settings-language-help ${settingsError ? 'settings-error' : ''}`"
         :disabled="locked"
         aria-label="Langue de transcription"
         @change="saveSettings"
@@ -79,7 +82,7 @@ const desktop = (action: 'hide' | 'quit') => emit('desktop', action);
     <div class="setting-row">
       <div>
         <strong>Exécuter automatiquement</strong>
-        <p>
+        <p id="settings-auto-help">
           Lancer les actions quand Needle atteint le seuil de confiance.<br />Sinon, les actions
           restent à valider.
         </p>
@@ -87,9 +90,9 @@ const desktop = (action: 'hide' | 'quit') => emit('desktop', action);
       <button
         class="toggle"
         :class="{ on: settingsDraft.autoExecute }"
-        :aria-describedby="settingsError ? 'settings-error' : undefined"
         :disabled="locked"
         role="switch"
+        :aria-describedby="`settings-auto-help ${settingsError ? 'settings-error' : ''}`"
         :aria-checked="settingsDraft.autoExecute"
         aria-label="Exécuter automatiquement"
         @click="
@@ -102,17 +105,20 @@ const desktop = (action: 'hide' | 'quit') => emit('desktop', action);
     </div>
     <div class="setting-row">
       <div>
-        <strong>Seuil de confiance</strong>
-        <p>Les scores inférieurs demandent votre validation.</p>
+        <label for="settings-threshold">Seuil de confiance</label>
+        <p id="settings-threshold-help">Les scores inférieurs demandent votre validation.</p>
       </div>
       <div class="range-control">
         <input
+          v-field
+          id="settings-threshold"
           v-model.number="settingsDraft.confidenceThreshold"
           type="range"
           min="0.1"
           max="1"
           step="0.05"
-          :aria-describedby="settingsError ? 'settings-error' : undefined"
+          :aria-describedby="`settings-threshold-help ${settingsError ? 'settings-error' : ''}`"
+          :aria-valuetext="`${Math.round(settingsDraft.confidenceThreshold * 100)} %`"
           :disabled="locked"
           aria-label="Seuil de confiance"
           @change="saveSettings"
@@ -187,6 +193,7 @@ const desktop = (action: 'hide' | 'quit') => emit('desktop', action);
     <div v-if="diagnosticExport">
       <p>Copiez cet export JSON pour le conserver ou le partager volontairement.</p>
       <textarea
+        v-field
         :value="diagnosticExport"
         readonly
         rows="8"

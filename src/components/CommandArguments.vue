@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { vField } from '../composables/fieldAccessibility';
 import { computed } from 'vue';
 import { correctionFields } from '../actions';
 import type { CommandAction } from '../types';
@@ -22,6 +23,7 @@ function update(key: string, event: Event) {
     <label v-for="field in fields" :key="field.key"
       >{{ field.label || field.key }}
       <select
+        v-field
         v-if="field.values"
         :value="modelValue[field.key] || field.default || ''"
         :disabled="disabled"
@@ -33,6 +35,7 @@ function update(key: string, event: Event) {
         </option>
       </select>
       <input
+        v-field
         v-else
         :value="modelValue[field.key] || field.default || ''"
         :required="field.required"
