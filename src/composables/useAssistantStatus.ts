@@ -26,6 +26,12 @@ export function useAssistantStatus(
         'Je vous écoute…',
         'Arrêtez pour envoyer, ou annulez pour supprimer cet enregistrement sans action.',
       );
+    if (audio.state.value === 'testing')
+      return state(
+        'TEST MICROPHONE',
+        'Parlez pour tester le microphone',
+        'Le niveau doit bouger. Arrêt après 5 secondes, sans envoi ni action.',
+      );
     if (audio.state.value === 'cancelling')
       return state('ANNULATION', 'Arrêt du microphone…', 'Aucune nouvelle demande n’est envoyée.');
     if (requests.processing.value) {

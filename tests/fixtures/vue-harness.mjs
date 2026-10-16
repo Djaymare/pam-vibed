@@ -52,7 +52,7 @@ export function harness(t, options={}) {
       }};
       if(name==='@tauri-apps/plugin-dialog')return {open:()=>options.open?.()};
       if(name.endsWith('/audio/recorder'))return {VoiceRecorder:class{
-        async start(level,limit){starts++;this.limit=limit;this.level=level;await options.permission?.();}
+        async start(level,limit,captureOptions){starts++;this.limit=limit;this.level=level;options.audioStart?.({level,limit,options:captureOptions});await options.permission?.();}
         async finish(){finishes++;return options.finish?options.finish():new Uint8Array([1,2]);}
         async dispose(){disposed++;}
       }};

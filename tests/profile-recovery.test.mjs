@@ -11,9 +11,9 @@ import * as vue from 'vue';
 
 // Compile and mount the real App SFC with Vue's renderer. Only native services,
 // timers and unrelated child components are substituted; no WebView2 claim.
-async function mountApp(t, { recoveryFailure = false, healthy = false, proposalScenario = false, correctionSuccess = false, transferScenario = false, transferFailure = false, backupScenario = false, diagnosticScenario = false, microphoneFailure = false, pendingPermission = false, pendingListener = false } = {}) {
+async function mountApp(t, { recoveryFailure = false, healthy = false, proposalScenario = false, correctionSuccess = false, transferScenario = false, transferFailure = false, backupScenario = false, diagnosticScenario = false, microphoneFailure = false, pendingPermission = false, pendingListener = false, pendingDisposal = false } = {}) {
   const previousDocument = globalThis.document;
-  globalThis.document = { activeElement: null };
+  globalThis.document = { activeElement: null, visibilityState: 'visible' };
   for (const name of ['Document', 'ShadowRoot']) {
     const previous = globalThis[name]; globalThis[name] = class {};
     t.after(() => { if (previous === undefined) delete globalThis[name]; else globalThis[name] = previous; });
@@ -23,10 +23,12 @@ async function mountApp(t, { recoveryFailure = false, healthy = false, proposalS
   let time = Date.now(), sequence = 0;
   const TestDate = class extends Date { static now() { return time; } };
   const proposals = [], timerCallbacks = new Map();
-  const resources = { listeners: 0, disposedRecorders: 0 };
+  const resources = { listeners: 0, disposedRecorders: 0, domListeners: 0, order: [] };
   let permit, register;
   const permission = new Promise(resolve => { permit = resolve; });
   const registration = new Promise(resolve => { register = resolve; });
+  let releaseDisposal;
+  const disposal = new Promise(resolve => { releaseDisposal = resolve; });
   const empty = { version: 2, applications: [], commandAliases: [], language: 'fr', autoExecute: true, confidenceThreshold: 0.7 };
   const profileBackup = backupScenario ? { fingerprint: 'previewed-current', backupFingerprint: 'previewed-backup', backupSummary: { applications: ['Éditeur sauvegardé'], formulations: 3, language: 'en', autoExecute: false, confidenceThreshold: 0.9 } } : undefined;
   let profileError = { message: 'Profil invalide : applications[0] : Nom invalide.', fingerprint: 'original', recoverable: true };
@@ -111,7 +113,7 @@ async function mountApp(t, { recoveryFailure = false, healthy = false, proposalS
   const stub = vue.defineComponent({ render: () => vue.h('span') });
   const injectedRequire = name => {
     if (name.endsWith('/StatusAnnouncements.vue') || name.endsWith('/TurnCard.vue')) return loadFeature(fileURLToPath(new URL('../src/components/' + name.split('/').at(-1), import.meta.url)));
-    if (name.endsWith('/ipc')) return {request:(method,payload={})=>invoke('assistant_request',{method,payload}),desktopAction:action=>invoke('desktop_action',{action}),discoverApplications:()=>invoke('discover_applications')};
+    if (name.endsWith('/ipc')) return {request:(method,payload={})=>invoke('assistant_request',{method,payload}),desktopAction:action=>{resources.order.push(action);return invoke('desktop_action',{action});},discoverApplications:()=>invoke('discover_applications')};
     if (name.includes('/composables/') || name.includes('/views/')) return loadFeature(fileURLToPath(new URL('../src/' + name.replace(/^(?:\.\.?\/)+/,''), import.meta.url)) + (name.endsWith('.vue') ? '' : '.ts'));
     if (name === './errors' || name === '../errors') {
       const result = {};
@@ -137,7 +139,7 @@ async function mountApp(t, { recoveryFailure = false, healthy = false, proposalS
       const code = ts.transpileModule(readFileSync(new URL('../src/proposals.ts', import.meta.url), 'utf8'), { compilerOptions: { module: ts.ModuleKind.CommonJS } }).outputText;
       new Function('exports', 'Date', code)(result, TestDate); return result;
     }
-    if (name.endsWith('/audio/recorder')) return { VoiceRecorder: class { async start() {if(microphoneFailure)throw new DOMException('SENTINEL','NotAllowedError');if(pendingPermission)await permission;} async dispose() {resources.disposedRecorders++;} } };
+    if (name.endsWith('/audio/recorder')) return { VoiceRecorder: class { async start() {if(microphoneFailure)throw new DOMException('SENTINEL','NotAllowedError');if(pendingPermission)await permission;} async dispose() {resources.disposedRecorders++;resources.order.push('microphone-stop');if(pendingDisposal)await disposal;} } };
     return localRequire(name);
   };
   const exports = {};
@@ -148,6 +150,18 @@ async function mountApp(t, { recoveryFailure = false, healthy = false, proposalS
     setTimeout(callback, ms) { const id = ++timerId; activeTimers.set(id, { callback, ms, repeat: false }); return id; },
     clearTimeout(id) { activeTimers.delete(id); },
   };
+  for (const target of [timers, globalThis.document]) {
+    const listeners = new Map();
+    target.addEventListener = (name, callback) => {
+      const group = listeners.get(name) || new Set();
+      if (!group.has(callback)) resources.domListeners++;
+      group.add(callback); listeners.set(name, group);
+    };
+    target.removeEventListener = (name, callback) => {
+      const group = listeners.get(name); if (group?.delete(callback)) resources.domListeners--;
+      if (!group?.size) listeners.delete(name);
+    };
+  }
   new Function('require', 'exports', 'window', 'HTMLElement', 'Date', compiled)(injectedRequire, exports, timers, class {}, TestDate);
   const node = (type, text = '') => ({ type, tagName: type.toUpperCase(), text, children: [], props: {}, style: {}, parent: null, addEventListener() {}, removeEventListener() {}, getRootNode() { return globalThis.document; }, get options() { return this.children.filter(n => n.type === 'option'); } });
   const renderer = vue.createRenderer({
@@ -173,7 +187,7 @@ async function mountApp(t, { recoveryFailure = false, healthy = false, proposalS
   const click = async label => { const b = button(label); assert.ok(b, label); assert.ok(!b.props.disabled); await b.props.onClick(); await settle(); };
   await settle();
   return { root, calls, button, click, text: () => textOf(root), all: () => all(root), settle,
-    resources, timerCallbacks, activeTimers, unmount, permit, register,
+    resources, timerCallbacks, activeTimers, unmount, permit, register, releaseDisposal,
     async send(text) {
       all(root).find(n => n.type === 'input' && n.props.id === 'written-request').props['onUpdate:modelValue'](text);
       await settle(); await all(root).find(n => n.type === 'form' && n.props.class === 'text-request').props.onSubmit({ preventDefault() {} }); await settle();
@@ -210,6 +224,7 @@ test('PAM-16 Vue : unmount releases audio, health/proposal timers and global sub
   assert.equal(f.resources.disposedRecorders, 1);
   assert.equal(f.resources.listeners, 0); assert.equal(f.timerCallbacks.size, 0);
   assert.equal(f.activeTimers.size, 0);
+  assert.equal(f.resources.domListeners, 0);
   assert.equal(f.calls.some(c => c.method === 'process_audio'), false);
 });
 test('PAM-16 Vue : permission or listener completion after unmount cannot recreate owned resources', async t => {
@@ -221,6 +236,17 @@ test('PAM-16 Vue : permission or listener completion after unmount cannot recrea
   assert.equal(f.resources.listeners, 0); assert.equal(f.timerCallbacks.size, 0);
   assert.equal(f.activeTimers.size, 0);
   assert.equal(f.calls.some(c => c.method === 'process_audio'), false);
+});
+test('PAM-24 Vue : réduire attend la libération audio avant l’effet natif', async t => {
+  const f = await mountApp(t, { healthy: true, pendingDisposal: true });
+  const backgroundTimers = [...f.activeTimers.keys()];
+  await f.all().find(n => n.props['aria-label'] === 'Commencer l’enregistrement').props.onClick();
+  await f.settle();
+  const hiding = f.button('Réduire PAM').props.onClick(); await f.settle();
+  assert.ok(f.resources.order.includes('microphone-stop')); assert.equal(f.resources.order.includes('hide'), false);
+  f.releaseDisposal(); await hiding; await f.settle();
+  assert.ok(f.resources.order.indexOf('microphone-stop') < f.resources.order.indexOf('hide'));
+  assert.deepEqual([...f.activeTimers.keys()], backgroundTimers);
 });
 test('PAM-12 Vue : refus du microphone envoyé sans données personnelles et affiché avec sa référence',async t=>{
   const f=await mountApp(t,{healthy:true,microphoneFailure:true});

@@ -8,6 +8,8 @@ export default [
     ...config,
     files: [
       'src/composables/**/*.ts',
+      'src/audio/**/*.ts',
+      'src/errors.ts',
       'src/deletion.ts',
       'src/launchArguments.ts',
       'src/deezerLink.ts',

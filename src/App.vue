@@ -56,7 +56,12 @@ const requests = useRequests(
   () => canRequest.value,
   () => locked.value,
 );
-const audio = useAudio(profile, requests, () => canRequest.value);
+const audio = useAudio(
+  profile,
+  requests,
+  () => canRequest.value,
+  () => !busy.value && !loading.value,
+);
 const applicationEditor = useApplicationEditor(profile, rememberDialogTrigger);
 const { status, config, error, loading, busy, activeApps, refresh } = profile;
 const { recording, requestingMic } = audio;
@@ -114,6 +119,7 @@ async function performDesktop(action: 'hide' | 'quit') {
   const token = desktopTask.begin();
   if (!token) return;
   try {
+    await audio.cancelRecording();
     await desktopAction(action);
   } catch (caught) {
     if (token.current()) {

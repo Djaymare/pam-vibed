@@ -7,6 +7,7 @@ import type { Audio } from '../composables/useAudio';
 import type { Requests } from '../composables/useRequests';
 import type { Proposals } from '../composables/useProposals';
 import MediaControls from '../components/MediaControls.vue';
+import MicrophonePanel from '../components/MicrophonePanel.vue';
 import TurnCard from '../components/TurnCard.vue';
 const props = defineProps<{
   profile: UnwrapNestedRefs<Profile>;
@@ -99,6 +100,7 @@ const { canRequest } = toRefs(props);
       ><Icon name="chevron" :size="12" /><span><Icon name="apps" :size="15" />Application</span>
     </div>
   </section>
+  <MicrophonePanel :audio="audio" :disabled="profile.busy || profile.loading" />
   <form class="text-request" @submit.prevent="submitText">
     <label class="sr-only" for="written-request">Demande écrite</label>
     <input

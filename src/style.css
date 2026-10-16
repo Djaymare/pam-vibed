@@ -136,3 +136,9 @@ dialog.modal{max-width:calc(100vw - 32px);max-height:calc(100vh - 32px)}
 .connected .section-heading h2, .history .section-heading h2 { display: flex; align-items: center; gap: 8px; font-size: 14px; letter-spacing: normal; }
 .connected .section-heading h2 > span { font-size: 12px; font-weight: 400; }
 .application-body h2 { font-size: 15px; margin-bottom: 7px; letter-spacing: normal; }
+.microphone-panel { margin: 1.5rem 0; padding: 1rem; border: 1px solid var(--border); border-radius: 12px; }
+.microphone-panel h2 { font-size: 1rem; margin-bottom: .5rem; }
+.microphone-panel p { margin: .5rem 0; }
+.microphone-panel label { display: block; margin: .75rem 0; }
+.microphone-panel select { max-width: 100%; margin-left: .5rem; }
+.microphone-panel meter { display: block; width: min(100%, 26rem); height: 1.5rem; }
