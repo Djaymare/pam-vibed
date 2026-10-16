@@ -94,6 +94,7 @@ sur disque ; la conservation dure jusqu’à l’abandon explicite ou la fin du 
 | Module sous `sidecar/assistant/` | Contrat |
 | --- | --- |
 | `config-repository.cjs` | Dépôt de profil, empreinte attendue, modifications d’applications/formulations et disponibilité. S’appuie sur le magasin atomique existant. |
+| `deletion-scope.cjs` | Empreinte SHA-256 canonique du périmètre confirmé, comparée avant une suppression ; aucun effet. |
 | `intent.cjs` | Fonctions pures de catalogue, reconnaissance et validation des appels/cardinalités. Aucune écriture ni exécution. |
 | `planner.cjs` | Préparation par Whistle/Needle et validation d’ancrage. Rend un Turn ou une décision `{ turn, execute: true }` ; ne lance aucune application. La correction explicite conserve son retrait de proposition avant préparation. |
 | `executor.cjs` | Valide le plan entier, journalise avant émission, publie la progression et sérialise les effets. Conserve les issues performed/unknown/not_started et l’interdiction de rejeu. |

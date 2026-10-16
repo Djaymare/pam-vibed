@@ -24,6 +24,15 @@ vérifient aussi les refus de méthode, payload, action et type de réponse.
 
 ## Enveloppes et frontières
 
+Les payloads `delete_application` et `delete_command_alias` acceptent
+`expectedFingerprint` (optionnel pour les clients version 1 existants).
+L’interface le transmet systématiquement après une confirmation explicite.
+Il lie la confirmation à la fiche complète et aux formulations associées
+(ou à la seule formulation choisie avec sa fiche). Les clés des objets sont
+triées avant SHA-256 pour traverser Rust sans dépendre de leur ordre JSON.
+Toute divergence refuse l’écriture et exige une nouvelle confirmation.
+Les écritures gardent également le contrôle de concurrence du magasin de profil.
+
 Toutes les commandes de l’interface passent par `src/ipc.ts`, vers l’unique
 commande Tauri `assistant_request` :
 

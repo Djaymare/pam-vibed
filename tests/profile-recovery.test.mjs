@@ -95,6 +95,7 @@ async function mountApp(t, { recoveryFailure = false, healthy = false, proposalS
     const code = ts.transpileModule(content, { compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.CommonJS } }).outputText;
     const result = {}; features.set(filename, result);
     const requireFeature = name => {
+      if (name === '../deletion') return loadFeature(resolve(dirname(filename), '../deletion.ts'));
       if (name.startsWith('.') && (name.includes('/composables/') || name.includes('/views/') || (name.startsWith('./') && dirname(filename).endsWith('composables')))) {
         const target = resolve(dirname(filename), name);
         return loadFeature(target.endsWith('.vue') ? target : target + '.ts');

@@ -5,6 +5,12 @@ import { isTauri } from '@tauri-apps/api/core';
 import { describeError } from '../errors';
 import type { RequestFunction } from '../ipc';
 import { useAsyncScope, type OperationToken } from './useAsyncScope';
+import {
+  deletionScope,
+  deletionFingerprint,
+  type DeletionScope,
+  type DeletionKind,
+} from '../deletion';
 
 export function useProfile(
   request: RequestFunction,
@@ -31,6 +37,11 @@ export function useProfile(
     diagnosticExport = ref(''),
     recoveryOpen = ref(false),
     recoveryBackup = ref('');
+  const deletion = ref<DeletionScope>();
+  const deletionError = ref('');
+  const deletionNotice = ref('');
+  const deleting = computed(() => mutation.pending.value && mutation.kind.value === 'delete');
+  let deletionSent = false;
   const settingsOf = (value: Config) => ({
     language: value.language,
     autoExecute: value.autoExecute,
@@ -50,6 +61,10 @@ export function useProfile(
   scope.onInvalidate(() => {
     recoveryOpen.value = false;
     diagnosticExport.value = '';
+    if (deleting.value && deletionSent)
+      deletionNotice.value =
+        'La suppression a déjà été envoyée. Son annulation est impossible ; actualisez le profil pour vérifier le résultat.';
+    deletion.value = undefined;
   });
   function beginMutation(kind: string) {
     const token = mutation.begin(kind);
@@ -217,8 +232,57 @@ export function useProfile(
   }
   const toggleApplication = (application: Application) =>
     changeConfig('set_application_enabled', { id: application.id, enabled: !application.enabled });
+  function requestDeletion(kind: DeletionKind, id: string) {
+    if (isLocked() || busy.value || deletion.value) return;
+    try {
+      deletion.value = deletionScope(config.value, kind, id);
+      deletionError.value = '';
+      deletionNotice.value = '';
+    } catch (caught) {
+      error.value = describeError(caught);
+    }
+  }
+  function cancelDeletion() {
+    // Once sent, cancellation cannot roll back a persisted delete.
+    if (deleting.value) return;
+    deletion.value = undefined;
+    deletionError.value = '';
+  }
+  async function confirmDeletion() {
+    const selected = deletion.value;
+    if (!selected || isLocked() || busy.value || deletionError.value) return;
+    const token = beginMutation('delete');
+    if (!token) return;
+    deletionSent = false;
+    deletionError.value = '';
+    try {
+      const expectedFingerprint = await deletionFingerprint(selected);
+      if (!token.current()) return;
+      deletionSent = true;
+      const next = await request(
+        selected.kind === 'application' ? 'delete_application' : 'delete_command_alias',
+        { id: selected.id, expectedFingerprint },
+      );
+      if (token.current()) {
+        config.value = next;
+        deletion.value = undefined;
+        deletionNotice.value =
+          selected.kind === 'application'
+            ? `${selected.application.name} et ${selected.aliases.length} formulation(s) supprimées de PAM.`
+            : `Formulation « ${selected.aliases[0]?.phrase} » supprimée de PAM.`;
+      }
+    } catch (caught) {
+      if (token.current()) {
+        token.fail();
+        deletionError.value = `${describeError(caught)} La suppression n’est pas confirmée. Annulez et actualisez le profil avant une nouvelle tentative.`;
+      }
+    } finally {
+      token.finish();
+      void updateHealth();
+    }
+  }
   const deleteApplication = (application: Application) =>
-    changeConfig('delete_application', { id: application.id });
+    requestDeletion('application', application.id);
   async function saveSettings() {
     if (isLocked()) return;
     settingsError.value = '';
@@ -245,7 +309,7 @@ export function useProfile(
       );
   };
   const deleteCommandAlias = async (id: string) => {
-    await changeConfig('delete_command_alias', { id }, true);
+    requestDeletion('formulation', id);
   };
   const activeApps = computed(() => config.value.applications.filter((app) => app.enabled));
   function unavailable(application: Application) {
@@ -286,6 +350,12 @@ export function useProfile(
     restartEngine,
     toggleApplication,
     deleteApplication,
+    deletion,
+    deletionError,
+    deletionNotice,
+    deleting,
+    confirmDeletion,
+    cancelDeletion,
     saveSettings,
     settingsDraft,
     settingsDirty,

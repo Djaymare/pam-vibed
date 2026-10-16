@@ -90,7 +90,6 @@ async function performRemove(alias: CommandAlias) {
   error.value = '';
   try {
     await props.remove(alias.id);
-    if (token.current() && editingId.value === alias.id) editing.value = false;
   } catch (caught) {
     if (token.current()) {
       token.fail();
@@ -100,6 +99,13 @@ async function performRemove(alias: CommandAlias) {
     token.finish();
   }
 }
+watch(
+  () => props.aliases,
+  (aliases) => {
+    if (editingId.value && !aliases.some((alias) => alias.id === editingId.value))
+      editing.value = false;
+  },
+);
 function appName(alias: CommandAlias) {
   return (
     props.applications.find((app) => app.id === alias.applicationId)?.name ||

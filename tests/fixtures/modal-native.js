@@ -2,6 +2,17 @@
 const config = { version: 2, commandAliases: [], applications: [{ id: '11111111-1111-4111-8111-111111111111', name: 'Fixture', description: 'Application simulée', executable: 'C:\\fixture.exe', arguments: [], aliases: [], enabled: true }], language: 'fr', autoExecute: false, confidenceThreshold: 0.7 };
 const availabilityScenario = new URLSearchParams(location.search).has('availability');
 const draftScenario = new URLSearchParams(location.search).has('drafts');
+const deletionScenario = new URLSearchParams(location.search).has('deletion');
+if (deletionScenario) {
+  config.applications[0].aliases = ['Mon éditeur'];
+  config.applications.push({...config.applications[0], id:'22222222-2222-4222-8222-222222222222',name:'Autre',aliases:[]});
+  config.commandAliases = [
+    {id:'55555555-5555-4555-8555-555555555555',phrase:'Ouvre mon premier',applicationId:config.applications[0].id,action:'open'},
+    {id:'66666666-6666-4666-8666-666666666666',phrase:'Mon autre formulation',applicationId:config.applications[0].id,action:'open'},
+    {id:'77777777-7777-4777-8777-777777777777',phrase:'Ouvre mon autre',applicationId:config.applications[1].id,action:'open'},
+  ];
+  window.pamDeletionFixture = { config, calls:[], fail:false, hold:false, release:()=>{} };
+}
 if (draftScenario) window.pamDraftFixture = { config, calls: [], failSettings: true, failAlias: true };
 let available = !availabilityScenario;
 if (availabilityScenario) {
@@ -29,6 +40,17 @@ async function handle(method, payload) {
   if (method === 'discover_applications') return [{ name: 'Détectée', appId: 'Fixture.Detected', kind: 'desktop', icon: null }];
   if (availabilityScenario) window.pamAvailabilityFixture.calls.push({method,payload});
   if (draftScenario) window.pamDraftFixture.calls.push({method,payload});
+  if (deletionScenario) window.pamDeletionFixture.calls.push({method,payload});
+  if (deletionScenario && method.startsWith('delete_')) {
+    const f=window.pamDeletionFixture;
+    if(f.hold) await new Promise(resolve=>{f.release=resolve;});
+    if(f.fail) throw Error('Écriture de test refusée.');
+    if(method==='delete_application') {
+      config.applications=config.applications.filter(a=>a.id!==payload.id);
+      config.commandAliases=config.commandAliases.filter(a=>a.applicationId!==payload.id);
+    } else config.commandAliases=config.commandAliases.filter(a=>a.id!==payload.id);
+    return config;
+  }
   if (method === 'status') return { config, ready: true, checks: [], manifest: null, configDirectory: 'C:\\fixture-profile', engine: null,
     ...(availabilityScenario ? {applicationAvailability:{[config.applications[0].id]:{available,reason:'Cible de test indisponible.'}}} : {}) };
   if (method === 'media_sessions') return [];

@@ -656,6 +656,13 @@
         "uri": "string"
       },
       "extra": false
+    },
+    "DeleteInput": {
+      "properties": {
+        "id": "string",
+        "expectedFingerprint?": "string"
+      },
+      "extra": false
     }
   },
   "methods": {
@@ -701,7 +708,7 @@
       "Config"
     ],
     "delete_application": [
-      "Id",
+      "DeleteInput",
       "Config"
     ],
     "settings": [
@@ -752,7 +759,7 @@
       "Config"
     ],
     "delete_command_alias": [
-      "Id",
+      "DeleteInput",
       "Config"
     ],
     "desktop_action": [

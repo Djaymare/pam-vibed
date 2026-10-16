@@ -587,5 +587,61 @@
       "method": "status",
       "payload": {}
     }
+  },
+  {
+    "name": "PAM-20 delete_application fingerprint accepted",
+    "request": {
+      "version": 1,
+      "id": 900,
+      "requestId": "11111111-1111-4111-8111-111111111111",
+      "method": "delete_application",
+      "payload": {
+        "id": "11111111-1111-4111-8111-111111111111",
+        "expectedFingerprint": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+      }
+    },
+    "valid": true
+  },
+  {
+    "name": "PAM-20 delete_application fingerprint type rejected",
+    "request": {
+      "version": 1,
+      "id": 900,
+      "requestId": "11111111-1111-4111-8111-111111111111",
+      "method": "delete_application",
+      "payload": {
+        "id": "11111111-1111-4111-8111-111111111111",
+        "expectedFingerprint": 42
+      }
+    },
+    "valid": false
+  },
+  {
+    "name": "PAM-20 delete_command_alias fingerprint accepted",
+    "request": {
+      "version": 1,
+      "id": 900,
+      "requestId": "11111111-1111-4111-8111-111111111111",
+      "method": "delete_command_alias",
+      "payload": {
+        "id": "11111111-1111-4111-8111-111111111111",
+        "expectedFingerprint": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+      }
+    },
+    "valid": true
+  },
+  {
+    "name": "PAM-20 delete_command_alias fingerprint type rejected",
+    "request": {
+      "version": 1,
+      "id": 900,
+      "requestId": "11111111-1111-4111-8111-111111111111",
+      "method": "delete_command_alias",
+      "payload": {
+        "id": "11111111-1111-4111-8111-111111111111",
+        "expectedFingerprint": 42
+      }
+    },
+    "valid": false
   }
 ]

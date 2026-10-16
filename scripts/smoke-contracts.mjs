@@ -8,6 +8,7 @@ import { randomUUID } from 'node:crypto';
 import { createInterface } from 'node:readline';
 import { createRequire } from 'node:module';
 const {validateResult,matches}=createRequire(import.meta.url)('../sidecar/contracts.cjs');
+const {deletionFingerprint}=createRequire(import.meta.url)('../sidecar/assistant/deletion-scope.cjs');
 const root=resolve(new URL('..',import.meta.url).pathname.replace(/^\/([a-z]:)/i,'$1'));
 const profile=await mkdtemp(join(tmpdir(),'pam-contract-native-'));
 const node=join(root,'src-tauri/binaries/pam-node-x86_64-pc-windows-msvc.exe');
@@ -45,6 +46,12 @@ try {
   assert.equal((await request('confirm',{id:expired.id})).result.status,'expired');
   const unknown=await request('confirm',{id:randomUUID()});assert.equal(unknown.result.proposal.state,'unknown');
   const exported=await request('export_diagnostics');assert.equal(exported.ok,true,JSON.stringify(exported.error));
+  const learned=await request('save_command_alias',{phrase:'Ouvre la fixture',applicationId,action:'open'});assert.equal(learned.ok,true,JSON.stringify(learned.error));
+  const alias=learned.result.commandAliases[0];
+  const refused=await request('delete_command_alias',{id:alias.id,expectedFingerprint:'0'.repeat(64)});assert.equal(refused.ok,false);
+  const removed=await request('delete_command_alias',{id:alias.id,expectedFingerprint:deletionFingerprint(learned.result,'formulation',alias.id)});assert.equal(removed.ok,true,JSON.stringify(removed.error));assert.equal(removed.result.commandAliases.length,0);assert.equal(removed.result.applications[0].id,applicationId);
+  const deleted=await request('delete_application',{id:applicationId,expectedFingerprint:deletionFingerprint(removed.result,'application',applicationId)});assert.equal(deleted.ok,true,JSON.stringify(deleted.error));assert.equal(deleted.result.applications.length,0);
+  console.log('PASS deletion fingerprint preserved through production Rust IPC; stale rejected, individual/app deletion confirmed; disposable profile only');
   console.log('PASS production native IPC: invalid/version/unknown rejected before startup; config/action/results/error/expired/consumed correlated; disposable Node effect; no replay');
 } finally {
   child.stdin.end(JSON.stringify({method:'quit'})+'\n');

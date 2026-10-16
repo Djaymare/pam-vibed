@@ -19,6 +19,7 @@ import { useApplicationEditor } from './composables/useApplicationEditor';
 import { useVoiceShortcuts } from './composables/useVoiceShortcuts';
 import { useDraftGuard } from './composables/useDraftGuard';
 import DiscardDraftDialog from './components/DiscardDraftDialog.vue';
+import DeleteConfirmationDialog from './components/DeleteConfirmationDialog.vue';
 const page = ref<'assistant' | 'applications' | 'settings'>('assistant');
 const dialogReturnFocus = ref<HTMLElement | null>(null);
 function rememberDialogTrigger() {
@@ -115,7 +116,7 @@ function showApplications(add: boolean) {
 }
 const shortcuts = useVoiceShortcuts(
   () => {
-    if (editorOpen.value || pickerOpen.value || correction.value) return;
+    if (editorOpen.value || pickerOpen.value || correction.value || profile.deletion.value) return;
     navigate('assistant');
     if (recording.value) void audio.finishRecording();
     else if (canRequest.value) void audio.startRecording();
@@ -211,6 +212,10 @@ const shortcutError = shortcuts.error;
           <button @click="navigate('settings')">Reprendre dans Préférences</button>
         </p>
         <ProfileRecovery :profile="ui.profile" :locked="locked" />
+        <p v-if="ui.profile.deletionNotice" class="notice" role="status">
+          {{ ui.profile.deletionNotice }}
+          <button :disabled="locked" @click="refresh">Actualiser le profil</button>
+        </p>
         <div v-if="shortcutError" class="notice error" role="alert">
           <span>{{ shortcutError }}</span>
           <button :disabled="shortcuts.registration.pending.value" @click="shortcuts.install">
@@ -291,6 +296,13 @@ const shortcutError = shortcuts.error;
       :dialog-return-focus="dialogReturnFocus"
     />
     <DiscardDraftDialog :open="guard.pending.value" @keep="guard.keep" @discard="guard.discard" />
+    <DeleteConfirmationDialog
+      :scope="ui.profile.deletion"
+      :pending="ui.profile.deleting"
+      :error="ui.profile.deletionError"
+      @cancel="ui.profile.cancelDeletion"
+      @confirm="ui.profile.confirmDeletion"
+    />
   </div>
 </template>
 <style src="./style.css"></style>

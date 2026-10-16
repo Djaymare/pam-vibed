@@ -4,6 +4,7 @@ const { createHash } = require('node:crypto');
 const { createConfigStore } = require('../config-store.cjs');
 const { validateConfig, validateApplicationStructure, LANGUAGES } = require('../config-schema.cjs');
 const { saveCommandAlias } = require('../command-aliases.cjs');
+const { deletionFingerprint } = require('./deletion-scope.cjs');
 const { failure } = require('../diagnostics.cjs');
 const { toolsFor } = require('./intent.cjs');
 const { ensure } = require('./validation.cjs');
@@ -144,6 +145,7 @@ async function editProfile(
       config.applications.some((app) => app.id === payload.id),
       'Application introuvable.',
     );
+    ensureDeletionUnchanged(config, 'application', payload);
     config.applications = config.applications.filter((app) => app.id !== payload.id);
     config.commandAliases = config.commandAliases.filter(
       (alias) => alias.applicationId !== payload.id,
@@ -161,6 +163,7 @@ async function editProfile(
       config.commandAliases.some((alias) => alias.id === payload.id),
       'Formulation introuvable.',
     );
+    ensureDeletionUnchanged(config, 'formulation', payload);
     config.commandAliases = config.commandAliases.filter((alias) => alias.id !== payload.id);
     await saveConfig(config);
     return config;
@@ -182,6 +185,15 @@ async function editProfile(
     await saveConfig(config);
     return config;
   }
+}
+function ensureDeletionUnchanged(config, kind, payload) {
+  // Optional for older clients; the UI always binds confirmation to this scope.
+  ensure(
+    payload.expectedFingerprint === undefined ||
+      (/^[a-f0-9]{64}$/.test(payload.expectedFingerprint) &&
+        payload.expectedFingerprint === deletionFingerprint(config, kind, payload.id)),
+    'La configuration concernée a changé. Annulez puis ouvrez une nouvelle confirmation.',
+  );
 }
 module.exports = {
   createProfileRepository,
