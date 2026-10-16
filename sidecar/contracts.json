@@ -1,6 +1,29 @@
 {
   "version": 1,
   "definitions": {
+    "SupervisorStatus": {
+      "properties": {
+        "phase": {
+          "enum": [
+            "starting",
+            "ready",
+            "recovering",
+            "stopping",
+            "stopped"
+          ]
+        },
+        "activity": {
+          "enum": [
+            "idle",
+            "waiting",
+            "starting",
+            "processing",
+            "executing"
+          ]
+        }
+      },
+      "extra": false
+    },
     "Empty": {
       "properties": {},
       "extra": false
@@ -666,6 +689,10 @@
     }
   },
   "methods": {
+    "supervisor_status": [
+      "Empty",
+      "SupervisorStatus"
+    ],
     "status": [
       "Empty",
       "RuntimeStatus"

@@ -33,6 +33,7 @@ const HOST_EFFECT: u8 = 4;
 /// Host-facing IPC boundary. Test doubles exercise dispatch without starting
 /// Node or replacing the versioned contracts shared with production.
 pub(crate) trait RequestTransport {
+    fn supervisor_status(&self) -> Value;
     fn request_correlated(
         &self,
         method: &str,
@@ -534,6 +535,34 @@ impl Drop for Bridge {
 }
 
 impl RequestTransport for Bridge {
+    fn supervisor_status(&self) -> Value {
+        let mut state = self.control.state.lock().unwrap_or_else(|e| e.into_inner());
+        // A killed/exited child must stop looking ready before the actor's
+        // next 15-second probe. This observation never starts a process.
+        let unavailable = state.lifecycle.phase == Phase::Ready
+            && (state.invalidated
+                || !state
+                    .child
+                    .as_mut()
+                    .is_some_and(|child| matches!(child.try_wait(), Ok(None))));
+        let phase = match state.lifecycle.phase {
+            Phase::Ready if unavailable => "recovering",
+            Phase::Starting => "starting",
+            Phase::Ready => "ready",
+            Phase::Recovering => "recovering",
+            Phase::Stopping => "stopping",
+            Phase::Stopped => "stopped",
+        };
+        let activity = state.active.as_ref().map_or("idle", |attempt| {
+            match attempt.stage.load(Ordering::Acquire) {
+                STARTING => "starting",
+                HOST_EFFECT => "executing",
+                WRITING | RESPONSE => "processing",
+                _ => "waiting",
+            }
+        });
+        json!({"phase":phase,"activity":activity})
+    }
     fn request_correlated(
         &self,
         method: &str,

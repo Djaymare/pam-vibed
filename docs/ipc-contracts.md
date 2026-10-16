@@ -24,6 +24,16 @@ vérifient aussi les refus de méthode, payload, action et type de réponse.
 
 ## Enveloppes et frontières
 
+`supervisor_status` est une lecture locale Rust, sans mise en file ni lancement
+de Node. Son payload est vide ; le résultat contient `phase`
+(`starting`, `ready`, `recovering`, `stopping`, `stopped`) et `activity`
+(`idle`, `waiting`, `starting`, `processing`, `executing`). Le front le lit
+toutes les secondes, y compris pendant une demande, sans annoncer chaque polling.
+La disponibilité exige aussi un profil/runtime valide et aucune erreur de santé.
+`executing` signifie qu’un appel natif a été émis ; il ne promet pas sa réussite.
+Transcription et préparation restent une étape combinée : aucun événement IPC
+ne permet de distinguer précisément ces calculs dans la demande en cours.
+
 Les payloads `delete_application` et `delete_command_alias` acceptent
 `expectedFingerprint` (optionnel pour les clients version 1 existants).
 L’interface le transmet systématiquement après une confirmation explicite.

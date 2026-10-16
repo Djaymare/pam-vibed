@@ -2,6 +2,32 @@ use super::*;
 use std::fs;
 
 static FIXTURE_ID: AtomicU64 = AtomicU64::new(1);
+#[test]
+fn supervisor_snapshot_detects_retired_child_before_the_next_probe() {
+    let fixture = Fixture::new("echo", Duration::from_secs(3), 4);
+    fixture.bridge.request("status", json!({})).unwrap();
+    assert_eq!(fixture.bridge.supervisor_status()["phase"], "ready");
+    fixture.bridge.control.interrupt();
+    assert_eq!(fixture.bridge.supervisor_status()["phase"], "recovering");
+    fixture.bridge.request("status", json!({})).unwrap();
+    assert_eq!(fixture.bridge.supervisor_status()["phase"], "ready");
+}
+#[test]
+fn supervisor_snapshot_is_nonblocking_during_start_recovery_and_stop() {
+    let fixture = Fixture::new("silent", Duration::from_secs(2), 4);
+    assert_eq!(fixture.bridge.supervisor_status()["phase"], "starting");
+    let bridge = fixture.bridge.clone();
+    let request = thread::spawn(move || bridge.request("status", json!({})));
+    fixture.ready();
+    let start = Instant::now();
+    let snapshot = fixture.bridge.supervisor_status();
+    assert!(start.elapsed() < Duration::from_millis(200));
+    assert_eq!(snapshot["phase"], "starting");
+    assert!(request.join().unwrap().is_err());
+    fixture.wait_for(|| fixture.bridge.supervisor_status()["phase"] == "recovering");
+    fixture.bridge.shutdown();
+    assert_eq!(fixture.bridge.supervisor_status()["phase"], "stopped");
+}
 struct Fixture {
     bridge: Arc<Bridge>,
     profile: PathBuf,

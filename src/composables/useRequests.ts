@@ -13,6 +13,7 @@ export function useRequests(
 ) {
   const { request, error, updateHealth, beginMutation, mutation } = profile;
   const text = ref('');
+  const sent = ref(false);
   const processing = computed(
     () =>
       mutation.pending.value &&
@@ -29,6 +30,7 @@ export function useRequests(
     const token = reservation ?? beginMutation(method);
     if (!token || !token.current()) return;
     error.value = '';
+    sent.value = true;
     try {
       const turn = await request(method, payload);
       if (!token.current()) return;
@@ -40,6 +42,7 @@ export function useRequests(
         error.value = describeError(caught);
       }
     } finally {
+      sent.value = false;
       token.finish();
       void updateHealth();
     }
@@ -54,9 +57,9 @@ export function useRequests(
     args: Record<string, string>,
     label: string,
   ) {
-    if (!isLocked())
+    if (!isLocked() && canRequest())
       await process('prepare_action', { applicationId, action, arguments: args, label });
   }
-  return { text, process, submitText, prepareMediaAction, processing, voiceProcessing };
+  return { text, process, submitText, prepareMediaAction, processing, voiceProcessing, sent };
 }
 export type Requests = ReturnType<typeof useRequests>;

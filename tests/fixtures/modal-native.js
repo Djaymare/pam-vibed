@@ -3,6 +3,8 @@ const config = { version: 2, commandAliases: [], applications: [{ id: '11111111-
 const availabilityScenario = new URLSearchParams(location.search).has('availability');
 const draftScenario = new URLSearchParams(location.search).has('drafts');
 const deletionScenario = new URLSearchParams(location.search).has('deletion');
+const statusScenario = new URLSearchParams(location.search).has('status');
+if (statusScenario) window.pamStatusFixture = { config, calls: [], phase:'starting', activity:'idle', hold:false, fail:false, release:()=>{} };
 if (deletionScenario) {
   config.applications[0].aliases = ['Mon éditeur'];
   config.applications.push({...config.applications[0], id:'22222222-2222-4222-8222-222222222222',name:'Autre',aliases:[]});
@@ -36,11 +38,23 @@ export async function invoke(command, input) {
   }
 }
 async function handle(method, payload) {
+  if (method === 'supervisor_status') return statusScenario ? {phase:window.pamStatusFixture.phase,activity:window.pamStatusFixture.activity} : {phase:'ready',activity:'idle'};
   if (method === 'desktop_action') return null;
   if (method === 'discover_applications') return [{ name: 'Détectée', appId: 'Fixture.Detected', kind: 'desktop', icon: null }];
   if (availabilityScenario) window.pamAvailabilityFixture.calls.push({method,payload});
   if (draftScenario) window.pamDraftFixture.calls.push({method,payload});
   if (deletionScenario) window.pamDeletionFixture.calls.push({method,payload});
+  if (statusScenario) {
+    const f=window.pamStatusFixture;
+    f.calls.push({method,payload});
+    if (['process_text','confirm','discard','settings'].includes(method)) {
+      if(f.hold) await new Promise(resolve=>{f.release=resolve;});
+      if(f.fail) throw Error('Erreur de test récupérable. Vérifiez puis réessayez.');
+      if(method==='settings') {Object.assign(config,payload);return config;}
+      if(method==='process_text') return {...turn('33333333-3333-4333-8333-333333333333',payload.text),calls:[{name:'open_fixture',applicationId:config.applications[0].id,applicationName:'Fixture',action:'open',actionLabel:'Ouvrir',arguments:{}}]};
+      return {...turn(payload.id,'Demande de test'),status:method==='confirm'?'executed':'cancelled',calls:[],results:method==='confirm'?[{applicationId:config.applications[0].id,applicationName:'Fixture',message:'Action de test effectuée.',success:true,outcome:'performed'}]:[]};
+    }
+  }
   if (deletionScenario && method.startsWith('delete_')) {
     const f=window.pamDeletionFixture;
     if(f.hold) await new Promise(resolve=>{f.release=resolve;});

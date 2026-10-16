@@ -20,6 +20,8 @@ import { useVoiceShortcuts } from './composables/useVoiceShortcuts';
 import { useDraftGuard } from './composables/useDraftGuard';
 import DiscardDraftDialog from './components/DiscardDraftDialog.vue';
 import DeleteConfirmationDialog from './components/DeleteConfirmationDialog.vue';
+import StatusAnnouncements from './components/StatusAnnouncements.vue';
+import { useAssistantStatus } from './composables/useAssistantStatus';
 const page = ref<'assistant' | 'applications' | 'settings'>('assistant');
 const dialogReturnFocus = ref<HTMLElement | null>(null);
 function rememberDialogTrigger() {
@@ -72,11 +74,16 @@ function navigate(next: typeof page.value) {
     page.value = next;
   });
 }
-const locked = computed(
-  () => busy.value || recording.value || requestingMic.value || loading.value,
-);
+const locked = computed(() => busy.value || audio.state.value !== 'idle' || loading.value);
 const canRequest = computed(
-  () => !!status.value?.ready && activeApps.value.length > 0 && !locked.value,
+  () => profile.runtimeReady.value && activeApps.value.length > 0 && !locked.value,
+);
+const assistantStatus = useAssistantStatus(
+  profile,
+  audio,
+  requests,
+  proposals,
+  () => canRequest.value,
 );
 const desktopTask = profile.scope.operation();
 async function desktop(action: 'hide' | 'quit') {
@@ -184,16 +191,8 @@ const shortcutError = shortcuts.error;
               ? 'Applications'
               : 'Préférences'
         }}</span
-        ><span class="runtime-pill" :class="{ offline: !status?.ready }"
-          ><i />{{
-            loading
-              ? 'Vérification…'
-              : status?.engine?.loaded
-                ? 'Moteurs en mémoire'
-                : status?.ready
-                  ? 'Moteurs disponibles'
-                  : 'Runtime indisponible'
-          }}</span
+        ><span class="runtime-pill" :class="{ offline: !ui.profile.runtimeReady }"
+          ><i />{{ ui.profile.runtimeLabel }}</span
         >
       </header>
       <div class="desktop-toolbar">
@@ -203,6 +202,11 @@ const shortcutError = shortcuts.error;
         </button>
       </div>
       <div class="content">
+        <StatusAnnouncements
+          :stage="`${assistantStatus.title} ${assistantStatus.detail}`"
+          :turns="ui.proposals.turns"
+          :error="error"
+        />
         <p
           v-if="page !== 'settings' && (aliasDirty || ui.profile.settingsDirty)"
           class="notice"
@@ -226,7 +230,7 @@ const shortcutError = shortcuts.error;
           {{ status.desktop.shortcutError }} Vous pouvez utiliser le microphone ou le menu de PAM
           dans la zone de notification.
         </div>
-        <div v-if="error" class="notice error" role="alert">
+        <div v-if="error" class="notice error">
           <Icon name="info" /><span>{{ error }}</span
           ><button v-if="!status?.ready" :disabled="locked" @click="refresh">Réessayer</button
           ><button v-else aria-label="Fermer le message" @click="error = ''">
@@ -242,6 +246,7 @@ const shortcutError = shortcuts.error;
           :proposals="ui.proposals"
           :locked="locked"
           :can-request="canRequest"
+          :assistant-status="assistantStatus"
           @applications="showApplications"
         />
         <ApplicationsView

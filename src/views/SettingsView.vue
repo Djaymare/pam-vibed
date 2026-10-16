@@ -199,9 +199,7 @@ const desktop = (action: 'hide' | 'quit') => emit('desktop', action);
     <h2>Runtime embarqué</h2>
     <div class="setting-row">
       <div>
-        <strong>{{
-          status?.engine?.loaded ? 'Whistle et Needle en mémoire' : 'Moteurs disponibles'
-        }}</strong>
+        <strong>{{ profile.runtimeLabel }}</strong>
         <p>Les modèles sont conservés entre vos demandes et repris après une panne.</p>
       </div>
       <button

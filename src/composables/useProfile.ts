@@ -1,6 +1,6 @@
 import { computed, ref, reactive, watch, onMounted, onBeforeUnmount } from 'vue';
 import type { Application, CommandAlias, Config, RuntimeStatus } from '../types';
-import type { Method, Methods } from '../contracts.generated';
+import type { Method, Methods, SupervisorStatus } from '../contracts.generated';
 import { isTauri } from '@tauri-apps/api/core';
 import { describeError } from '../errors';
 import type { RequestFunction } from '../ipc';
@@ -25,6 +25,37 @@ export function useProfile(
   const busy = mutation.pending;
   const loading = computed(() => health.pending.value && health.kind.value === 'refresh');
   const status = ref<RuntimeStatus>();
+  const statusAvailable = ref(false);
+  const supervisor = ref<SupervisorStatus>();
+  const supervision = scope.operation();
+  const runtimeReady = computed(
+    () => !!status.value?.ready && supervisor.value?.phase === 'ready' && statusAvailable.value,
+  );
+  const runtimeLabel = computed(() => {
+    const phase = supervisor.value?.phase;
+    if (phase === 'recovering') return 'Moteurs en reprise';
+    if (phase === 'starting' || (!status.value && health.state.value !== 'error'))
+      return 'Démarrage des moteurs';
+    if (phase === 'stopping') return 'Arrêt des moteurs';
+    if (phase === 'stopped') return 'Moteurs arrêtés';
+    if (!runtimeReady.value) return 'Runtime indisponible';
+    return status.value?.engine?.loaded ? 'Moteurs en mémoire' : 'Moteurs disponibles';
+  });
+  async function updateSupervisor() {
+    const token = supervision.begin();
+    if (!token) return;
+    try {
+      const next = await request('supervisor_status');
+      if (token.current()) supervisor.value = next;
+    } catch {
+      if (token.current()) {
+        token.fail();
+        supervisor.value = undefined;
+      }
+    } finally {
+      token.finish();
+    }
+  }
   const config = ref<Config>({
     version: 2,
     applications: [],
@@ -82,9 +113,11 @@ export function useProfile(
       if (mode === 'refresh' || !status.value || next.configError || status.value?.configError)
         config.value = next.config;
       status.value = next;
+      statusAvailable.value = true;
       onStatus(next);
     } catch (caught) {
       if (token.current() && (!parent || parent.current())) {
+        statusAvailable.value = false;
         token.fail();
         error.value = describeError(caught);
       }
@@ -315,15 +348,22 @@ export function useProfile(
   function unavailable(application: Application) {
     return status.value?.applicationAvailability?.[application.id]?.available === false;
   }
-  let healthTimer: number | undefined;
+  let healthTimer: number | undefined, supervisorTimer: number | undefined;
   onMounted(async () => {
+    void updateSupervisor();
+    supervisorTimer = window.setInterval(() => {
+      void updateSupervisor();
+    }, 1000);
     await refresh();
     if (scope.alive())
       healthTimer = window.setInterval(() => {
         void updateHealth();
       }, 15000);
   });
-  onBeforeUnmount(() => window.clearInterval(healthTimer));
+  onBeforeUnmount(() => {
+    window.clearInterval(healthTimer);
+    window.clearInterval(supervisorTimer);
+  });
   return {
     request,
     scope,
@@ -331,6 +371,10 @@ export function useProfile(
     beginMutation,
     isLocked,
     health,
+    supervisor,
+    runtimeReady,
+    runtimeLabel,
+    updateSupervisor,
     status,
     config,
     error,

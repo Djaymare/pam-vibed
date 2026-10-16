@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { spawn } from 'node:child_process';
-import { mkdtemp, rm, writeFile } from 'node:fs/promises';
+import { mkdtemp, rm, writeFile, readFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { basename, dirname, join, resolve } from 'node:path';
 import { pathToFileURL, fileURLToPath } from 'node:url';
@@ -69,6 +69,7 @@ try {
     await evaluate('document.querySelector("[data-dialog-fallback], #fallback").focus()');
     check('Background focus is inert', await evaluate('document.querySelector("dialog[open]").contains(document.activeElement)'));
   };
+  if (!process.argv.includes('--status-only')) {
   await wait('!!document.querySelector("#trigger")');
   await enter('#trigger'); await wait('!!document.querySelector("dialog[open]")');
   check('Component initial input', await active('#initial'));
@@ -224,6 +225,52 @@ try {
   await enter('[aria-label="Supprimer la formulation Ouvre mon autre"]');await evaluate('window.pamDeletionFixture.hold=false');await enter('[data-delete-confirm]');await wait('!document.querySelector("dialog[open]")');
   check('PAM-20 individual confirmed deletion preserves app identity and leaves no duplicate/orphan',await evaluate('window.pamDeletionFixture.config.commandAliases.length===0 && window.pamDeletionFixture.config.applications.length===1 && window.pamDeletionFixture.config.applications[0].id==="22222222-2222-4222-8222-222222222222"'));
   await enter('nav button:nth-of-type(2)');await enter('[aria-label="Supprimer Autre"]');await wait('!!document.querySelector("#delete-title")');check('PAM-20 zero associated formulations explicitly shown',await evaluate('document.querySelector("dialog").textContent.includes("0 formulation(s)") && document.querySelectorAll(".deletion-aliases li").length===0'));await key('Escape');
+  }
+  // Leave time to foreground this disposable host for a real screen reader.
+  if (process.env.PAM_NVDA_SPEECH_LOG && process.argv.includes('--status-only')) await delay(15000);
+  const nvdaOffset = process.env.PAM_NVDA_SPEECH_LOG ? (await readFile(process.env.PAM_NVDA_SPEECH_LOG, 'utf8')).trim().split('\n').length : 0;
+  await cdp('Page.navigate', { url: `${url}?status` });
+  await wait('!!window.pamStatusFixture && !!document.querySelector(".voice-card")');
+  await wait('document.querySelector(".voice-card").textContent.includes("Démarrage")');
+  check('PAM-21 starting runtime disables microphone and never invites capture',await evaluate('document.querySelector(".mic-button").disabled && !document.querySelector(".voice-card").textContent.includes("PRÊT")'));
+  await evaluate('window.pamStatusFixture.phase="recovering"');
+  await wait('document.querySelector(".runtime-pill").textContent.includes("reprise")');
+  check('PAM-21 recovery is announced and the button stays unavailable',await evaluate('document.querySelector(".mic-button").disabled && document.querySelector(".request-status").textContent.includes("reprise")'));
+  await evaluate('window.pamStatusFixture.phase="ready"');await wait('!document.querySelector(".mic-button").disabled');
+  await enter('.text-request input');await fill('.text-request input','Annonce unique PAM-21');
+  await evaluate('window.pamStatusFixture.hold=true');await key('Enter');
+  await wait('document.querySelector(".request-status").textContent.includes("Préparation de la demande")');
+  check('PAM-21 written request announces preparation without claiming voice transcription',await evaluate('!document.querySelector(".request-status").textContent.includes("Transcription")'));
+  await evaluate('window.pamStatusFixture.activity="executing"');
+  await wait('document.querySelector(".request-status").textContent.includes("Exécution de la demande")');
+  check('PAM-21 sent action explains late cancellation and offers no false cancel',await evaluate('document.querySelector(".request-status").textContent.includes("annulation n’est plus garantie") && ![...document.querySelectorAll(".voice-card button")].some(b=>b.textContent.includes("Annuler"))'));
+  await evaluate('window.pamStatusFixture.release();window.pamStatusFixture.hold=false;window.pamStatusFixture.activity="idle"');
+  await wait('document.querySelector("[data-result-announcement]").textContent.includes("Proposition à valider")');
+  await evaluate('window.pamStatusFixture.announcementMutations=0;new MutationObserver(()=>window.pamStatusFixture.announcementMutations++).observe(document.querySelector("[data-result-announcement]"),{subtree:true,childList:true,characterData:true})');
+  const focusBefore=await evaluate('document.activeElement?.outerHTML');await delay(3200);
+  check('PAM-21 completing the keyboard request retains the input focus',await active('.text-request input'));
+  check('PAM-21 polling neither repeats the result nor moves keyboard focus',await evaluate(`window.pamStatusFixture.announcementMutations===0 && document.activeElement?.outerHTML===${JSON.stringify(focusBefore)}`));
+  await evaluate('[...document.querySelectorAll(".approval button")].find(b=>b.textContent.trim()==="Exécuter").focus()');
+  await key('Enter');await wait('document.querySelector("[data-result-announcement]").textContent.includes("Action de test effectuée")');await delay(2000);
+  check('PAM-21 execution result reaches one atomic live region without a focus redirect',await evaluate('document.querySelectorAll("[data-result-announcement]").length===1 && document.querySelector("[data-result-announcement]").getAttribute("aria-atomic")==="true" && !document.activeElement.closest(".history")?.querySelector("[autofocus]")'));
+  await evaluate('window.pamStatusFixture.fail=true');await fill('.text-request input','Erreur PAM-21');await key('Enter');
+  await wait('document.querySelector("[data-error-announcement]").textContent.includes("invalid_request")');await delay(2000);
+  check('PAM-21 recoverable error reaches the persistent alert',await evaluate('document.querySelector("[data-error-announcement]").getAttribute("role")==="alert" && document.querySelector(".voice-card").textContent.includes("ÉCHEC RÉCUPÉRABLE")'));
+  await evaluate('window.pamStatusFixture.fail=false');await enter('nav button:nth-of-type(3)');
+  await evaluate('window.pamStatusFixture.hold=true');await enter('[aria-label="Exécuter automatiquement"]');
+  check('PAM-21 preference save announces a profile update, never vocal processing',await evaluate('document.querySelector(".request-status").textContent.includes("profil") && !document.querySelector(".request-status").textContent.includes("Transcription")'));
+  await evaluate('window.pamStatusFixture.release();window.pamStatusFixture.hold=false;window.pamStatusFixture.phase="recovering"');
+  await wait('document.querySelector(".runtime-pill").textContent.includes("reprise")');
+  check('PAM-21 preferences use the same unavailable runtime description',await evaluate('![...document.querySelectorAll(".settings-card")].at(-1).textContent.includes("Moteurs disponibles")'));
+  await evaluate('window.pamStatusFixture.phase="ready"');await wait('document.querySelector(".runtime-pill").textContent.includes("disponibles")');
+  if (process.env.PAM_NVDA_SPEECH_LOG) {
+    await delay(2000);
+    const speech=(await readFile(process.env.PAM_NVDA_SPEECH_LOG,'utf8')).trim().split('\n').slice(nvdaOffset).map(JSON.parse).filter(e=>e.event==='speech').map(e=>e.text);
+    for(const [label,phrase] of [['proposition','Proposition à valider.'],['résultat','Action de test effectuée.'],['erreur','invalid_request']]) {
+      check(`PAM-21 NVDA announces ${label} exactly once`,speech.filter(text=>text.includes(phrase)).length===1);
+    }
+    check('PAM-21 NVDA receives runtime recovery and processing stages',speech.some(t=>t.includes('Moteurs en reprise')) && speech.some(t=>t.includes('Préparation de la demande')) && speech.some(t=>t.includes('Exécution de la demande')));
+  }
   console.log(JSON.stringify({ runtime: await evaluate('navigator.userAgent'), checks: results.length, results }, null, 2));
 } finally {
   socket?.close();

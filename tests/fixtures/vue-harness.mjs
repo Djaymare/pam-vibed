@@ -21,6 +21,7 @@ export function harness(t, options={}) {
   const request=async(method,payload={})=>{
     calls.push({method,payload});
     if(options.request) {const result=options.request(method,payload);if(result!==undefined)return result;}
+    if(method==='supervisor_status')return {phase:'ready',activity:'idle'};
     if(method==='status')return status();
     if(method==='media_sessions'||method==='discover_applications')return [];
     if(method==='desktop_action')return undefined;

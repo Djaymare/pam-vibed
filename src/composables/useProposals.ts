@@ -207,7 +207,7 @@ export function useProposals(
     }
   }
   async function resolveTurn(turn: Turn, accept: boolean) {
-    if (isLocked()) return;
+    if (isLocked() || (accept && !profile.runtimeReady.value)) return;
     turns.value = reconcileTurns(turns.value);
     if (turns.value.find((item) => item.id === turn.id)?.status !== 'pending') return;
     const token = beginMutation(accept ? 'confirm' : 'discard');

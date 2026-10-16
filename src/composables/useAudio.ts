@@ -99,6 +99,9 @@ export function useAudio(profile: Profile, requests: Requests, canRequest: () =>
   async function cancelRecording() {
     if (state.value === 'cancelling') return;
     if (state.value === 'idle' && !recorder) return;
+    // Before IPC dispatch the audio can be discarded. After dispatch the native
+    // request may already have emitted effects: never pretend to cancel them.
+    if (state.value === 'finishing' && requests.sent.value) return;
     if (state.value === 'finishing') profile.mutation.cancel();
     capture.cancel();
     clearTimers();

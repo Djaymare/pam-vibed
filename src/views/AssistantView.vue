@@ -13,6 +13,7 @@ const props = defineProps<{
   proposals: UnwrapNestedRefs<Proposals>;
   locked: boolean;
   canRequest: boolean;
+  assistantStatus: { label: string; title: string; detail: string };
 }>();
 const { locked } = toRefs(props);
 const { config, activeApps } = toRefs(props.profile);
@@ -24,10 +25,9 @@ const {
   startRecording,
   finishRecording,
   cancelRecording,
+  state: audioState,
 } = toRefs(props.audio);
-const { text, submitText, prepareMediaAction, processing, voiceProcessing } = toRefs(
-  props.requests,
-);
+const { text, submitText, prepareMediaAction, processing, sent } = toRefs(props.requests);
 const { turns, editTurn, resolveTurn, labels, outcomeLabels } = toRefs(props.proposals);
 const emit = defineEmits<{ applications: [add: boolean] }>();
 const { canRequest } = toRefs(props);
@@ -42,11 +42,7 @@ const { canRequest } = toRefs(props);
     <div class="card-top">
       <span class="subtle-label"
         ><span class="status-dot" :class="{ listening: recording }" />{{
-          recording
-            ? 'MICROPHONE ACTIF'
-            : voiceProcessing
-              ? 'TRAITEMENT LOCAL'
-              : 'PRÊT À VOUS ÉCOUTER'
+          assistantStatus.label
         }}</span
       ><span class="clip-limit">{{ recording ? `${seconds} / 30 s` : '30 s maximum' }}</span>
     </div>
@@ -62,28 +58,14 @@ const { canRequest } = toRefs(props);
           <Icon :name="recording ? 'stop' : 'mic'" :size="34" />
         </button>
       </div>
-      <h2>
-        {{
-          requestingMic
-            ? 'Autorisez votre microphone'
-            : recording
-              ? 'Je vous écoute…'
-              : voiceProcessing
-                ? 'Je traite votre demande…'
-                : 'Appuyez pour parler'
-        }}
-      </h2>
-      <p>
-        {{
-          recording
-            ? 'Appuyez à nouveau pour lancer votre demande.'
-            : activeApps.length
-              ? 'Dites, par exemple : « Ouvre ' + activeApps[0]?.name + ' »'
-              : 'Ajoutez une application pour commencer.'
-        }}
-      </p>
-      <button v-if="recording" class="text-button" @click="cancelRecording">
-        Annuler l’enregistrement
+      <h2>{{ assistantStatus.title }}</h2>
+      <p>{{ assistantStatus.detail }}</p>
+      <button
+        v-if="recording || requestingMic || (audioState === 'finishing' && !sent)"
+        class="text-button"
+        @click="cancelRecording"
+      >
+        Annuler avant l’envoi
       </button>
       <button
         v-else-if="!activeApps.length"
@@ -103,7 +85,7 @@ const { canRequest } = toRefs(props);
   <form class="text-request" @submit.prevent="submitText">
     <input
       v-model="text"
-      :disabled="locked"
+      :readonly="locked"
       maxlength="2000"
       aria-label="Demande écrite"
       placeholder="Vous préférez écrire ? Entrez votre demande…"
@@ -122,7 +104,7 @@ const { canRequest } = toRefs(props);
   </p>
   <MediaControls
     :applications="config.applications"
-    :locked="locked"
+    :locked="locked || !profile.runtimeReady"
     @action="prepareMediaAction"
   />
   <section class="connected">
@@ -189,7 +171,6 @@ const { canRequest } = toRefs(props);
       <p
         v-if="['partial', 'expired', 'invalidated', 'consumed'].includes(turn.status)"
         class="result-error"
-        role="status"
       >
         {{ turn.message }}
       </p>
@@ -216,7 +197,11 @@ const { canRequest } = toRefs(props);
             À valider avant {{ new Date(turn.proposal.expiresAt).toLocaleTimeString() }}.</span
           >
         </p>
-        <button class="primary small" :disabled="locked" @click="resolveTurn(turn, true)">
+        <button
+          class="primary small"
+          :disabled="locked || !profile.runtimeReady"
+          @click="resolveTurn(turn, true)"
+        >
           <Icon name="check" :size="16" />Exécuter</button
         ><button class="secondary small" :disabled="locked" @click="resolveTurn(turn, false)">
           Annuler

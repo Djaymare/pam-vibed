@@ -92,6 +92,7 @@ fn dispatch(
     let method = request.call.method().name();
     let id = &request.request_id;
     let result = match method {
+        "supervisor_status" => Ok(transport.supervisor_status()),
         "discover_applications" => catalogue
             .scan()
             .map(|apps| json!(apps))
@@ -142,6 +143,9 @@ mod tests {
     #[derive(Default)]
     struct FakeTransport(Mutex<Vec<String>>);
     impl bridge::RequestTransport for FakeTransport {
+        fn supervisor_status(&self) -> Value {
+            json!({"phase":"recovering","activity":"idle"})
+        }
         fn request_correlated(
             &self,
             method: &str,
@@ -174,6 +178,23 @@ mod tests {
         ] {
             assert!(dispatch(&transport, "", &applications::Catalogue::default(), wire).is_err());
         }
+        assert!(transport.0.lock().unwrap().is_empty());
+    }
+    #[test]
+    fn supervisor_status_reads_host_without_starting_or_queueing_sidecar() {
+        let transport = FakeTransport::default();
+        let response = dispatch(
+            &transport,
+            "",
+            &applications::Catalogue::default(),
+            wire("supervisor_status", json!({})),
+        )
+        .unwrap();
+        assert_eq!(response["ok"], true);
+        assert_eq!(
+            response["result"],
+            json!({"phase":"recovering","activity":"idle"})
+        );
         assert!(transport.0.lock().unwrap().is_empty());
     }
     #[test]

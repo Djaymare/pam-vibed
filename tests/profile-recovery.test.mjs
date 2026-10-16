@@ -37,6 +37,7 @@ async function mountApp(t, { recoveryFailure = false, healthy = false, proposalS
   const invoke = async (command, input) => {
     if (command !== 'assistant_request') return;
     calls.push(input);
+    if (input.method === 'supervisor_status') return {phase:'ready',activity:'idle'};
     if (diagnosticScenario && input.method === 'export_diagnostics') return {format:1,events:[{error:{code:'model_failure',stage:'transcription',requestId:'pam-1-2-3'}}]};
     if (diagnosticScenario && input.method === 'process_text') throw {code:'model_failure',stage:'transcription',requestId:'pam-1-2-3',message:'C:\\Users\\Private\\SENTINEL',technical:{raw:'SENTINEL'}};
     if (microphoneFailure && input.method === 'diagnostic_event') return {code:input.payload.code,stage:'microphone',requestId:'pam-1-2-4'};
@@ -107,6 +108,7 @@ async function mountApp(t, { recoveryFailure = false, healthy = false, proposalS
   };
   const stub = vue.defineComponent({ render: () => vue.h('span') });
   const injectedRequire = name => {
+    if (name.endsWith('/StatusAnnouncements.vue')) return loadFeature(fileURLToPath(new URL('../src/components/StatusAnnouncements.vue', import.meta.url)));
     if (name.endsWith('/ipc')) return {request:(method,payload={})=>invoke('assistant_request',{method,payload}),desktopAction:action=>invoke('desktop_action',{action}),discoverApplications:()=>invoke('discover_applications')};
     if (name.includes('/composables/') || name.includes('/views/')) return loadFeature(fileURLToPath(new URL('../src/' + name.replace(/^(?:\.\.?\/)+/,''), import.meta.url)) + (name.endsWith('.vue') ? '' : '.ts'));
     if (name === './errors' || name === '../errors') {
