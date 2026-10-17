@@ -29,7 +29,12 @@ test('sessions and inference consume the same admission budget before eight effe
     media:{sessions:async opts=>{options.push(opts);elapsed+=30;return []; }},
     runEngine:async (_exe,_args,opts)=>{options.push(opts);elapsed+=60;return {stdout:JSON.stringify({confidence:1,function_calls:Array(8).fill(f.call)})};},
     launchApplication:async (_app,_args,opts)=>{await opts?.beforeEffect?.();effects++;elapsed+=6;return {success:true,message:'Fixture launched'};}});
-  const turn = await handle('process_text',{text:'Ouvre Fixture huit fois'});
+  // Reuse the admission deadline through explicit confirmation, with a fake timer
+  // so filesystem latency cannot race the simulated clock's last ten milliseconds.
+  const budget=createBudget({milliseconds:100,now:()=>elapsed,setTimer:()=>0,clearTimer:()=>{}});
+  const pending=await handle('process_text',{text:'Ouvre Fixture huit fois'},{budget});
+  assert.equal(pending.status,'pending');assert.equal(effects,0);
+  const turn=await handle('confirm',{id:pending.id},{budget});
   assert.equal(effects,2);
   assert.equal(turn.status,'partial');
   assert.deepEqual(turn.results.map(r=>r.outcome),['performed','unknown',...Array(6).fill('not_started')]);
@@ -65,7 +70,10 @@ test('eight media actions share helper budgets and do not emit after slow discov
   });
   const handle=createAssistant({configDirectory:f.directory,runtimeDirectory:f.directory,now:()=>elapsed,setTimer:()=>0,clearTimer:()=>{},budgetMs:100,media,
     runEngine:async()=>{elapsed+=30;return {stdout:JSON.stringify({confidence:1,function_calls:Array(8).fill({name:toolsForPause(f.app),arguments:{}})})};}});
-  const turn=await handle('process_text',{text:Array(8).fill('Mets Fixture en pause').join(' puis ')});
+  const budget=createBudget({milliseconds:100,now:()=>elapsed,setTimer:()=>0,clearTimer:()=>{}});
+  const pending=await handle('process_text',{text:Array(8).fill('Mets Fixture en pause').join(' puis ')},{budget});
+  assert.equal(pending.status,'pending');assert.equal(effects,0);
+  const turn=await handle('confirm',{id:pending.id},{budget});
   assert.equal(effects,2);assert.equal(turn.status,'partial');
   assert.deepEqual(turn.results.map(r=>r.outcome),['performed','performed',...Array(6).fill('not_started')]);
   assert.deepEqual(remainders,[100,60,50,40,30,20]);
@@ -80,7 +88,9 @@ test('late preparation cannot emit an external effect after the global timer fir
       await new Promise(resolve=>setTimeout(resolve,150));await options.beforeEffect();effects++;
       return {success:true,message:'Effect'};
     }});
-  const started=performance.now();const turn=await handle('process_text',{text:'Ouvre Fixture deux fois'});
+  const pending=await handle('process_text',{text:'Ouvre Fixture deux fois'});
+  assert.equal(pending.status,'pending');assert.equal(effects,0);
+  const started=performance.now();const turn=await handle('confirm',{id:pending.id});
   assert.ok(performance.now()-started<140);assert.equal(turn.status,'partial');
   assert.deepEqual(turn.results.map(r=>r.outcome),['not_started','not_started']);
   await new Promise(resolve=>setTimeout(resolve,170));assert.equal(effects,0);
@@ -119,7 +129,9 @@ test('explicit failure is known and does not erase earlier performed actions', a
   const handle=createAssistant({configDirectory:f.directory,runtimeDirectory:f.directory,
     runEngine:async()=>({stdout:JSON.stringify({confidence:1,function_calls:[f.call,f.call,f.call]})}),
     launchApplication:async (_app,_args,options)=>{await options.beforeEffect();effects++;if(effects===2)throw new Error('Refused');return {success:true,message:'Performed'};}});
-  const turn=await handle('process_text',{text:'Ouvre Fixture trois fois'});
+  const pending=await handle('process_text',{text:'Ouvre Fixture trois fois'});
+  assert.equal(pending.status,'pending');assert.equal(effects,0);
+  const turn=await handle('confirm',{id:pending.id});
   assert.deepEqual(turn.results.map(r=>r.outcome),['performed','failed','performed']);assert.equal(turn.status,'failed');
 });
 

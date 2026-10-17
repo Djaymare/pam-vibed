@@ -87,8 +87,11 @@ const desktop = (action: 'hide' | 'quit') => emit('desktop', action);
       <div>
         <strong>Exécuter automatiquement</strong>
         <p id="settings-auto-help">
-          Les demandes reconnues avec assez de confiance peuvent s’exécuter sans confirmation.<br />Sinon,
-          les actions restent à valider. Un score élevé ne garantit pas un choix correct.
+          Désactivée pour un nouveau profil. Si vous l’activez, seules les commandes écrites simples
+          d’ouverture sans arguments et de lecture / pause, reconnues explicitement et au-dessus du
+          seuil, peuvent s’exécuter sans confirmation. Les demandes vocales, composées, les
+          arguments et les autres actions restent à valider. Un score élevé ne garantit pas un choix
+          correct.
         </p>
       </div>
       <button
@@ -109,8 +112,12 @@ const desktop = (action: 'hide' | 'quit') => emit('desktop', action);
     </div>
     <div class="setting-row">
       <div>
-        <label for="settings-threshold">Seuil de confiance</label>
-        <p id="settings-threshold-help">Les scores inférieurs demandent votre validation.</p>
+        <label for="settings-threshold">Seuil du score de choix</label>
+        <p id="settings-threshold-help">
+          Les scores inférieurs demandent votre validation. Le score Needle concerne le choix
+          d’action ; ce n’est pas une probabilité que la transcription soit correcte. Augmenter le
+          seuil ne dispense jamais des confirmations obligatoires.
+        </p>
       </div>
       <div class="range-control">
         <input
@@ -124,7 +131,7 @@ const desktop = (action: 'hide' | 'quit') => emit('desktop', action);
           :aria-describedby="`settings-threshold-help ${settingsError ? 'settings-error' : ''}`"
           :aria-valuetext="`${Math.round(settingsDraft.confidenceThreshold * 100)} %`"
           :disabled="locked"
-          aria-label="Seuil de confiance"
+          aria-label="Seuil du score de choix"
           @change="saveSettings"
         /><span>{{ Math.round(settingsDraft.confidenceThreshold * 100) }} %</span>
       </div>

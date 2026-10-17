@@ -61,7 +61,7 @@ export function useProfile(
     applications: [],
     commandAliases: [],
     language: 'fr',
-    autoExecute: true,
+    autoExecute: false,
     confidenceThreshold: 0.7,
   });
   const error = ref(''),
@@ -158,7 +158,7 @@ export function useProfile(
         applications: [],
         formulations: 0,
         language: 'fr',
-        autoExecute: true,
+        autoExecute: false,
         confidenceThreshold: 0.7,
       },
     };

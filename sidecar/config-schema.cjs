@@ -5,7 +5,7 @@ const { validateStore, normalizePhrase } = require('./command-aliases.cjs');
 
 const { LANGUAGES } = require('./languages.cjs');
 const CURRENT_VERSION = 2;
-const DEFAULT_CONFIG = { version: CURRENT_VERSION, applications: [], commandAliases: [], language: 'fr', autoExecute: true, confidenceThreshold: 0.7 };
+const DEFAULT_CONFIG = { version: CURRENT_VERSION, applications: [], commandAliases: [], language: 'fr', autoExecute: false, confidenceThreshold: 0.7 };
 const MAX_CONFIG_BYTES = 2 * 1024 * 1024;
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 function ensure(condition, message) { if (!condition) throw new Error(message); }

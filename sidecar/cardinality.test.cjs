@@ -16,7 +16,7 @@ async function fixture(t, response, config = {}, speechText) {
     assert.ok(path.basename(directory).startsWith('pam-cardinality-'));
     await fs.rm(directory,{recursive:true,force:true});
   });
-  await fs.writeFile(path.join(directory,'applications.json'),JSON.stringify({...DEFAULT_CONFIG,applications:[app],...config}));
+  await fs.writeFile(path.join(directory,'applications.json'),JSON.stringify({...DEFAULT_CONFIG,autoExecute:true,applications:[app],...config}));
   const launches=[];
   const handle=createAssistant({configDirectory:directory,runtimeDirectory:directory,
     runEngine:async(_file,args)=>({stdout:JSON.stringify(args.includes('--tools')?response:{text:speechText,language:'fr'})}),
@@ -51,7 +51,9 @@ test('PAM-08 : une commande libre simple refuse aussi un second appel inventé',
 test('PAM-08 : deux applications demandées gardent leurs deux lancements',async t=>{
   for(const text of ['Ouvre Test et Autre','Ouvre Test puis ouvre Autre','Open Test and Autre']){
     const f=await fixture(t,{confidence:0.99,function_calls:[open(app),open(other)]},{applications:[app,other]});
-    const turn=await f.handle('process_text',{text});
+    const pending=await f.handle('process_text',{text});
+    assert.equal(pending.status,'pending');assert.equal(f.launches.length,0);
+    const turn=await f.handle('confirm',{id:pending.id});
     assert.equal(turn.status,'executed');assert.equal(turn.results.length,2);
     assert.deepEqual(f.launches.map(launch=>launch.id),[app.id,other.id]);
   }
@@ -64,7 +66,9 @@ test('PAM-08 : un troisième lancement inventé invalide tout le plan composé',
 test('PAM-08 : répétitions explicites préservées même avec une seule application configurée',async t=>{
   for(const text of ['Ouvre Test deux fois','Ouvre deux fois Test','OPEN TEST TWICE','Open Test 2 times','Ouvre Test puis ouvre Test']){
     const f=await fixture(t,{confidence:0.99,function_calls:[open(app),open(app)]});
-    const turn=await f.handle('process_text',{text});
+    const pending=await f.handle('process_text',{text});
+    assert.equal(pending.status,'pending',text);assert.equal(f.launches.length,0,text);
+    const turn=await f.handle('confirm',{id:pending.id});
     assert.equal(turn.status,'executed',text);assert.equal(turn.results.length,2,text);
     assert.equal(f.launches.length,2,text);
   }
@@ -74,7 +78,9 @@ test('PAM-08 : une répétition ne permet pas de répéter une autre application
   await assert.rejects(f.handle('process_text',{text:'Ouvre Test deux fois et Autre'}),/supplémentaire/);
   assert.equal(f.launches.length,0);
   const valid=await fixture(t,{confidence:0.99,function_calls:[open(app),open(app),open(other)]},{applications:[app,other]});
-  const turn=await valid.handle('process_text',{text:'Ouvre Test deux fois et Autre'});
+  const pending=await valid.handle('process_text',{text:'Ouvre Test deux fois et Autre'});
+  assert.equal(pending.status,'pending');assert.equal(valid.launches.length,0);
+  const turn=await valid.handle('confirm',{id:pending.id});
   assert.equal(turn.status,'executed');assert.equal(valid.launches.length,3);
 });
 test('PAM-08 : le modèle ne peut pas réduire silencieusement une répétition explicite',async t=>{

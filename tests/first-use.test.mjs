@@ -4,6 +4,17 @@ import { applicationGuidance } from '../src/firstUse.ts';
 import { harness, settle, config } from './fixtures/vue-harness.mjs';
 const nodes=n=>[n,...n.children.flatMap(nodes)];
 const text=n=>n.text+n.children.map(text).join('');
+
+test('PAM-29 first-use activation explains scope before explicit opt-in and persists the setting',async t=>{
+ const h=harness(t,{components:true});let saved=0,profile;
+ const {root}=h.mount((load,v)=>{profile=v.reactive({config:{...config(),autoExecute:false,applications:[]},settingsDraft:{autoExecute:false},saveSettings(){saved++;},unavailable:()=>false});return ()=>v.h(load('components/FirstUseGuide.vue').default,{profile,requests:{text:''},locked:false});});
+ await settle();
+ const all=nodes(root),help=all.find(n=>n.props.id==='first-use-auto-help'),control=all.find(n=>n.props.role==='switch');
+ assert.ok(all.indexOf(help)<all.indexOf(control));assert.match(text(help),/voix, les arguments/);assert.match(text(help),/ne mesure pas la fidélité/);
+ assert.equal(control.props['aria-checked'],false);assert.equal(saved,0);assert.equal(control.props['aria-describedby'],help.props.id);
+ control.props.onClick();await settle();assert.equal(saved,1);assert.equal(profile.settingsDraft.autoExecute,true);assert.equal(control.props['aria-checked'],true);
+ control.props.onClick();await settle();assert.equal(saved,2);assert.equal(control.props['aria-checked'],false);assert.deepEqual(h.errors,[]);
+});
 test('PAM-26 descriptions never promise internal actions for a simple launcher or an absent player',()=>{
  const app={name:'Éditeur',arguments:[]};
  assert.deepEqual(applicationGuidance(app).examples,['Ouvre Éditeur']);
@@ -18,7 +29,7 @@ test('PAM-26 first action requires a real test result; unavailable recovery and 
  let fail=false,profile,requests,props,tests=0;const h=harness(t,{components:true});
  const mounted=h.mount((load,v)=>{
   const scope=load('composables/useAsyncScope.ts').useAsyncScope(),mutation=scope.operation();
-  profile=v.reactive({config:config(),unavailable:()=>fail,beginMutation:k=>mutation.begin(k),request:async(method,payload)=>{tests++;assert.equal(method,'test_application');assert.equal(payload.name,'Initial');return {success:!fail,message:fail?'Absent':'Ouverture demandée'};},updateHealth:async()=>{},toggleApplication:app=>app.enabled=!app.enabled});
+  profile=v.reactive({config:config(),settingsDraft:{autoExecute:false},saveSettings(){},unavailable:()=>fail,beginMutation:k=>mutation.begin(k),request:async(method,payload)=>{tests++;assert.equal(method,'test_application');assert.equal(payload.name,'Initial');return {success:!fail,message:fail?'Absent':'Ouverture demandée'};},updateHealth:async()=>{},toggleApplication:app=>app.enabled=!app.enabled});
   requests=v.reactive({text:''});props=v.reactive({profile,requests,locked:false});
   return ()=>v.h(load('components/FirstUseGuide.vue').default,props);
  });await settle();
@@ -30,12 +41,12 @@ test('PAM-26 first action requires a real test result; unavailable recovery and 
  await button('Préparer ma phrase écrite').props.onClick();assert.equal(requests.text,'Ouvre Initial');assert.equal(tests,1);
  requests.text='Ma longue demande conservée';await settle();await button('Reprendre ma phrase écrite').props.onClick();assert.equal(requests.text,'Ma longue demande conservée');requests.text='';await settle();
  profile.config.applications[0].executable='changed.exe';await settle();assert.equal(button('Préparer ma phrase écrite').props.disabled,true);
- fail=true;profile.config={...profile.config};await settle();assert.match(text(mounted.root),/indisponible/);assert.ok(button('Désactiver Initial'));assert.equal(button('Tester l’ouverture').props.disabled,true);
+ fail=true;profile.config={...profile.config,applications:[...profile.config.applications]};await settle();assert.match(text(mounted.root),/indisponible/);assert.ok(button('Désactiver Initial'));assert.equal(button('Tester l’ouverture').props.disabled,true);
  assert.deepEqual(h.errors,[]);
 });
 test('PAM-26 empty profile offers selection and a failed opening keeps the example locked',async t=>{
  const h=harness(t,{components:true});let profile,added=0;
- const mounted=h.mount((load,v)=>{const operation=load('composables/useAsyncScope.ts').useAsyncScope().operation();profile=v.reactive({config:{...config(),applications:[]},unavailable:()=>false,beginMutation:k=>operation.begin(k),request:async()=>{throw Error('Absent');},updateHealth:async()=>{}});return ()=>v.h(load('components/FirstUseGuide.vue').default,{profile,requests:{text:''},locked:false,onAdd:()=>added++});});await settle();
+ const mounted=h.mount((load,v)=>{const operation=load('composables/useAsyncScope.ts').useAsyncScope().operation();profile=v.reactive({config:{...config(),applications:[]},settingsDraft:{autoExecute:false},saveSettings(){},unavailable:()=>false,beginMutation:k=>operation.begin(k),request:async()=>{throw Error('Absent');},updateHealth:async()=>{}});return ()=>v.h(load('components/FirstUseGuide.vue').default,{profile,requests:{text:''},locked:false,onAdd:()=>added++});});await settle();
  let all=()=>nodes(mounted.root),button=label=>all().find(n=>n.type==='button'&&text(n).trim()===label);
  button('Choisir ma première application').props.onClick();assert.equal(added,1);
  profile.config.applications=config().applications;await settle();await button('Tester l’ouverture').props.onClick();await settle();

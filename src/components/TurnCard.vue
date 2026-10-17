@@ -31,7 +31,7 @@ const pending = computed(
       <strong class="turn-badge" :class="turn.status">{{ turnLabel(turn) }}</strong
       ><span class="turn-metrics"
         >{{ (turn.durationMs / 1000).toFixed(2) }} s<span v-if="turn.confidence !== null">
-          · confiance du choix {{ Math.round(turn.confidence * 100) }} %</span
+          · score du choix {{ Math.round(turn.confidence * 100) }} %</span
         ></span
       >
     </div>

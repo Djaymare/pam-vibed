@@ -1,0 +1,3154 @@
+{
+  "schemaVersion": 1,
+  "split": "calibration",
+  "createdAt": "2026-10-17T23:28:02.285Z",
+  "corpusSha256": "f09549a56e240e312a819f868880717d1a2978401fdc885cc71b10eedb6b15ad",
+  "sourceBaseCommit": "e5beb5587b8d64ef672cc91d3fc8ca1c2b3da32e",
+  "mode": "native Whistle and Needle",
+  "node": "v24.21.0",
+  "voices": [
+    {
+      "id": "c01",
+      "text": "Peux-tu ouvrir Lyra maintenant ?",
+      "voice": "Microsoft Hortense Desktop",
+      "rate": 0
+    },
+    {
+      "id": "c02",
+      "text": "Please launch Miroir for me.",
+      "voice": "Microsoft Zira Desktop",
+      "rate": 0
+    },
+    {
+      "id": "c03",
+      "text": "Lance Lyra, s’il te plaît.",
+      "voice": "Microsoft Hortense Desktop",
+      "rate": 0
+    },
+    {
+      "id": "c04",
+      "text": "Open Lyra and Miroir please.",
+      "voice": "Microsoft Zira Desktop",
+      "rate": 0
+    },
+    {
+      "id": "c05",
+      "text": "Mets le Lecteur ambre en pause, merci.",
+      "voice": "Microsoft Hortense Desktop",
+      "rate": 0
+    },
+    {
+      "id": "c06",
+      "text": "Please resume playback in Lecteur ambre.",
+      "voice": "Microsoft Zira Desktop",
+      "rate": 0
+    },
+    {
+      "id": "c07",
+      "text": "Passe au morceau suivant dans Lecteur ambre.",
+      "voice": "Microsoft Hortense Desktop",
+      "rate": 0
+    },
+    {
+      "id": "c08",
+      "text": "Ouvre Transmetteur avec le texte rendez-vous à seize heures.",
+      "voice": "Microsoft Hortense Desktop",
+      "rate": 0
+    },
+    {
+      "id": "c09",
+      "text": "Cherche Vent du nord sur Deezer.",
+      "voice": "Microsoft Hortense Desktop",
+      "rate": 0
+    },
+    {
+      "id": "c10",
+      "text": "Recharge Deezer maintenant.",
+      "voice": "Microsoft Hortense Desktop",
+      "rate": 0
+    },
+    {
+      "id": "c11",
+      "text": "Surtout, ne lance pas Lyra.",
+      "voice": "Microsoft Hortense Desktop",
+      "rate": 0
+    },
+    {
+      "id": "c12",
+      "text": "Please do not launch Miroir today.",
+      "voice": "Microsoft Zira Desktop",
+      "rate": 0
+    },
+    {
+      "id": "c13",
+      "text": "Ne mets pas Lecteur ambre en pause.",
+      "voice": "Microsoft Hortense Desktop",
+      "rate": 0
+    },
+    {
+      "id": "c14",
+      "text": "Lance Lyra ou bien Miroir.",
+      "voice": "Microsoft Hortense Desktop",
+      "rate": 0
+    },
+    {
+      "id": "c15",
+      "text": "Open either Miroir or Lyra.",
+      "voice": "Microsoft Zira Desktop",
+      "rate": 0
+    },
+    {
+      "id": "c16",
+      "text": "Ouvre l’application dont je parlais hier.",
+      "voice": "Microsoft Hortense Desktop",
+      "rate": 0
+    },
+    {
+      "id": "c17",
+      "text": "La constellation de la Lyre est visible ce soir.",
+      "voice": "Microsoft Hortense Desktop",
+      "rate": 0
+    },
+    {
+      "id": "c18",
+      "text": "What does launch Miroir mean in French?",
+      "voice": "Microsoft Zira Desktop",
+      "rate": 0
+    },
+    {
+      "id": "c19",
+      "text": "La consigne affichée est : ouvre Lyra.",
+      "voice": "Microsoft Hortense Desktop",
+      "rate": 0
+    },
+    {
+      "id": "c20",
+      "text": "Ouvre le logiciel Boréal.",
+      "voice": "Microsoft Hortense Desktop",
+      "rate": 0
+    },
+    {
+      "id": "c21",
+      "text": "Starte bitte Lyra jetzt.",
+      "voice": "Microsoft Hortense Desktop",
+      "rate": 0
+    },
+    {
+      "id": "c22",
+      "text": "Inicia Miroir por favor.",
+      "voice": "Microsoft Hortense Desktop",
+      "rate": 0
+    },
+    {
+      "id": "c23",
+      "text": "Avvia Lyra adesso per favore.",
+      "voice": "Microsoft Hortense Desktop",
+      "rate": 0
+    },
+    {
+      "id": "c24",
+      "text": "Start Miroir alsjeblieft.",
+      "voice": "Microsoft Hortense Desktop",
+      "rate": 0
+    },
+    {
+      "id": "c25",
+      "text": "Uruchom teraz Lyra proszę.",
+      "voice": "Microsoft Hortense Desktop",
+      "rate": 0
+    },
+    {
+      "id": "c26",
+      "text": "Démarre les coups de cœur sur Deezer.",
+      "voice": "Microsoft Hortense Desktop",
+      "rate": 0
+    },
+    {
+      "id": "c27",
+      "text": "Affiche l’album 246810 dans Deezer.",
+      "voice": "Microsoft Hortense Desktop",
+      "rate": 0
+    },
+    {
+      "id": "c28",
+      "text": "The next appointment is at noon.",
+      "voice": "Microsoft Zira Desktop",
+      "rate": 0
+    },
+    {
+      "id": "c29",
+      "text": "Ouvre deux fois Miroir.",
+      "voice": "Microsoft Hortense Desktop",
+      "rate": 0
+    },
+    {
+      "id": "c30",
+      "text": "Elle me demande si la phrase « ouvre Miroir » est correcte.",
+      "voice": "Microsoft Hortense Desktop",
+      "rate": 0
+    }
+  ],
+  "noise": {
+    "kind": "seeded white noise",
+    "snrDb": 8,
+    "seed": 290018
+  },
+  "samples": [
+    {
+      "key": "c01-text",
+      "id": "c01",
+      "variant": "text",
+      "language": "fr",
+      "category": "open",
+      "reference": "Peux-tu ouvrir Lyra maintenant ?",
+      "expected": [
+        [
+          0,
+          "open",
+          {}
+        ]
+      ],
+      "transcript": "Peux-tu ouvrir Lyra maintenant ?",
+      "wordErrors": null,
+      "referenceWords": 5,
+      "audioSha256": null,
+      "confidence": 0.1291,
+      "status": "unsupported",
+      "calls": [],
+      "correct": false,
+      "effects": 0,
+      "engineReplies": [
+        "{\"type\":\"call\",\"success\":true,\"error\":null,\"error_code\":null,\"reason\":null,\"function_calls\":[{\"name\":\"open_deezer_music\",\"arguments\":{}}],\"suppressed_calls\":[],\"reasoning\":\"'ouvrir Lyra maintenant' -> open_deezer_music with no arguments.\",\"confidence\":0.1291,\"prefill_tps\":398.4,\"decode_tps\":235,\"peak_ram_mb\":211.4,\"validation\":{\"ungrounded\":[],\"negation\":false}}"
+      ]
+    },
+    {
+      "key": "c01-clean",
+      "id": "c01",
+      "variant": "clean",
+      "language": "fr",
+      "category": "open",
+      "reference": "Peux-tu ouvrir Lyra maintenant ?",
+      "expected": [
+        [
+          0,
+          "open",
+          {}
+        ]
+      ],
+      "transcript": "Peut-tu ouvrir la haie re maintenant ?",
+      "wordErrors": 4,
+      "referenceWords": 5,
+      "audioSha256": "ae9139021b6f15ef93b47f79d1ce8433e16d2c06ba0d8b88e7ea2851bc5d56cf",
+      "confidence": 0.1832,
+      "status": "pending",
+      "calls": [
+        [
+          4,
+          "open",
+          {}
+        ]
+      ],
+      "correct": false,
+      "effects": 0,
+      "engineReplies": [
+        "{\"text\":\"Peut-tu ouvrir la haie re maintenant ?\",\"language\":\"fr\",\"ttft_ms\":32.6,\"decode_tps\":271.1}",
+        "{\"type\":\"call\",\"success\":true,\"error\":null,\"error_code\":null,\"reason\":null,\"function_calls\":[{\"name\":\"open_deezer_music\",\"arguments\":{}}],\"suppressed_calls\":[],\"reasoning\":\"'ouvrir la haie re maintenant' -> open_deezer_music.\",\"confidence\":0.1832,\"prefill_tps\":402,\"decode_tps\":242,\"peak_ram_mb\":226.6,\"validation\":{\"ungrounded\":[],\"negation\":false}}"
+      ]
+    },
+    {
+      "key": "c01-noise",
+      "id": "c01",
+      "variant": "noise",
+      "language": "fr",
+      "category": "open",
+      "reference": "Peux-tu ouvrir Lyra maintenant ?",
+      "expected": [
+        [
+          0,
+          "open",
+          {}
+        ]
+      ],
+      "transcript": "Peut-tu ouvrir la hiérone maintenant ?",
+      "wordErrors": 3,
+      "referenceWords": 5,
+      "audioSha256": "64683037189b1ced22418d6a7de0c1c42976a3fce1fca9e66edb97e3d7617a07",
+      "confidence": 0.2142,
+      "status": "pending",
+      "calls": [
+        [
+          4,
+          "open",
+          {}
+        ]
+      ],
+      "correct": false,
+      "effects": 0,
+      "engineReplies": [
+        "{\"text\":\"Peut-tu ouvrir la hiérone maintenant ?\",\"language\":\"fr\",\"ttft_ms\":32.8,\"decode_tps\":278.8}",
+        "{\"type\":\"call\",\"success\":true,\"error\":null,\"error_code\":null,\"reason\":null,\"function_calls\":[{\"name\":\"open_deezer_music\",\"arguments\":{}}],\"suppressed_calls\":[],\"reasoning\":\"'ouvrir la hiérone maintenant' -> open_deezer_music.\",\"confidence\":0.2142,\"prefill_tps\":396.4,\"decode_tps\":238.5,\"peak_ram_mb\":233.5,\"validation\":{\"ungrounded\":[],\"negation\":false}}"
+      ]
+    },
+    {
+      "key": "c02-text",
+      "id": "c02",
+      "variant": "text",
+      "language": "en",
+      "category": "open",
+      "reference": "Please launch Miroir for me.",
+      "expected": [
+        [
+          1,
+          "open",
+          {}
+        ]
+      ],
+      "transcript": "Please launch Miroir for me.",
+      "wordErrors": null,
+      "referenceWords": 5,
+      "audioSha256": null,
+      "confidence": 0.2416,
+      "status": "pending",
+      "calls": [
+        [
+          1,
+          "open",
+          {}
+        ]
+      ],
+      "correct": true,
+      "effects": 0,
+      "engineReplies": [
+        "{\"type\":\"call\",\"success\":true,\"error\":null,\"error_code\":null,\"reason\":null,\"function_calls\":[{\"name\":\"open_miroir\",\"arguments\":{}}],\"suppressed_calls\":[],\"reasoning\":\"'launch Miroir' -> open_miroir. Zero-argument tool.\",\"confidence\":0.2416,\"prefill_tps\":215.3,\"decode_tps\":122.1,\"peak_ram_mb\":233.5,\"validation\":{\"ungrounded\":[],\"negation\":false}}"
+      ]
+    },
+    {
+      "key": "c02-clean",
+      "id": "c02",
+      "variant": "clean",
+      "language": "en",
+      "category": "open",
+      "reference": "Please launch Miroir for me.",
+      "expected": [
+        [
+          1,
+          "open",
+          {}
+        ]
+      ],
+      "transcript": "Please launch Maroyer for me.",
+      "wordErrors": 1,
+      "referenceWords": 5,
+      "audioSha256": "f0e63e4ac52646cc0a24d56c3766e1c6d5905009d69c61ef079409c9560ec901",
+      "confidence": 0.1906,
+      "status": "pending",
+      "calls": [
+        [
+          4,
+          "open",
+          {}
+        ]
+      ],
+      "correct": false,
+      "effects": 0,
+      "engineReplies": [
+        "{\"text\":\"Please launch Maroyer for me.\",\"language\":\"en\",\"ttft_ms\":56,\"decode_tps\":156.2}",
+        "{\"type\":\"call\",\"success\":true,\"error\":null,\"error_code\":null,\"reason\":null,\"function_calls\":[{\"name\":\"open_deezer_music\",\"arguments\":{}}],\"suppressed_calls\":[],\"reasoning\":\"'launch Maroyer' -> open_deezer_music with no arguments.\",\"confidence\":0.1906,\"prefill_tps\":222.2,\"decode_tps\":124.6,\"peak_ram_mb\":233.7,\"validation\":{\"ungrounded\":[],\"negation\":false}}"
+      ]
+    },
+    {
+      "key": "c02-noise",
+      "id": "c02",
+      "variant": "noise",
+      "language": "en",
+      "category": "open",
+      "reference": "Please launch Miroir for me.",
+      "expected": [
+        [
+          1,
+          "open",
+          {}
+        ]
+      ],
+      "transcript": "Please launch Maroyer for me.",
+      "wordErrors": 1,
+      "referenceWords": 5,
+      "audioSha256": "d8bbca4a10bfe2ed56277e7a70619721953d5553808b0c1ba445158be2955061",
+      "confidence": 0.1906,
+      "status": "pending",
+      "calls": [
+        [
+          4,
+          "open",
+          {}
+        ]
+      ],
+      "correct": false,
+      "effects": 0,
+      "engineReplies": [
+        "{\"text\":\"Please launch Maroyer for me.\",\"language\":\"en\",\"ttft_ms\":57.1,\"decode_tps\":157.7}",
+        "{\"type\":\"call\",\"success\":true,\"error\":null,\"error_code\":null,\"reason\":null,\"function_calls\":[{\"name\":\"open_deezer_music\",\"arguments\":{}}],\"suppressed_calls\":[],\"reasoning\":\"'launch Maroyer' -> open_deezer_music with no arguments.\",\"confidence\":0.1906,\"prefill_tps\":222.2,\"decode_tps\":124.1,\"peak_ram_mb\":236.1,\"validation\":{\"ungrounded\":[],\"negation\":false}}"
+      ]
+    },
+    {
+      "key": "c03-text",
+      "id": "c03",
+      "variant": "text",
+      "language": "fr",
+      "category": "open",
+      "reference": "Lance Lyra, s’il te plaît.",
+      "expected": [
+        [
+          0,
+          "open",
+          {}
+        ]
+      ],
+      "transcript": "Lance Lyra, s’il te plaît.",
+      "wordErrors": null,
+      "referenceWords": 6,
+      "audioSha256": null,
+      "confidence": 0.6328,
+      "status": "pending",
+      "calls": [
+        [
+          0,
+          "open",
+          {}
+        ]
+      ],
+      "correct": true,
+      "effects": 0,
+      "engineReplies": [
+        "{\"type\":\"call\",\"success\":true,\"error\":null,\"error_code\":null,\"reason\":null,\"function_calls\":[{\"name\":\"open_lyra\",\"arguments\":{}}],\"suppressed_calls\":[],\"reasoning\":\"Query asks to open Lyra. Synthetic evaluation target Aliases.\",\"confidence\":0.6328,\"prefill_tps\":347.3,\"decode_tps\":157.5,\"peak_ram_mb\":236.1,\"validation\":{\"ungrounded\":[],\"negation\":false}}"
+      ]
+    },
+    {
+      "key": "c03-clean",
+      "id": "c03",
+      "variant": "clean",
+      "language": "fr",
+      "category": "open",
+      "reference": "Lance Lyra, s’il te plaît.",
+      "expected": [
+        [
+          0,
+          "open",
+          {}
+        ]
+      ],
+      "transcript": "Lance l'aïre, s'il te plaît.",
+      "wordErrors": 2,
+      "referenceWords": 6,
+      "audioSha256": "1c0aaf1db38968737586cf0f0dbe51611c9acf6faf852e700906beca6b2ba4d7",
+      "confidence": 0.2169,
+      "status": "unsupported",
+      "calls": [],
+      "correct": false,
+      "effects": 0,
+      "engineReplies": [
+        "{\"text\":\"Lance l'aïre, s'il te plaît.\",\"language\":\"fr\",\"ttft_ms\":63.8,\"decode_tps\":157.5}",
+        "{\"type\":\"call\",\"success\":true,\"error\":null,\"error_code\":null,\"reason\":null,\"function_calls\":[{\"name\":\"play_deezer_music\",\"arguments\":{}}],\"suppressed_calls\":[],\"reasoning\":\"'lance l'aïre' -> play_dezer_music.\",\"confidence\":0.2169,\"prefill_tps\":223.9,\"decode_tps\":121.6,\"peak_ram_mb\":237.2,\"validation\":{\"ungrounded\":[],\"negation\":false}}"
+      ]
+    },
+    {
+      "key": "c03-noise",
+      "id": "c03",
+      "variant": "noise",
+      "language": "fr",
+      "category": "open",
+      "reference": "Lance Lyra, s’il te plaît.",
+      "expected": [
+        [
+          0,
+          "open",
+          {}
+        ]
+      ],
+      "transcript": "L'oncle est heureux qu'il te plaise.",
+      "wordErrors": 6,
+      "referenceWords": 6,
+      "audioSha256": "9f47fcad86e7ea64558ff85f96c70f4077a68dfe2d3b1b142b6b633263a5bf28",
+      "confidence": 0.0869,
+      "status": "unsupported",
+      "calls": [],
+      "correct": false,
+      "effects": 0,
+      "engineReplies": [
+        "{\"text\":\"L'oncle est heureux qu'il te plaise.\",\"language\":\"fr\",\"ttft_ms\":64.4,\"decode_tps\":156.6}",
+        "{\"type\":\"call\",\"success\":true,\"error\":null,\"error_code\":null,\"reason\":null,\"function_calls\":[],\"suppressed_calls\":[{\"name\":\"pause_deezer_music\",\"arguments\":{}}],\"reasoning\":\"'oncle' -> user wants to stop audio playback in Deezer. pause_dezer_music is zero-argument and stops audio playback.\",\"confidence\":0.0869,\"prefill_tps\":219.2,\"decode_tps\":120.3,\"peak_ram_mb\":237.2,\"validation\":{\"ungrounded\":[],\"negation\":false}}"
+      ]
+    },
+    {
+      "key": "c04-text",
+      "id": "c04",
+      "variant": "text",
+      "language": "en",
+      "category": "open",
+      "reference": "Open Lyra and Miroir please.",
+      "expected": [
+        [
+          0,
+          "open",
+          {}
+        ],
+        [
+          1,
+          "open",
+          {}
+        ]
+      ],
+      "transcript": "Open Lyra and Miroir please.",
+      "wordErrors": null,
+      "referenceWords": 5,
+      "audioSha256": null,
+      "confidence": 0.1035,
+      "status": "unsupported",
+      "calls": [],
+      "correct": false,
+      "effects": 0,
+      "engineReplies": [
+        "{\"type\":\"call\",\"success\":true,\"error\":null,\"error_code\":null,\"reason\":null,\"function_calls\":[{\"name\":\"open_deezer_music\",\"arguments\":{}}],\"suppressed_calls\":[],\"reasoning\":\"'Open Lyra and Miroir' -> open_deezer_music with no arguments.\",\"confidence\":0.1035,\"prefill_tps\":207.8,\"decode_tps\":121.5,\"peak_ram_mb\":237.2,\"validation\":{\"ungrounded\":[],\"negation\":false}}"
+      ]
+    },
+    {
+      "key": "c04-clean",
+      "id": "c04",
+      "variant": "clean",
+      "language": "en",
+      "category": "open",
+      "reference": "Open Lyra and Miroir please.",
+      "expected": [
+        [
+          0,
+          "open",
+          {}
+        ],
+        [
+          1,
+          "open",
+          {}
+        ]
+      ],
+      "transcript": "Open Lyra and Maroyer please.",
+      "wordErrors": 1,
+      "referenceWords": 5,
+      "audioSha256": "30d43c9024eb13f4c4220b6f405bb61f8d1273e8626b94ecd4fae22237fec750",
+      "confidence": 0.0848,
+      "status": "unsupported",
+      "calls": [],
+      "correct": false,
+      "effects": 0,
+      "engineReplies": [
+        "{\"text\":\"Open Lyra and Maroyer please.\",\"language\":\"en\",\"ttft_ms\":58.4,\"decode_tps\":156.3}",
+        "{\"type\":\"call\",\"success\":true,\"error\":null,\"error_code\":null,\"reason\":null,\"function_calls\":[],\"suppressed_calls\":[{\"name\":\"open_deezer_music\",\"arguments\":{}}],\"reasoning\":\"Query asks to open two specific deezer names. open_deezer_music takes array of names.\",\"confidence\":0.0848,\"prefill_tps\":219.3,\"decode_tps\":121.9,\"peak_ram_mb\":237.2,\"validation\":{\"ungrounded\":[],\"negation\":false}}"
+      ]
+    },
+    {
+      "key": "c04-noise",
+      "id": "c04",
+      "variant": "noise",
+      "language": "en",
+      "category": "open",
+      "reference": "Open Lyra and Miroir please.",
+      "expected": [
+        [
+          0,
+          "open",
+          {}
+        ],
+        [
+          1,
+          "open",
+          {}
+        ]
+      ],
+      "transcript": "Open Lyra and Miroir please.",
+      "wordErrors": 0,
+      "referenceWords": 5,
+      "audioSha256": "c5de3fd3d1b6827ce8ad26f9bcfb1e8f33774a3e51fdbe132cfaac25e661be42",
+      "confidence": 0.1035,
+      "status": "unsupported",
+      "calls": [],
+      "correct": false,
+      "effects": 0,
+      "engineReplies": [
+        "{\"text\":\"Open Lyra and Miroir please.\",\"language\":\"en\",\"ttft_ms\":60.6,\"decode_tps\":157.1}",
+        "{\"type\":\"call\",\"success\":true,\"error\":null,\"error_code\":null,\"reason\":null,\"function_calls\":[{\"name\":\"open_deezer_music\",\"arguments\":{}}],\"suppressed_calls\":[],\"reasoning\":\"'Open Lyra and Miroir' -> open_deezer_music with no arguments.\",\"confidence\":0.1035,\"prefill_tps\":211.4,\"decode_tps\":122.3,\"peak_ram_mb\":237.9,\"validation\":{\"ungrounded\":[],\"negation\":false}}"
+      ]
+    },
+    {
+      "key": "c05-text",
+      "id": "c05",
+      "variant": "text",
+      "language": "fr",
+      "category": "media",
+      "reference": "Mets le Lecteur ambre en pause, merci.",
+      "expected": [
+        [
+          3,
+          "media_pause",
+          {}
+        ]
+      ],
+      "transcript": "Mets le Lecteur ambre en pause, merci.",
+      "wordErrors": null,
+      "referenceWords": 7,
+      "audioSha256": null,
+      "confidence": 0.2937,
+      "status": "unsupported",
+      "calls": [],
+      "correct": false,
+      "effects": 0,
+      "engineReplies": [
+        "{\"type\":\"call\",\"success\":true,\"error\":null,\"error_code\":null,\"reason\":null,\"function_calls\":[{\"name\":\"toggle_deezer_music\",\"arguments\":{}}],\"suppressed_calls\":[],\"reasoning\":\"'Lecteur ambre' -> toggle_deezer_ambre with no arguments.\",\"confidence\":0.2937,\"prefill_tps\":218.2,\"decode_tps\":123.4,\"peak_ram_mb\":237.9,\"validation\":{\"ungrounded\":[],\"negation\":false}}"
+      ]
+    },
+    {
+      "key": "c05-clean",
+      "id": "c05",
+      "variant": "clean",
+      "language": "fr",
+      "category": "media",
+      "reference": "Mets le Lecteur ambre en pause, merci.",
+      "expected": [
+        [
+          3,
+          "media_pause",
+          {}
+        ]
+      ],
+      "transcript": "Mais le lecteur ambre en pause, merci.",
+      "wordErrors": 1,
+      "referenceWords": 7,
+      "audioSha256": "73ae9855db376547f43aa15880ff517190829aa4274ece2c7799683fd5883456",
+      "confidence": 0.4075,
+      "status": "unsupported",
+      "calls": [],
+      "correct": false,
+      "effects": 0,
+      "engineReplies": [
+        "{\"text\":\"Mais le lecteur ambre en pause, merci.\",\"language\":\"fr\",\"ttft_ms\":71.2,\"decode_tps\":156.5}",
+        "{\"type\":\"call\",\"success\":true,\"error\":null,\"error_code\":null,\"reason\":null,\"function_calls\":[{\"name\":\"pause_deezer_music\",\"arguments\":{}}],\"suppressed_calls\":[],\"reasoning\":\"'lecteur ambre en pause' -> pause_deut.\",\"confidence\":0.4075,\"prefill_tps\":215.1,\"decode_tps\":121.6,\"peak_ram_mb\":239.6,\"validation\":{\"ungrounded\":[],\"negation\":false}}"
+      ]
+    },
+    {
+      "key": "c05-noise",
+      "id": "c05",
+      "variant": "noise",
+      "language": "fr",
+      "category": "media",
+      "reference": "Mets le Lecteur ambre en pause, merci.",
+      "expected": [
+        [
+          3,
+          "media_pause",
+          {}
+        ]
+      ],
+      "transcript": "Mais le lecteur ambre en cause, merci.",
+      "wordErrors": 2,
+      "referenceWords": 7,
+      "audioSha256": "973db0998cc665abc5592b1b241de7815f19a929cc92ec6a075b292cc0871ba3",
+      "confidence": 0.1247,
+      "status": "unsupported",
+      "calls": [],
+      "correct": false,
+      "effects": 0,
+      "engineReplies": [
+        "{\"text\":\"Mais le lecteur ambre en cause, merci.\",\"language\":\"fr\",\"ttft_ms\":71.7,\"decode_tps\":156.3}",
+        "{\"type\":\"call\",\"success\":true,\"error\":null,\"error_code\":null,\"reason\":null,\"function_calls\":[{\"name\":\"open_deezer_music\",\"arguments\":{}}],\"suppressed_calls\":[],\"reasoning\":\"'lecteur ambre' -> open_deezer_music. Zero arguments.\",\"confidence\":0.1247,\"prefill_tps\":208.6,\"decode_tps\":121.9,\"peak_ram_mb\":239.6,\"validation\":{\"ungrounded\":[],\"negation\":false}}"
+      ]
+    },
+    {
+      "key": "c06-text",
+      "id": "c06",
+      "variant": "text",
+      "language": "en",
+      "category": "media",
+      "reference": "Please resume playback in Lecteur ambre.",
+      "expected": [
+        [
+          3,
+          "media_play",
+          {}
+        ]
+      ],
+      "transcript": "Please resume playback in Lecteur ambre.",
+      "wordErrors": null,
+      "referenceWords": 6,
+      "audioSha256": null,
+      "confidence": 0.3392,
+      "status": "unsupported",
+      "calls": [],
+      "correct": false,
+      "effects": 0,
+      "engineReplies": [
+        "{\"type\":\"call\",\"success\":true,\"error\":null,\"error_code\":null,\"reason\":null,\"function_calls\":[{\"name\":\"pause_deezer_music\",\"arguments\":{}}],\"suppressed_calls\":[],\"reasoning\":\"Query asks to resume Lecteur ambre. Tool pause_dezer_music has no required params.\",\"confidence\":0.3392,\"prefill_tps\":217.6,\"decode_tps\":122.5,\"peak_ram_mb\":239.6,\"validation\":{\"ungrounded\":[],\"negation\":false}}"
+      ]
+    },
+    {
+      "key": "c06-clean",
+      "id": "c06",
+      "variant": "clean",
+      "language": "en",
+      "category": "media",
+      "reference": "Please resume playback in Lecteur ambre.",
+      "expected": [
+        [
+          3,
+          "media_play",
+          {}
+        ]
+      ],
+      "transcript": "Please resume playback in Lecture Embra.",
+      "wordErrors": 2,
+      "referenceWords": 6,
+      "audioSha256": "1e0836309997bd38e859b8bfee55a09859d0c4e043efd3eef16f3fd8cc5b8b88",
+      "confidence": 0.2633,
+      "status": "pending",
+      "calls": [
+        [
+          4,
+          "media_play",
+          {}
+        ]
+      ],
+      "correct": false,
+      "effects": 0,
+      "engineReplies": [
+        "{\"text\":\"Please resume playback in Lecture Embra.\",\"language\":\"en\",\"ttft_ms\":63.2,\"decode_tps\":156.7}",
+        "{\"type\":\"call\",\"success\":true,\"error\":null,\"error_code\":null,\"reason\":null,\"function_calls\":[{\"name\":\"play_deezer_music\",\"arguments\":{}}],\"suppressed_calls\":[],\"reasoning\":\"Query asks to resume Lecture Embra. Tool play_dezer_music with no arguments.\",\"confidence\":0.2633,\"prefill_tps\":216.2,\"decode_tps\":122.1,\"peak_ram_mb\":239.6,\"validation\":{\"ungrounded\":[],\"negation\":false}}"
+      ]
+    },
+    {
+      "key": "c06-noise",
+      "id": "c06",
+      "variant": "noise",
+      "language": "en",
+      "category": "media",
+      "reference": "Please resume playback in Lecteur ambre.",
+      "expected": [
+        [
+          3,
+          "media_play",
+          {}
+        ]
+      ],
+      "transcript": "Please resume playback and lecture Embra.",
+      "wordErrors": 3,
+      "referenceWords": 6,
+      "audioSha256": "2cbb2bfeddea17ab6a11554870137f2eab972430fc66e8f4bf64f3d8c46c52e7",
+      "confidence": 0.0578,
+      "status": "unsupported",
+      "calls": [],
+      "correct": false,
+      "effects": 0,
+      "engineReplies": [
+        "{\"text\":\"Please resume playback and lecture Embra.\",\"language\":\"en\",\"ttft_ms\":64.3,\"decode_tps\":156.5}",
+        "{\"type\":\"call\",\"success\":true,\"error\":null,\"error_code\":null,\"reason\":null,\"function_calls\":[],\"suppressed_calls\":[{\"name\":\"pause_deezer_music\",\"arguments\":{}},{\"name\":\"open_deezer_music\",\"arguments\":{}}],\"reasoning\":\"'resume playback' -> pause_media; 'lecture Embra' -> open_deezer_music with no args.\",\"confidence\":0.0578,\"prefill_tps\":215.8,\"decode_tps\":124.8,\"peak_ram_mb\":239.6,\"validation\":{\"ungrounded\":[],\"negation\":false}}"
+      ]
+    },
+    {
+      "key": "c07-text",
+      "id": "c07",
+      "variant": "text",
+      "language": "fr",
+      "category": "sensitive",
+      "reference": "Passe au morceau suivant dans Lecteur ambre.",
+      "expected": [
+        [
+          3,
+          "media_next",
+          {}
+        ]
+      ],
+      "transcript": "Passe au morceau suivant dans Lecteur ambre.",
+      "wordErrors": null,
+      "referenceWords": 7,
+      "audioSha256": null,
+      "confidence": 0.7966,
+      "status": "executed",
+      "calls": [
+        [
+          3,
+          "media_next",
+          {}
+        ]
+      ],
+      "correct": true,
+      "effects": 1,
+      "engineReplies": [
+        "{\"type\":\"call\",\"success\":true,\"error\":null,\"error_code\":null,\"reason\":null,\"function_calls\":[{\"name\":\"next_lecteur_ambre\",\"arguments\":{}}],\"suppressed_calls\":[],\"reasoning\":\"Query asks to play next item in Lecteur ambre. Tool next_lecteur_ambre has no parameters.\",\"confidence\":0.7966,\"prefill_tps\":367.7,\"decode_tps\":155.9,\"peak_ram_mb\":239.6,\"validation\":{\"ungrounded\":[],\"negation\":false}}"
+      ]
+    },
+    {
+      "key": "c07-clean",
+      "id": "c07",
+      "variant": "clean",
+      "language": "fr",
+      "category": "sensitive",
+      "reference": "Passe au morceau suivant dans Lecteur ambre.",
+      "expected": [
+        [
+          3,
+          "media_next",
+          {}
+        ]
+      ],
+      "transcript": "Passe au morceau suivant dans lecteur ambre.",
+      "wordErrors": 0,
+      "referenceWords": 7,
+      "audioSha256": "549bd5c0f69786c54d73b9debc022eb7acf244ac97195ade39191c0edb18bb9f",
+      "confidence": 0.7966,
+      "status": "executed",
+      "calls": [
+        [
+          3,
+          "media_next",
+          {}
+        ]
+      ],
+      "correct": true,
+      "effects": 1,
+      "engineReplies": [
+        "{\"text\":\"Passe au morceau suivant dans lecteur ambre.\",\"language\":\"fr\",\"ttft_ms\":68,\"decode_tps\":156.6}",
+        "{\"type\":\"call\",\"success\":true,\"error\":null,\"error_code\":null,\"reason\":null,\"function_calls\":[{\"name\":\"next_lecteur_ambre\",\"arguments\":{}}],\"suppressed_calls\":[],\"reasoning\":\"Query asks to play next item in Lecteur ambre. Tool next_lecteur_ambre has no parameters.\",\"confidence\":0.7966,\"prefill_tps\":367.3,\"decode_tps\":156.9,\"peak_ram_mb\":239.6,\"validation\":{\"ungrounded\":[],\"negation\":false}}"
+      ]
+    },
+    {
+      "key": "c07-noise",
+      "id": "c07",
+      "variant": "noise",
+      "language": "fr",
+      "category": "sensitive",
+      "reference": "Passe au morceau suivant dans Lecteur ambre.",
+      "expected": [
+        [
+          3,
+          "media_next",
+          {}
+        ]
+      ],
+      "transcript": "Face au morceau suivant dans lecteur ambre.",
+      "wordErrors": 1,
+      "referenceWords": 7,
+      "audioSha256": "1070debdb77a738ffdc6aa65672ea2ff501affbaf85a31aa5e4fe7e2ec89deed",
+      "confidence": 0.1237,
+      "status": "unsupported",
+      "calls": [],
+      "correct": false,
+      "effects": 0,
+      "engineReplies": [
+        "{\"text\":\"Face au morceau suivant dans lecteur ambre.\",\"language\":\"fr\",\"ttft_ms\":70.6,\"decode_tps\":155.4}",
+        "{\"type\":\"call\",\"success\":true,\"error\":null,\"error_code\":null,\"reason\":null,\"function_calls\":[{\"name\":\"previous_deezer_music\",\"arguments\":{}}],\"suppressed_calls\":[],\"reasoning\":\"'Face au morceau suivant' -> advance_track_ambre.\",\"confidence\":0.1237,\"prefill_tps\":218.8,\"decode_tps\":123.4,\"peak_ram_mb\":241.8,\"validation\":{\"ungrounded\":[],\"negation\":false}}"
+      ]
+    },
+    {
+      "key": "c08-text",
+      "id": "c08",
+      "variant": "text",
+      "language": "fr",
+      "category": "free-input",
+      "reference": "Ouvre Transmetteur avec le texte rendez-vous à seize heures.",
+      "expected": [
+        [
+          2,
+          "open",
+          {
+            "input": "rendez-vous à seize heures"
+          }
+        ]
+      ],
+      "transcript": "Ouvre Transmetteur avec le texte rendez-vous à seize heures.",
+      "wordErrors": null,
+      "referenceWords": 10,
+      "audioSha256": null,
+      "confidence": 0.0196,
+      "status": "pending",
+      "calls": [
+        [
+          2,
+          "open",
+          {}
+        ]
+      ],
+      "correct": false,
+      "effects": 0,
+      "engineReplies": [
+        "{\"type\":\"call\",\"success\":true,\"error\":null,\"error_code\":null,\"reason\":null,\"function_calls\":[],\"suppressed_calls\":[{\"name\":\"open_transmetteur\",\"arguments\":{\"input\":\"\"}}],\"reasoning\":\"'Transmetteur' -> input 'Transmetteur'; 'texte rendez-vous à seize heures' -> input 'rendez-vous à seize heures'.\",\"confidence\":0.0196,\"prefill_tps\":220.7,\"decode_tps\":123.4,\"peak_ram_mb\":241.8,\"validation\":{\"ungrounded\":[],\"negation\":false}}"
+      ]
+    },
+    {
+      "key": "c08-clean",
+      "id": "c08",
+      "variant": "clean",
+      "language": "fr",
+      "category": "free-input",
+      "reference": "Ouvre Transmetteur avec le texte rendez-vous à seize heures.",
+      "expected": [
+        [
+          2,
+          "open",
+          {
+            "input": "rendez-vous à seize heures"
+          }
+        ]
+      ],
+      "transcript": "Ouvre transmetteur avec le texte rendez-vous à seize heures.",
+      "wordErrors": 0,
+      "referenceWords": 10,
+      "audioSha256": "2bb11a766eb84922828fb8c7cb3c90efc05d99be30e0628c0a68d4b51636fe77",
+      "confidence": 0.0096,
+      "status": "pending",
+      "calls": [
+        [
+          2,
+          "open",
+          {
+            "input": "deezer"
+          }
+        ]
+      ],
+      "correct": false,
+      "effects": 0,
+      "engineReplies": [
+        "{\"text\":\"Ouvre transmetteur avec le texte rendez-vous à seize heures.\",\"language\":\"fr\",\"ttft_ms\":86,\"decode_tps\":154.6}",
+        "{\"type\":\"call\",\"success\":true,\"error\":null,\"error_code\":null,\"reason\":null,\"function_calls\":[],\"suppressed_calls\":[{\"name\":\"open_transmetteur\",\"arguments\":{\"input\":\"deezer\"}}],\"reasoning\":\"'transmetteur avec le texte rendez-vous à seize heures' -> open_transmetteur avec input='deezer' (toutes les paramètres).\",\"confidence\":0.0096,\"prefill_tps\":220.7,\"decode_tps\":122.7,\"peak_ram_mb\":247,\"validation\":{\"ungrounded\":[],\"negation\":false}}"
+      ]
+    },
+    {
+      "key": "c08-noise",
+      "id": "c08",
+      "variant": "noise",
+      "language": "fr",
+      "category": "free-input",
+      "reference": "Ouvre Transmetteur avec le texte rendez-vous à seize heures.",
+      "expected": [
+        [
+          2,
+          "open",
+          {
+            "input": "rendez-vous à seize heures"
+          }
+        ]
+      ],
+      "transcript": "Une fois transmetteur avec le secte grand et vous à seigneur.",
+      "wordErrors": 7,
+      "referenceWords": 10,
+      "audioSha256": "8d6c9e7b6181e57d9920e5fa249e4f2ba8fa0b65300324adabc856f7e2c61d3b",
+      "confidence": 0.0359,
+      "status": "unsupported",
+      "calls": [],
+      "correct": false,
+      "effects": 0,
+      "engineReplies": [
+        "{\"text\":\"Une fois transmetteur avec le secte grand et vous à seigneur.\",\"language\":\"fr\",\"ttft_ms\":86.8,\"decode_tps\":154.5}",
+        "{\"type\":\"call\",\"success\":true,\"error\":null,\"error_code\":null,\"reason\":null,\"function_calls\":[],\"suppressed_calls\":[{\"name\":\"open_deezer_music\",\"arguments\":{}}],\"reasoning\":\"'transmetteur avec le secte grand' -> open_deezer_music with no arguments; 'vous à seigneur' -> no tool for 'seigneur'\",\"confidence\":0.0359,\"prefill_tps\":219.8,\"decode_tps\":123.4,\"peak_ram_mb\":250.2,\"validation\":{\"ungrounded\":[],\"negation\":false}}"
+      ]
+    },
+    {
+      "key": "c09-text",
+      "id": "c09",
+      "variant": "text",
+      "language": "fr",
+      "category": "free-input",
+      "reference": "Cherche Vent du nord sur Deezer.",
+      "expected": [
+        [
+          4,
+          "deezer_search",
+          {
+            "query": "Vent du nord"
+          }
+        ]
+      ],
+      "transcript": "Cherche Vent du nord sur Deezer.",
+      "wordErrors": null,
+      "referenceWords": 6,
+      "audioSha256": null,
+      "confidence": 0.8357,
+      "status": "executed",
+      "calls": [
+        [
+          4,
+          "deezer_search",
+          {
+            "query": "Vent du nord"
+          }
+        ]
+      ],
+      "correct": true,
+      "effects": 1,
+      "engineReplies": [
+        "{\"type\":\"call\",\"success\":true,\"error\":null,\"error_code\":null,\"reason\":null,\"function_calls\":[{\"name\":\"search_deezer_music\",\"arguments\":{}}],\"suppressed_calls\":[],\"reasoning\":\"Query asks to search Deezer music. search_dezer_music tool. No parameters.\",\"confidence\":0.8357,\"prefill_tps\":405.5,\"decode_tps\":159.8,\"peak_ram_mb\":250.8,\"validation\":{\"ungrounded\":[],\"negation\":false}}"
+      ]
+    },
+    {
+      "key": "c09-clean",
+      "id": "c09",
+      "variant": "clean",
+      "language": "fr",
+      "category": "free-input",
+      "reference": "Cherche Vent du nord sur Deezer.",
+      "expected": [
+        [
+          4,
+          "deezer_search",
+          {
+            "query": "Vent du nord"
+          }
+        ]
+      ],
+      "transcript": "Chers je vends du nord sur dix heures.",
+      "wordErrors": 5,
+      "referenceWords": 6,
+      "audioSha256": "f2139497a9c4f7b4ce3ac324b605658adbf3f90823906e563902ae8723924ac1",
+      "confidence": 0.0651,
+      "status": "unsupported",
+      "calls": [],
+      "correct": false,
+      "effects": 0,
+      "engineReplies": [
+        "{\"text\":\"Chers je vends du nord sur dix heures.\",\"language\":\"fr\",\"ttft_ms\":63.5,\"decode_tps\":156.1}",
+        "{\"type\":\"call\",\"success\":true,\"error\":null,\"error_code\":null,\"reason\":null,\"function_calls\":[],\"suppressed_calls\":[{\"name\":\"play_deezer_music\",\"arguments\":{}}],\"reasoning\":\"'chers je vends du nord' -> play_dezer_music with no arguments.\",\"confidence\":0.0651,\"prefill_tps\":223.5,\"decode_tps\":123.7,\"peak_ram_mb\":252.4,\"validation\":{\"ungrounded\":[],\"negation\":false}}"
+      ]
+    },
+    {
+      "key": "c09-noise",
+      "id": "c09",
+      "variant": "noise",
+      "language": "fr",
+      "category": "free-input",
+      "reference": "Cherche Vent du nord sur Deezer.",
+      "expected": [
+        [
+          4,
+          "deezer_search",
+          {
+            "query": "Vent du nord"
+          }
+        ]
+      ],
+      "transcript": "Chers chevrons du nom sur des oeufs.",
+      "wordErrors": 5,
+      "referenceWords": 6,
+      "audioSha256": "eb426ceb8a290dbcb985c485250e13e986d14323182462f9e215c9cb329a277e",
+      "confidence": 0.0613,
+      "status": "unsupported",
+      "calls": [],
+      "correct": false,
+      "effects": 0,
+      "engineReplies": [
+        "{\"text\":\"Chers chevrons du nom sur des oeufs.\",\"language\":\"fr\",\"ttft_ms\":63.2,\"decode_tps\":156.8}",
+        "{\"type\":\"call\",\"success\":true,\"error\":null,\"error_code\":null,\"reason\":null,\"function_calls\":[],\"suppressed_calls\":[{\"name\":\"open_deezer_music\",\"arguments\":{}}],\"reasoning\":\"'chevrons du nom' -> open_deezer_music with no arguments.\",\"confidence\":0.0613,\"prefill_tps\":219.4,\"decode_tps\":122.6,\"peak_ram_mb\":254.9,\"validation\":{\"ungrounded\":[],\"negation\":false}}"
+      ]
+    },
+    {
+      "key": "c10-text",
+      "id": "c10",
+      "variant": "text",
+      "language": "fr",
+      "category": "sensitive",
+      "reference": "Recharge Deezer maintenant.",
+      "expected": [
+        [
+          4,
+          "deezer_reload",
+          {}
+        ]
+      ],
+      "transcript": "Recharge Deezer maintenant.",
+      "wordErrors": null,
+      "referenceWords": 3,
+      "audioSha256": null,
+      "confidence": 0.0395,
+      "status": "pending",
+      "calls": [
+        [
+          4,
+          "deezer_reload",
+          {}
+        ]
+      ],
+      "correct": true,
+      "effects": 0,
+      "engineReplies": [
+        "{\"type\":\"call\",\"success\":true,\"error\":null,\"error_code\":null,\"reason\":null,\"function_calls\":[],\"suppressed_calls\":[{\"name\":\"deezer_reload_deezer_55555555\",\"arguments\":{}}],\"reasoning\":\"'Deezer' -> mix 'flow' (synonym for flow).\",\"confidence\":0.0395,\"prefill_tps\":217.9,\"decode_tps\":124.2,\"peak_ram_mb\":254.9,\"validation\":{\"ungrounded\":[],\"negation\":false}}"
+      ]
+    },
+    {
+      "key": "c10-clean",
+      "id": "c10",
+      "variant": "clean",
+      "language": "fr",
+      "category": "sensitive",
+      "reference": "Recharge Deezer maintenant.",
+      "expected": [
+        [
+          4,
+          "deezer_reload",
+          {}
+        ]
+      ],
+      "transcript": "Recharge d'Isère maintenant.",
+      "wordErrors": 2,
+      "referenceWords": 3,
+      "audioSha256": "fddf1fb1204fde879542d3fb6a9990db1643ec4bbea3906ab7b82f78ec65ec0f",
+      "confidence": 0.123,
+      "status": "pending",
+      "calls": [
+        [
+          4,
+          "deezer_reload",
+          {}
+        ]
+      ],
+      "correct": true,
+      "effects": 0,
+      "engineReplies": [
+        "{\"text\":\"Recharge d'Isère maintenant.\",\"language\":\"fr\",\"ttft_ms\":56,\"decode_tps\":157.3}",
+        "{\"type\":\"call\",\"success\":true,\"error\":null,\"error_code\":null,\"reason\":null,\"function_calls\":[{\"name\":\"deezer_reload_deezer_55555555\",\"arguments\":{}}],\"suppressed_calls\":[],\"reasoning\":\"'recharge d'Isère maintenant' -> recharger Deezer.\",\"confidence\":0.123,\"prefill_tps\":220.7,\"decode_tps\":123,\"peak_ram_mb\":254.9,\"validation\":{\"ungrounded\":[],\"negation\":false}}"
+      ]
+    },
+    {
+      "key": "c10-noise",
+      "id": "c10",
+      "variant": "noise",
+      "language": "fr",
+      "category": "sensitive",
+      "reference": "Recharge Deezer maintenant.",
+      "expected": [
+        [
+          4,
+          "deezer_reload",
+          {}
+        ]
+      ],
+      "transcript": "Recharge visère maintenant.",
+      "wordErrors": 1,
+      "referenceWords": 3,
+      "audioSha256": "2a83f8a52311f1d7c25a69b67a3ffd588e7c5e88f42e1dd950a175f88a46ae42",
+      "confidence": 0.1173,
+      "status": "pending",
+      "calls": [
+        [
+          4,
+          "deezer_reload",
+          {}
+        ]
+      ],
+      "correct": true,
+      "effects": 0,
+      "engineReplies": [
+        "{\"text\":\"Recharge visère maintenant.\",\"language\":\"fr\",\"ttft_ms\":58.1,\"decode_tps\":156.9}",
+        "{\"type\":\"call\",\"success\":true,\"error\":null,\"error_code\":null,\"reason\":null,\"function_calls\":[{\"name\":\"deezer_reload_deezer_55555555\",\"arguments\":{}}],\"suppressed_calls\":[],\"reasoning\":\"'recharge visère maintenant' -> recharger Deezer -> recharger Deezer.\",\"confidence\":0.1173,\"prefill_tps\":213,\"decode_tps\":124.1,\"peak_ram_mb\":259.2,\"validation\":{\"ungrounded\":[],\"negation\":false}}"
+      ]
+    },
+    {
+      "key": "c11-text",
+      "id": "c11",
+      "variant": "text",
+      "language": "fr",
+      "category": "negation",
+      "reference": "Surtout, ne lance pas Lyra.",
+      "expected": [],
+      "transcript": "Surtout, ne lance pas Lyra.",
+      "wordErrors": null,
+      "referenceWords": 5,
+      "audioSha256": null,
+      "confidence": 0.1467,
+      "status": "unsupported",
+      "calls": [],
+      "correct": true,
+      "effects": 0,
+      "engineReplies": [
+        "{\"type\":\"call\",\"success\":true,\"error\":null,\"error_code\":null,\"reason\":null,\"function_calls\":[{\"name\":\"toggle_deezer_music\",\"arguments\":{}}],\"suppressed_calls\":[],\"reasoning\":\"'ne lance pas Lyra' -> toggle_deezer_ambre with no arguments.\",\"confidence\":0.1467,\"prefill_tps\":215.1,\"decode_tps\":121.9,\"peak_ram_mb\":259.2,\"validation\":{\"ungrounded\":[],\"negation\":false}}"
+      ]
+    },
+    {
+      "key": "c11-clean",
+      "id": "c11",
+      "variant": "clean",
+      "language": "fr",
+      "category": "negation",
+      "reference": "Surtout, ne lance pas Lyra.",
+      "expected": [],
+      "transcript": "Surtout ne lance pas la haïre.",
+      "wordErrors": 2,
+      "referenceWords": 5,
+      "audioSha256": "b4e010ffb6000c7cc703d1f99ab59606f5cbf163757be3ccd0d59d8a91a65c67",
+      "confidence": 0.1941,
+      "status": "unsupported",
+      "calls": [],
+      "correct": true,
+      "effects": 0,
+      "engineReplies": [
+        "{\"text\":\"Surtout ne lance pas la haïre.\",\"language\":\"fr\",\"ttft_ms\":63,\"decode_tps\":156.3}",
+        "{\"type\":\"call\",\"success\":true,\"error\":null,\"error_code\":null,\"reason\":null,\"function_calls\":[{\"name\":\"toggle_deezer_music\",\"arguments\":{}}],\"suppressed_calls\":[],\"reasoning\":\"'ne lance pas la haïre' -> toggle_deezer_ambre.\",\"confidence\":0.1941,\"prefill_tps\":219.8,\"decode_tps\":123.1,\"peak_ram_mb\":264.7,\"validation\":{\"ungrounded\":[],\"negation\":false}}"
+      ]
+    },
+    {
+      "key": "c11-noise",
+      "id": "c11",
+      "variant": "noise",
+      "language": "fr",
+      "category": "negation",
+      "reference": "Surtout, ne lance pas Lyra.",
+      "expected": [],
+      "transcript": "Surtout, ne lance pas la haine heure.",
+      "wordErrors": 3,
+      "referenceWords": 5,
+      "audioSha256": "adff3f15ac075b2b4b32472f683d50748f60a49527c7076ac1468436a8f8db9b",
+      "confidence": 0.2567,
+      "status": "unsupported",
+      "calls": [],
+      "correct": true,
+      "effects": 0,
+      "engineReplies": [
+        "{\"text\":\"Surtout, ne lance pas la haine heure.\",\"language\":\"fr\",\"ttft_ms\":65.2,\"decode_tps\":157.6}",
+        "{\"type\":\"call\",\"success\":true,\"error\":null,\"error_code\":null,\"reason\":null,\"function_calls\":[{\"name\":\"stop_deezer_music\",\"arguments\":{}}],\"suppressed_calls\":[],\"reasoning\":\"'ne lance pas la haine' -> stop_deepzer_music.\",\"confidence\":0.2567,\"prefill_tps\":216.4,\"decode_tps\":123.2,\"peak_ram_mb\":265.2,\"validation\":{\"ungrounded\":[],\"negation\":false}}"
+      ]
+    },
+    {
+      "key": "c12-text",
+      "id": "c12",
+      "variant": "text",
+      "language": "en",
+      "category": "negation",
+      "reference": "Please do not launch Miroir today.",
+      "expected": [],
+      "transcript": "Please do not launch Miroir today.",
+      "wordErrors": null,
+      "referenceWords": 6,
+      "audioSha256": null,
+      "confidence": 0.2274,
+      "status": "pending",
+      "calls": [
+        [
+          1,
+          "open",
+          {}
+        ]
+      ],
+      "correct": false,
+      "effects": 0,
+      "engineReplies": [
+        "{\"type\":\"call\",\"success\":true,\"error\":null,\"error_code\":null,\"reason\":null,\"function_calls\":[],\"suppressed_calls\":[{\"name\":\"open_miroir\",\"arguments\":{}}],\"reasoning\":\"'do not launch Miroir' -> open_miroir. Zero-argument tool.\",\"confidence\":0.2274,\"prefill_tps\":216.9,\"decode_tps\":122.9,\"peak_ram_mb\":265.2,\"validation\":{\"ungrounded\":[],\"negation\":true}}"
+      ]
+    },
+    {
+      "key": "c12-clean",
+      "id": "c12",
+      "variant": "clean",
+      "language": "en",
+      "category": "negation",
+      "reference": "Please do not launch Miroir today.",
+      "expected": [],
+      "transcript": "Please do not launch Maroyer to day.",
+      "wordErrors": 3,
+      "referenceWords": 6,
+      "audioSha256": "8042d480b9f3198315cfd9e0ac9e2fda26c3cc638b6ae154ac62c4d8b54c5a0d",
+      "confidence": 0.1187,
+      "status": "pending",
+      "calls": [
+        [
+          4,
+          "open",
+          {}
+        ]
+      ],
+      "correct": false,
+      "effects": 0,
+      "engineReplies": [
+        "{\"text\":\"Please do not launch Maroyer to day.\",\"language\":\"en\",\"ttft_ms\":60.8,\"decode_tps\":157.3}",
+        "{\"type\":\"call\",\"success\":true,\"error\":null,\"error_code\":null,\"reason\":null,\"function_calls\":[{\"name\":\"open_deezer_music\",\"arguments\":{}}],\"suppressed_calls\":[],\"reasoning\":\"'do not launch Maroyer to day' -> open_deezer_music with no arguments.\",\"confidence\":0.1187,\"prefill_tps\":215.8,\"decode_tps\":122.3,\"peak_ram_mb\":265.4,\"validation\":{\"ungrounded\":[],\"negation\":true}}"
+      ]
+    },
+    {
+      "key": "c12-noise",
+      "id": "c12",
+      "variant": "noise",
+      "language": "en",
+      "category": "negation",
+      "reference": "Please do not launch Miroir today.",
+      "expected": [],
+      "transcript": "Please do not launch Maroyer to day.",
+      "wordErrors": 3,
+      "referenceWords": 6,
+      "audioSha256": "b1eb0c4e851998982dc691917a09a63b3d545a8a6acd180080e09de06f24c1b4",
+      "confidence": 0.1187,
+      "status": "pending",
+      "calls": [
+        [
+          4,
+          "open",
+          {}
+        ]
+      ],
+      "correct": false,
+      "effects": 0,
+      "engineReplies": [
+        "{\"text\":\"Please do not launch Maroyer to day.\",\"language\":\"en\",\"ttft_ms\":62.9,\"decode_tps\":156.8}",
+        "{\"type\":\"call\",\"success\":true,\"error\":null,\"error_code\":null,\"reason\":null,\"function_calls\":[{\"name\":\"open_deezer_music\",\"arguments\":{}}],\"suppressed_calls\":[],\"reasoning\":\"'do not launch Maroyer to day' -> open_deezer_music with no arguments.\",\"confidence\":0.1187,\"prefill_tps\":216.2,\"decode_tps\":122.2,\"peak_ram_mb\":266.5,\"validation\":{\"ungrounded\":[],\"negation\":true}}"
+      ]
+    },
+    {
+      "key": "c13-text",
+      "id": "c13",
+      "variant": "text",
+      "language": "fr",
+      "category": "negation",
+      "reference": "Ne mets pas Lecteur ambre en pause.",
+      "expected": [],
+      "transcript": "Ne mets pas Lecteur ambre en pause.",
+      "wordErrors": null,
+      "referenceWords": 7,
+      "audioSha256": null,
+      "confidence": 0.0961,
+      "status": "unsupported",
+      "calls": [],
+      "correct": true,
+      "effects": 0,
+      "engineReplies": [
+        "{\"type\":\"call\",\"success\":true,\"error\":null,\"error_code\":null,\"reason\":null,\"function_calls\":[],\"suppressed_calls\":[{\"name\":\"pause_deezer_music\",\"arguments\":{}}],\"reasoning\":\"Prohibition: 'Ne mets pas Lecteur ambre en pause' -> no pause_dev tool. Alternative: 'mets pas Lecteur ambre en pause' -> pause_dev.\",\"confidence\":0.0961,\"prefill_tps\":216.7,\"decode_tps\":124.7,\"peak_ram_mb\":266.5,\"validation\":{\"ungrounded\":[],\"negation\":false}}"
+      ]
+    },
+    {
+      "key": "c13-clean",
+      "id": "c13",
+      "variant": "clean",
+      "language": "fr",
+      "category": "negation",
+      "reference": "Ne mets pas Lecteur ambre en pause.",
+      "expected": [],
+      "transcript": "Ne met pas lecteur ambre en pause.",
+      "wordErrors": 1,
+      "referenceWords": 7,
+      "audioSha256": "c631318970a8f5f3b93c681e9fa627651dc95b29e7830a7162d006685beb29ca",
+      "confidence": 0.3642,
+      "status": "unsupported",
+      "calls": [],
+      "correct": true,
+      "effects": 0,
+      "engineReplies": [
+        "{\"text\":\"Ne met pas lecteur ambre en pause.\",\"language\":\"fr\",\"ttft_ms\":62.9,\"decode_tps\":157.8}",
+        "{\"type\":\"call\",\"success\":true,\"error\":null,\"error_code\":null,\"reason\":null,\"function_calls\":[{\"name\":\"pause_deezer_music\",\"arguments\":{}}],\"suppressed_calls\":[],\"reasoning\":\"'met pas lecteur ambre en pause' -> pause_deut.\",\"confidence\":0.3642,\"prefill_tps\":212.9,\"decode_tps\":123.8,\"peak_ram_mb\":266.6,\"validation\":{\"ungrounded\":[],\"negation\":false}}"
+      ]
+    },
+    {
+      "key": "c13-noise",
+      "id": "c13",
+      "variant": "noise",
+      "language": "fr",
+      "category": "negation",
+      "reference": "Ne mets pas Lecteur ambre en pause.",
+      "expected": [],
+      "transcript": "Il ne met pas lecteur ambre en pause.",
+      "wordErrors": 2,
+      "referenceWords": 7,
+      "audioSha256": "9a3b85f736772e58ed709018f18f7584b657165f1556610ad76db983ddc4d99c",
+      "confidence": 0.2638,
+      "status": "unsupported",
+      "calls": [],
+      "correct": true,
+      "effects": 0,
+      "engineReplies": [
+        "{\"text\":\"Il ne met pas lecteur ambre en pause.\",\"language\":\"fr\",\"ttft_ms\":63.6,\"decode_tps\":157.4}",
+        "{\"type\":\"call\",\"success\":true,\"error\":null,\"error_code\":null,\"reason\":null,\"function_calls\":[{\"name\":\"pause_deezer_music\",\"arguments\":{}}],\"suppressed_calls\":[],\"reasoning\":\"'Il ne met pas lecteur ambre en pause' -> pause_deut.\",\"confidence\":0.2638,\"prefill_tps\":214.4,\"decode_tps\":123.5,\"peak_ram_mb\":269,\"validation\":{\"ungrounded\":[],\"negation\":false}}"
+      ]
+    },
+    {
+      "key": "c14-text",
+      "id": "c14",
+      "variant": "text",
+      "language": "fr",
+      "category": "ambiguity",
+      "reference": "Lance Lyra ou bien Miroir.",
+      "expected": [],
+      "transcript": "Lance Lyra ou bien Miroir.",
+      "wordErrors": null,
+      "referenceWords": 5,
+      "audioSha256": null,
+      "confidence": 0.0741,
+      "status": "unsupported",
+      "calls": [],
+      "correct": true,
+      "effects": 0,
+      "engineReplies": [
+        "{\"type\":\"call\",\"success\":true,\"error\":null,\"error_code\":null,\"reason\":null,\"function_calls\":[],\"suppressed_calls\":[{\"name\":\"play_deezer_music\",\"arguments\":{}}],\"reasoning\":\"'Lyra ou bien Miroir' -> play_dezer_music with no arguments.\",\"confidence\":0.0741,\"prefill_tps\":218.7,\"decode_tps\":123,\"peak_ram_mb\":269,\"validation\":{\"ungrounded\":[],\"negation\":false}}"
+      ]
+    },
+    {
+      "key": "c14-clean",
+      "id": "c14",
+      "variant": "clean",
+      "language": "fr",
+      "category": "ambiguity",
+      "reference": "Lance Lyra ou bien Miroir.",
+      "expected": [],
+      "transcript": "Lance Lyra ou bien Miroir ?",
+      "wordErrors": 0,
+      "referenceWords": 5,
+      "audioSha256": "e8fcf74fcdcbbe2e7f1473df52c33e8ca3370978c4df6efae80e512f85d186fe",
+      "confidence": 0.0904,
+      "status": "unsupported",
+      "calls": [],
+      "correct": true,
+      "effects": 0,
+      "engineReplies": [
+        "{\"text\":\"Lance Lyra ou bien Miroir ?\",\"language\":\"fr\",\"ttft_ms\":62.6,\"decode_tps\":156.5}",
+        "{\"type\":\"call\",\"success\":true,\"error\":null,\"error_code\":null,\"reason\":null,\"function_calls\":[],\"suppressed_calls\":[{\"name\":\"open_miroir\",\"arguments\":{}}],\"reasoning\":\"'Lyra ou bien Miroir' -> open_miroir.\",\"confidence\":0.0904,\"prefill_tps\":217.5,\"decode_tps\":122.2,\"peak_ram_mb\":271.6,\"validation\":{\"ungrounded\":[],\"negation\":false}}"
+      ]
+    },
+    {
+      "key": "c14-noise",
+      "id": "c14",
+      "variant": "noise",
+      "language": "fr",
+      "category": "ambiguity",
+      "reference": "Lance Lyra ou bien Miroir.",
+      "expected": [],
+      "transcript": "L'enfleil rôle bien les voir.",
+      "wordErrors": 5,
+      "referenceWords": 5,
+      "audioSha256": "35b8ce35b013d7a496919c314a417e6aef1f29b03275e3234a6f738e65b51178",
+      "confidence": 0.105,
+      "status": "unsupported",
+      "calls": [],
+      "correct": true,
+      "effects": 0,
+      "engineReplies": [
+        "{\"text\":\"L'enfleil rôle bien les voir.\",\"language\":\"fr\",\"ttft_ms\":65.5,\"decode_tps\":155.6}",
+        "{\"type\":\"call\",\"success\":true,\"error\":null,\"error_code\":null,\"reason\":null,\"function_calls\":[{\"name\":\"open_deezer_music\",\"arguments\":{}}],\"suppressed_calls\":[],\"reasoning\":\"'enfleil rôle bien les voir' -> open_deezer_music.\",\"confidence\":0.105,\"prefill_tps\":218.8,\"decode_tps\":124.5,\"peak_ram_mb\":272.9,\"validation\":{\"ungrounded\":[],\"negation\":false}}"
+      ]
+    },
+    {
+      "key": "c15-text",
+      "id": "c15",
+      "variant": "text",
+      "language": "en",
+      "category": "ambiguity",
+      "reference": "Open either Miroir or Lyra.",
+      "expected": [],
+      "transcript": "Open either Miroir or Lyra.",
+      "wordErrors": null,
+      "referenceWords": 5,
+      "audioSha256": null,
+      "confidence": 0.0855,
+      "status": "unsupported",
+      "calls": [],
+      "correct": true,
+      "effects": 0,
+      "engineReplies": [
+        "{\"type\":\"call\",\"success\":true,\"error\":null,\"error_code\":null,\"reason\":null,\"function_calls\":[],\"suppressed_calls\":[{\"name\":\"open_miroir\",\"arguments\":{}}],\"reasoning\":\"'Open either Miroir or Lyra' -> open_miroir.\",\"confidence\":0.0855,\"prefill_tps\":214.5,\"decode_tps\":123.6,\"peak_ram_mb\":272.9,\"validation\":{\"ungrounded\":[],\"negation\":false}}"
+      ]
+    },
+    {
+      "key": "c15-clean",
+      "id": "c15",
+      "variant": "clean",
+      "language": "en",
+      "category": "ambiguity",
+      "reference": "Open either Miroir or Lyra.",
+      "expected": [],
+      "transcript": "Open either Miroir or Lyra.",
+      "wordErrors": 0,
+      "referenceWords": 5,
+      "audioSha256": "3a40926ad901bed46b616ddd16ef179da6887e084e4acf2d9ecd7c4713c3ff08",
+      "confidence": 0.0855,
+      "status": "unsupported",
+      "calls": [],
+      "correct": true,
+      "effects": 0,
+      "engineReplies": [
+        "{\"text\":\"Open either Miroir or Lyra.\",\"language\":\"en\",\"ttft_ms\":56.2,\"decode_tps\":153.8}",
+        "{\"type\":\"call\",\"success\":true,\"error\":null,\"error_code\":null,\"reason\":null,\"function_calls\":[],\"suppressed_calls\":[{\"name\":\"open_miroir\",\"arguments\":{}}],\"reasoning\":\"'Open either Miroir or Lyra' -> open_miroir.\",\"confidence\":0.0855,\"prefill_tps\":213.2,\"decode_tps\":123.1,\"peak_ram_mb\":272.9,\"validation\":{\"ungrounded\":[],\"negation\":false}}"
+      ]
+    },
+    {
+      "key": "c15-noise",
+      "id": "c15",
+      "variant": "noise",
+      "language": "en",
+      "category": "ambiguity",
+      "reference": "Open either Miroir or Lyra.",
+      "expected": [],
+      "transcript": "Opened either Miroir or Mira.",
+      "wordErrors": 2,
+      "referenceWords": 5,
+      "audioSha256": "519ae57cf760fc26a5cc8161c96763dd945da435c0628e50d851770aaa7733aa",
+      "confidence": 0.0799,
+      "status": "unsupported",
+      "calls": [],
+      "correct": true,
+      "effects": 0,
+      "engineReplies": [
+        "{\"text\":\"Opened either Miroir or Mira.\",\"language\":\"en\",\"ttft_ms\":57.3,\"decode_tps\":158.6}",
+        "{\"type\":\"call\",\"success\":true,\"error\":null,\"error_code\":null,\"reason\":null,\"function_calls\":[],\"suppressed_calls\":[{\"name\":\"open_miroir\",\"arguments\":{}}],\"reasoning\":\"'Opened either Miroir or Mira' -> open_miroir.\",\"confidence\":0.0799,\"prefill_tps\":208.2,\"decode_tps\":122,\"peak_ram_mb\":272.9,\"validation\":{\"ungrounded\":[],\"negation\":false}}"
+      ]
+    },
+    {
+      "key": "c16-text",
+      "id": "c16",
+      "variant": "text",
+      "language": "fr",
+      "category": "ambiguity",
+      "reference": "Ouvre l’application dont je parlais hier.",
+      "expected": [],
+      "transcript": "Ouvre l’application dont je parlais hier.",
+      "wordErrors": null,
+      "referenceWords": 7,
+      "audioSha256": null,
+      "confidence": 0.1408,
+      "status": "pending",
+      "calls": [
+        [
+          4,
+          "open",
+          {}
+        ]
+      ],
+      "correct": false,
+      "effects": 0,
+      "engineReplies": [
+        "{\"type\":\"call\",\"success\":true,\"error\":null,\"error_code\":null,\"reason\":null,\"function_calls\":[{\"name\":\"open_deezer_music\",\"arguments\":{}}],\"suppressed_calls\":[],\"reasoning\":\"'ouvre l’application dont je parlais hier' -> open_application.\",\"confidence\":0.1408,\"prefill_tps\":222.9,\"decode_tps\":123.9,\"peak_ram_mb\":272.9,\"validation\":{\"ungrounded\":[],\"negation\":true}}"
+      ]
+    },
+    {
+      "key": "c16-clean",
+      "id": "c16",
+      "variant": "clean",
+      "language": "fr",
+      "category": "ambiguity",
+      "reference": "Ouvre l’application dont je parlais hier.",
+      "expected": [],
+      "transcript": "Ouvre l'application dont je parlais hier.",
+      "wordErrors": 0,
+      "referenceWords": 7,
+      "audioSha256": "82e0fe357a603711ade0881bb92b154543045e1a6cdf6477df6cf3056fc3f484",
+      "confidence": 0.1549,
+      "status": "pending",
+      "calls": [
+        [
+          4,
+          "open",
+          {}
+        ]
+      ],
+      "correct": false,
+      "effects": 0,
+      "engineReplies": [
+        "{\"text\":\"Ouvre l'application dont je parlais hier.\",\"language\":\"fr\",\"ttft_ms\":70.1,\"decode_tps\":156.2}",
+        "{\"type\":\"call\",\"success\":true,\"error\":null,\"error_code\":null,\"reason\":null,\"function_calls\":[{\"name\":\"open_deezer_music\",\"arguments\":{}}],\"suppressed_calls\":[],\"reasoning\":\"'ouvre l'application' -> open_deezer_music.\",\"confidence\":0.1549,\"prefill_tps\":217.3,\"decode_tps\":123.5,\"peak_ram_mb\":272.9,\"validation\":{\"ungrounded\":[],\"negation\":true}}"
+      ]
+    },
+    {
+      "key": "c16-noise",
+      "id": "c16",
+      "variant": "noise",
+      "language": "fr",
+      "category": "ambiguity",
+      "reference": "Ouvre l’application dont je parlais hier.",
+      "expected": [],
+      "transcript": "ou pour l'application dont je parlais hier.",
+      "wordErrors": 2,
+      "referenceWords": 7,
+      "audioSha256": "3e129d15709872911899cf67f071931c3871db8fa6a1321427368003ded8887b",
+      "confidence": 0.0753,
+      "status": "unsupported",
+      "calls": [],
+      "correct": true,
+      "effects": 0,
+      "engineReplies": [
+        "{\"text\":\"ou pour l'application dont je parlais hier.\",\"language\":\"fr\",\"ttft_ms\":70.6,\"decode_tps\":156.7}",
+        "{\"type\":\"call\",\"success\":true,\"error\":null,\"error_code\":null,\"reason\":null,\"function_calls\":[],\"suppressed_calls\":[{\"name\":\"open_deezer_music\",\"arguments\":{}}],\"reasoning\":\"'ou pour l'application dont je parlais hier' -> open_deezer_music.\",\"confidence\":0.0753,\"prefill_tps\":222,\"decode_tps\":124.1,\"peak_ram_mb\":272.9,\"validation\":{\"ungrounded\":[],\"negation\":true}}"
+      ]
+    },
+    {
+      "key": "c17-text",
+      "id": "c17",
+      "variant": "text",
+      "language": "fr",
+      "category": "negative",
+      "reference": "La constellation de la Lyre est visible ce soir.",
+      "expected": [],
+      "transcript": "La constellation de la Lyre est visible ce soir.",
+      "wordErrors": null,
+      "referenceWords": 9,
+      "audioSha256": null,
+      "confidence": 0.1403,
+      "status": "unsupported",
+      "calls": [],
+      "correct": true,
+      "effects": 0,
+      "engineReplies": [
+        "{\"type\":\"call\",\"success\":true,\"error\":null,\"error_code\":null,\"reason\":null,\"function_calls\":[{\"name\":\"open_deezer_music\",\"arguments\":{}}],\"suppressed_calls\":[],\"reasoning\":\"'constellation de la Lyre' -> open_deezer_music with no arguments.\",\"confidence\":0.1403,\"prefill_tps\":221.5,\"decode_tps\":124,\"peak_ram_mb\":272.9,\"validation\":{\"ungrounded\":[],\"negation\":false}}"
+      ]
+    },
+    {
+      "key": "c17-clean",
+      "id": "c17",
+      "variant": "clean",
+      "language": "fr",
+      "category": "negative",
+      "reference": "La constellation de la Lyre est visible ce soir.",
+      "expected": [],
+      "transcript": "La constellation de la lire est visible ce soir.",
+      "wordErrors": 1,
+      "referenceWords": 9,
+      "audioSha256": "1146e181cf911ecef86d89e53c394ec1b35ccc5d35d35ea18af479f0ce3413c1",
+      "confidence": 0.0996,
+      "status": "unsupported",
+      "calls": [],
+      "correct": true,
+      "effects": 0,
+      "engineReplies": [
+        "{\"text\":\"La constellation de la lire est visible ce soir.\",\"language\":\"fr\",\"ttft_ms\":78.9,\"decode_tps\":156.3}",
+        "{\"type\":\"call\",\"success\":true,\"error\":null,\"error_code\":null,\"reason\":null,\"function_calls\":[],\"suppressed_calls\":[{\"name\":\"open_deezer_music\",\"arguments\":{}}],\"reasoning\":\"'constellation de la lire' -> open_deezer_music.\",\"confidence\":0.0996,\"prefill_tps\":218.1,\"decode_tps\":122.5,\"peak_ram_mb\":272.9,\"validation\":{\"ungrounded\":[],\"negation\":false}}"
+      ]
+    },
+    {
+      "key": "c17-noise",
+      "id": "c17",
+      "variant": "noise",
+      "language": "fr",
+      "category": "negative",
+      "reference": "La constellation de la Lyre est visible ce soir.",
+      "expected": [],
+      "transcript": "La constellation de la lire est vivible ce soir.",
+      "wordErrors": 2,
+      "referenceWords": 9,
+      "audioSha256": "669084f730e181ff60c6e0552a7dfd9b3f281fca2d7f4f2447514b4b798f17ab",
+      "confidence": 0.0957,
+      "status": "unsupported",
+      "calls": [],
+      "correct": true,
+      "effects": 0,
+      "engineReplies": [
+        "{\"text\":\"La constellation de la lire est vivible ce soir.\",\"language\":\"fr\",\"ttft_ms\":81.2,\"decode_tps\":153.9}",
+        "{\"type\":\"call\",\"success\":true,\"error\":null,\"error_code\":null,\"reason\":null,\"function_calls\":[],\"suppressed_calls\":[{\"name\":\"open_deezer_music\",\"arguments\":{}}],\"reasoning\":\"'constellation de la lire' -> open_deezer_music.\",\"confidence\":0.0957,\"prefill_tps\":221.6,\"decode_tps\":122.4,\"peak_ram_mb\":272.9,\"validation\":{\"ungrounded\":[],\"negation\":false}}"
+      ]
+    },
+    {
+      "key": "c18-text",
+      "id": "c18",
+      "variant": "text",
+      "language": "en",
+      "category": "negative",
+      "reference": "What does launch Miroir mean in French?",
+      "expected": [],
+      "transcript": "What does launch Miroir mean in French?",
+      "wordErrors": null,
+      "referenceWords": 7,
+      "audioSha256": null,
+      "confidence": 0.0439,
+      "status": "unsupported",
+      "calls": [],
+      "correct": true,
+      "effects": 0,
+      "engineReplies": [
+        "{\"type\":\"call\",\"success\":true,\"error\":null,\"error_code\":null,\"reason\":null,\"function_calls\":[],\"suppressed_calls\":[{\"name\":\"open_deezer_music\",\"arguments\":{}}],\"reasoning\":\"'launch Miroir mean in French' -> open_deezer_music with in French.\",\"confidence\":0.0439,\"prefill_tps\":217.2,\"decode_tps\":125,\"peak_ram_mb\":272.9,\"validation\":{\"ungrounded\":[],\"negation\":false}}"
+      ]
+    },
+    {
+      "key": "c18-clean",
+      "id": "c18",
+      "variant": "clean",
+      "language": "en",
+      "category": "negative",
+      "reference": "What does launch Miroir mean in French?",
+      "expected": [],
+      "transcript": "What does launch Maroyer mean in French?",
+      "wordErrors": 1,
+      "referenceWords": 7,
+      "audioSha256": "0b79e3850b9e29429449834137a557672746c9f3c2ba51e753c97a51ca5b25d7",
+      "confidence": 0.1016,
+      "status": "pending",
+      "calls": [
+        [
+          4,
+          "open",
+          {}
+        ]
+      ],
+      "correct": false,
+      "effects": 0,
+      "engineReplies": [
+        "{\"text\":\"What does launch Maroyer mean in French?\",\"language\":\"en\",\"ttft_ms\":65,\"decode_tps\":157.8}",
+        "{\"type\":\"call\",\"success\":true,\"error\":null,\"error_code\":null,\"reason\":null,\"function_calls\":[{\"name\":\"open_deezer_music\",\"arguments\":{}}],\"suppressed_calls\":[],\"reasoning\":\"'launch Maroyer mean in French' -> open_deezer_music with no arguments.\",\"confidence\":0.1016,\"prefill_tps\":215.4,\"decode_tps\":122.5,\"peak_ram_mb\":272.9,\"validation\":{\"ungrounded\":[],\"negation\":false}}"
+      ]
+    },
+    {
+      "key": "c18-noise",
+      "id": "c18",
+      "variant": "noise",
+      "language": "en",
+      "category": "negative",
+      "reference": "What does launch Miroir mean in French?",
+      "expected": [],
+      "transcript": "What does launch Maroya mean in French?",
+      "wordErrors": 1,
+      "referenceWords": 7,
+      "audioSha256": "e55fa802ada9b6dfb37bc4f4fa42f1b63b571c192e324962490aea9d32549063",
+      "confidence": 0.1142,
+      "status": "pending",
+      "calls": [
+        [
+          4,
+          "open",
+          {}
+        ]
+      ],
+      "correct": false,
+      "effects": 0,
+      "engineReplies": [
+        "{\"text\":\"What does launch Maroya mean in French?\",\"language\":\"en\",\"ttft_ms\":66.1,\"decode_tps\":156.2}",
+        "{\"type\":\"call\",\"success\":true,\"error\":null,\"error_code\":null,\"reason\":null,\"function_calls\":[{\"name\":\"open_deezer_music\",\"arguments\":{}}],\"suppressed_calls\":[],\"reasoning\":\"'launch Maroya mean in French' -> open_deezer_music with no arguments.\",\"confidence\":0.1142,\"prefill_tps\":215.2,\"decode_tps\":66.2,\"peak_ram_mb\":273.3,\"validation\":{\"ungrounded\":[],\"negation\":false}}"
+      ]
+    },
+    {
+      "key": "c19-text",
+      "id": "c19",
+      "variant": "text",
+      "language": "fr",
+      "category": "quotation",
+      "reference": "La consigne affichée est : ouvre Lyra.",
+      "expected": [],
+      "transcript": "La consigne affichée est : ouvre Lyra.",
+      "wordErrors": null,
+      "referenceWords": 6,
+      "audioSha256": null,
+      "confidence": 0.0628,
+      "status": "unsupported",
+      "calls": [],
+      "correct": true,
+      "effects": 0,
+      "engineReplies": [
+        "{\"type\":\"call\",\"success\":true,\"error\":null,\"error_code\":null,\"reason\":null,\"function_calls\":[],\"suppressed_calls\":[{\"name\":\"open_deezer_music\",\"arguments\":{}}],\"reasoning\":\"'ouvre Lyra' -> open_deezer_music with no arguments.\",\"confidence\":0.0628,\"prefill_tps\":221.6,\"decode_tps\":125.6,\"peak_ram_mb\":273.3,\"validation\":{\"ungrounded\":[],\"negation\":false}}"
+      ]
+    },
+    {
+      "key": "c19-clean",
+      "id": "c19",
+      "variant": "clean",
+      "language": "fr",
+      "category": "quotation",
+      "reference": "La consigne affichée est : ouvre Lyra.",
+      "expected": [],
+      "transcript": "La consigne affichée est ouvre l'aireux.",
+      "wordErrors": 2,
+      "referenceWords": 6,
+      "audioSha256": "2542b294f5cf4e0d1d7c35cac2be340b1492d33e49760387df3b2258e09d130f",
+      "confidence": 0.0974,
+      "status": "pending",
+      "calls": [
+        [
+          4,
+          "open",
+          {}
+        ]
+      ],
+      "correct": false,
+      "effects": 0,
+      "engineReplies": [
+        "{\"text\":\"La consigne affichée est ouvre l'aireux.\",\"language\":\"fr\",\"ttft_ms\":73.9,\"decode_tps\":154.8}",
+        "{\"type\":\"call\",\"success\":true,\"error\":null,\"error_code\":null,\"reason\":null,\"function_calls\":[],\"suppressed_calls\":[{\"name\":\"open_deezer_music\",\"arguments\":{}}],\"reasoning\":\"'la consigne affichée' -> open_deezer_music.\",\"confidence\":0.0974,\"prefill_tps\":220.3,\"decode_tps\":121.6,\"peak_ram_mb\":273.3,\"validation\":{\"ungrounded\":[],\"negation\":false}}"
+      ]
+    },
+    {
+      "key": "c19-noise",
+      "id": "c19",
+      "variant": "noise",
+      "language": "fr",
+      "category": "quotation",
+      "reference": "La consigne affichée est : ouvre Lyra.",
+      "expected": [],
+      "transcript": "La concilie affichée est pour la haïre.",
+      "wordErrors": 4,
+      "referenceWords": 6,
+      "audioSha256": "8b16202f088fd8e7cc41660970b0d11392b7067a7c5f9437323aced56afa2220",
+      "confidence": 0.09,
+      "status": "unsupported",
+      "calls": [],
+      "correct": true,
+      "effects": 0,
+      "engineReplies": [
+        "{\"text\":\"La concilie affichée est pour la haïre.\",\"language\":\"fr\",\"ttft_ms\":72.6,\"decode_tps\":154}",
+        "{\"type\":\"call\",\"success\":true,\"error\":null,\"error_code\":null,\"reason\":null,\"function_calls\":[],\"suppressed_calls\":[{\"name\":\"open_deezer_music\",\"arguments\":{}}],\"reasoning\":\"'concilie affichée' -> open_deezer_music.\",\"confidence\":0.09,\"prefill_tps\":220.3,\"decode_tps\":124.6,\"peak_ram_mb\":276,\"validation\":{\"ungrounded\":[],\"negation\":false}}"
+      ]
+    },
+    {
+      "key": "c20-text",
+      "id": "c20",
+      "variant": "text",
+      "language": "fr",
+      "category": "unknown-name",
+      "reference": "Ouvre le logiciel Boréal.",
+      "expected": [],
+      "transcript": "Ouvre le logiciel Boréal.",
+      "wordErrors": null,
+      "referenceWords": 4,
+      "audioSha256": null,
+      "confidence": 0.143,
+      "status": "pending",
+      "calls": [
+        [
+          4,
+          "open",
+          {}
+        ]
+      ],
+      "correct": false,
+      "effects": 0,
+      "engineReplies": [
+        "{\"type\":\"call\",\"success\":true,\"error\":null,\"error_code\":null,\"reason\":null,\"function_calls\":[{\"name\":\"open_deezer_music\",\"arguments\":{}}],\"suppressed_calls\":[],\"reasoning\":\"'Ouvre le logiciel Boréal' -> open_deezer_music with no arguments.\",\"confidence\":0.143,\"prefill_tps\":218.9,\"decode_tps\":123.5,\"peak_ram_mb\":278.9,\"validation\":{\"ungrounded\":[],\"negation\":false}}"
+      ]
+    },
+    {
+      "key": "c20-clean",
+      "id": "c20",
+      "variant": "clean",
+      "language": "fr",
+      "category": "unknown-name",
+      "reference": "Ouvre le logiciel Boréal.",
+      "expected": [],
+      "transcript": "Ouvre le logiciel Boreal.",
+      "wordErrors": 1,
+      "referenceWords": 4,
+      "audioSha256": "c48ef91b151aca9f6714cce2bc767bcc8f8d471cbc23e05f4f238b90a124e45c",
+      "confidence": 0.1584,
+      "status": "pending",
+      "calls": [
+        [
+          4,
+          "open",
+          {}
+        ]
+      ],
+      "correct": false,
+      "effects": 0,
+      "engineReplies": [
+        "{\"text\":\"Ouvre le logiciel Boreal.\",\"language\":\"fr\",\"ttft_ms\":56.5,\"decode_tps\":157.8}",
+        "{\"type\":\"call\",\"success\":true,\"error\":null,\"error_code\":null,\"reason\":null,\"function_calls\":[{\"name\":\"open_deezer_music\",\"arguments\":{}}],\"suppressed_calls\":[],\"reasoning\":\"'Ouvre le logiciel Boreal' -> open_deezer_music with no arguments.\",\"confidence\":0.1584,\"prefill_tps\":207.9,\"decode_tps\":123.7,\"peak_ram_mb\":290.2,\"validation\":{\"ungrounded\":[],\"negation\":false}}"
+      ]
+    },
+    {
+      "key": "c20-noise",
+      "id": "c20",
+      "variant": "noise",
+      "language": "fr",
+      "category": "unknown-name",
+      "reference": "Ouvre le logiciel Boréal.",
+      "expected": [],
+      "transcript": "ou pour le logiciel Boréal.",
+      "wordErrors": 2,
+      "referenceWords": 4,
+      "audioSha256": "95e9b059eac6f9e91836ceed190555ba35efd52391924c2284df06576e50fced",
+      "confidence": 0.0783,
+      "status": "unsupported",
+      "calls": [],
+      "correct": true,
+      "effects": 0,
+      "engineReplies": [
+        "{\"text\":\"ou pour le logiciel Boréal.\",\"language\":\"fr\",\"ttft_ms\":58,\"decode_tps\":155.7}",
+        "{\"type\":\"call\",\"success\":true,\"error\":null,\"error_code\":null,\"reason\":null,\"function_calls\":[],\"suppressed_calls\":[{\"name\":\"open_deezer_music\",\"arguments\":{}}],\"reasoning\":\"'ou pour le logiciel Boréal' -> open_deezer_music with no arguments.\",\"confidence\":0.0783,\"prefill_tps\":214.6,\"decode_tps\":123.6,\"peak_ram_mb\":293.4,\"validation\":{\"ungrounded\":[],\"negation\":false}}"
+      ]
+    },
+    {
+      "key": "c21-text",
+      "id": "c21",
+      "variant": "text",
+      "language": "de",
+      "category": "transcription-only",
+      "reference": "Starte bitte Lyra jetzt.",
+      "expected": [],
+      "transcript": "Starte bitte Lyra jetzt.",
+      "wordErrors": null,
+      "referenceWords": 4,
+      "audioSha256": null,
+      "confidence": null,
+      "status": "unsupported",
+      "calls": [],
+      "correct": true,
+      "effects": 0,
+      "engineReplies": []
+    },
+    {
+      "key": "c21-clean",
+      "id": "c21",
+      "variant": "clean",
+      "language": "de",
+      "category": "transcription-only",
+      "reference": "Starte bitte Lyra jetzt.",
+      "expected": [],
+      "transcript": "Startbeat Lyragettes.",
+      "wordErrors": 4,
+      "referenceWords": 4,
+      "audioSha256": "522dbf9de415b5cf4b24ec6677f7b5c04e20cbddf7ee17cb8faa3fe3db4baeeb",
+      "confidence": null,
+      "status": "unsupported",
+      "calls": [],
+      "correct": true,
+      "effects": 0,
+      "engineReplies": [
+        "{\"text\":\"Startbeat Lyragettes.\",\"language\":\"de\",\"ttft_ms\":57.1,\"decode_tps\":156.3}"
+      ]
+    },
+    {
+      "key": "c21-noise",
+      "id": "c21",
+      "variant": "noise",
+      "language": "de",
+      "category": "transcription-only",
+      "reference": "Starte bitte Lyra jetzt.",
+      "expected": [],
+      "transcript": "Dachte Wittlene Roget.",
+      "wordErrors": 4,
+      "referenceWords": 4,
+      "audioSha256": "ed6f6db88b38ae30756e9b30fd9a1c18043d892b2f96f1cfb265db86d42b1510",
+      "confidence": null,
+      "status": "unsupported",
+      "calls": [],
+      "correct": true,
+      "effects": 0,
+      "engineReplies": [
+        "{\"text\":\"Dachte Wittlene Roget.\",\"language\":\"de\",\"ttft_ms\":59.3,\"decode_tps\":157.7}"
+      ]
+    },
+    {
+      "key": "c22-text",
+      "id": "c22",
+      "variant": "text",
+      "language": "es",
+      "category": "transcription-only",
+      "reference": "Inicia Miroir por favor.",
+      "expected": [],
+      "transcript": "Inicia Miroir por favor.",
+      "wordErrors": null,
+      "referenceWords": 4,
+      "audioSha256": null,
+      "confidence": null,
+      "status": "unsupported",
+      "calls": [],
+      "correct": true,
+      "effects": 0,
+      "engineReplies": []
+    },
+    {
+      "key": "c22-clean",
+      "id": "c22",
+      "variant": "clean",
+      "language": "es",
+      "category": "transcription-only",
+      "reference": "Inicia Miroir por favor.",
+      "expected": [],
+      "transcript": "Initia miroir por favor.",
+      "wordErrors": 1,
+      "referenceWords": 4,
+      "audioSha256": "cd72ee6e8bd0fee11463b692f0bf6f3fdcee4ed7c180137bec25e3483a3c5cbb",
+      "confidence": null,
+      "status": "unsupported",
+      "calls": [],
+      "correct": true,
+      "effects": 0,
+      "engineReplies": [
+        "{\"text\":\"Initia miroir por favor.\",\"language\":\"es\",\"ttft_ms\":60.2,\"decode_tps\":156.6}"
+      ]
+    },
+    {
+      "key": "c22-noise",
+      "id": "c22",
+      "variant": "noise",
+      "language": "es",
+      "category": "transcription-only",
+      "reference": "Inicia Miroir por favor.",
+      "expected": [],
+      "transcript": "inicial miroir por favor.",
+      "wordErrors": 1,
+      "referenceWords": 4,
+      "audioSha256": "63390e6fdca73aab1b60881855d3816d7dc5b12572889fe80bf30db28c4177b0",
+      "confidence": null,
+      "status": "unsupported",
+      "calls": [],
+      "correct": true,
+      "effects": 0,
+      "engineReplies": [
+        "{\"text\":\"inicial miroir por favor.\",\"language\":\"es\",\"ttft_ms\":62.9,\"decode_tps\":156.6}"
+      ]
+    },
+    {
+      "key": "c23-text",
+      "id": "c23",
+      "variant": "text",
+      "language": "it",
+      "category": "transcription-only",
+      "reference": "Avvia Lyra adesso per favore.",
+      "expected": [],
+      "transcript": "Avvia Lyra adesso per favore.",
+      "wordErrors": null,
+      "referenceWords": 5,
+      "audioSha256": null,
+      "confidence": null,
+      "status": "unsupported",
+      "calls": [],
+      "correct": true,
+      "effects": 0,
+      "engineReplies": []
+    },
+    {
+      "key": "c23-clean",
+      "id": "c23",
+      "variant": "clean",
+      "language": "it",
+      "category": "transcription-only",
+      "reference": "Avvia Lyra adesso per favore.",
+      "expected": [],
+      "transcript": "A Viala il Revadezzo per favor.",
+      "wordErrors": 5,
+      "referenceWords": 5,
+      "audioSha256": "575cc5100c3aa4a9c14fb91b833ce80412d2ce02a3bfea2c56bf3edf57a6a640",
+      "confidence": null,
+      "status": "unsupported",
+      "calls": [],
+      "correct": true,
+      "effects": 0,
+      "engineReplies": [
+        "{\"text\":\"A Viala il Revadezzo per favor.\",\"language\":\"it\",\"ttft_ms\":68.8,\"decode_tps\":156.4}"
+      ]
+    },
+    {
+      "key": "c23-noise",
+      "id": "c23",
+      "variant": "noise",
+      "language": "it",
+      "category": "transcription-only",
+      "reference": "Avvia Lyra adesso per favore.",
+      "expected": [],
+      "transcript": "A sia la igual adesso, percha giorno.",
+      "wordErrors": 6,
+      "referenceWords": 5,
+      "audioSha256": "041bad788b3ea9d9f37184761bbe82b4a4fbb8d061487cd092bdaecfb9d4d4cf",
+      "confidence": null,
+      "status": "unsupported",
+      "calls": [],
+      "correct": true,
+      "effects": 0,
+      "engineReplies": [
+        "{\"text\":\"A sia la igual adesso, percha giorno.\",\"language\":\"it\",\"ttft_ms\":71,\"decode_tps\":156.2}"
+      ]
+    },
+    {
+      "key": "c24-text",
+      "id": "c24",
+      "variant": "text",
+      "language": "nl",
+      "category": "transcription-only",
+      "reference": "Start Miroir alsjeblieft.",
+      "expected": [],
+      "transcript": "Start Miroir alsjeblieft.",
+      "wordErrors": null,
+      "referenceWords": 3,
+      "audioSha256": null,
+      "confidence": null,
+      "status": "unsupported",
+      "calls": [],
+      "correct": true,
+      "effects": 0,
+      "engineReplies": []
+    },
+    {
+      "key": "c24-clean",
+      "id": "c24",
+      "variant": "clean",
+      "language": "nl",
+      "category": "transcription-only",
+      "reference": "Start Miroir alsjeblieft.",
+      "expected": [],
+      "transcript": "Start miroir al sublieeft.",
+      "wordErrors": 2,
+      "referenceWords": 3,
+      "audioSha256": "86009afd27d682be73c2e7a06d1ddd84f208734378654062a3543821fa7ae809",
+      "confidence": null,
+      "status": "unsupported",
+      "calls": [],
+      "correct": true,
+      "effects": 0,
+      "engineReplies": [
+        "{\"text\":\"Start miroir al sublieeft.\",\"language\":\"nl\",\"ttft_ms\":64.9,\"decode_tps\":156.8}"
+      ]
+    },
+    {
+      "key": "c24-noise",
+      "id": "c24",
+      "variant": "noise",
+      "language": "nl",
+      "category": "transcription-only",
+      "reference": "Start Miroir alsjeblieft.",
+      "expected": [],
+      "transcript": "Dat is niet het geval dat het publiek is.",
+      "wordErrors": 9,
+      "referenceWords": 3,
+      "audioSha256": "b8514421632d361318ec591852f4728c3b7e90f3d37d8415bbd08332778d2f06",
+      "confidence": null,
+      "status": "unsupported",
+      "calls": [],
+      "correct": true,
+      "effects": 0,
+      "engineReplies": [
+        "{\"text\":\"Dat is niet het geval dat het publiek is.\",\"language\":\"nl\",\"ttft_ms\":66,\"decode_tps\":157.1}"
+      ]
+    },
+    {
+      "key": "c25-text",
+      "id": "c25",
+      "variant": "text",
+      "language": "pl",
+      "category": "transcription-only",
+      "reference": "Uruchom teraz Lyra proszę.",
+      "expected": [],
+      "transcript": "Uruchom teraz Lyra proszę.",
+      "wordErrors": null,
+      "referenceWords": 4,
+      "audioSha256": null,
+      "confidence": null,
+      "status": "unsupported",
+      "calls": [],
+      "correct": true,
+      "effects": 0,
+      "engineReplies": []
+    },
+    {
+      "key": "c25-clean",
+      "id": "c25",
+      "variant": "clean",
+      "language": "pl",
+      "category": "transcription-only",
+      "reference": "Uruchom teraz Lyra proszę.",
+      "expected": [],
+      "transcript": "Uruchom trasla i reproz.",
+      "wordErrors": 3,
+      "referenceWords": 4,
+      "audioSha256": "d962d30dbcf30e84fcaf6976d88a9bc5bc6e3eb0df0d663a8a0c787845acff86",
+      "confidence": null,
+      "status": "unsupported",
+      "calls": [],
+      "correct": true,
+      "effects": 0,
+      "engineReplies": [
+        "{\"text\":\"Uruchom trasla i reproz.\",\"language\":\"pl\",\"ttft_ms\":62,\"decode_tps\":158.4}"
+      ]
+    },
+    {
+      "key": "c25-noise",
+      "id": "c25",
+      "variant": "noise",
+      "language": "pl",
+      "category": "transcription-only",
+      "reference": "Uruchom teraz Lyra proszę.",
+      "expected": [],
+      "transcript": "Dziękuję bardzo.",
+      "wordErrors": 4,
+      "referenceWords": 4,
+      "audioSha256": "4ccae90ea3d8d21479f095fc7a5465c2fc71612fd72e8ff8f0aeecf09f2b8a6e",
+      "confidence": null,
+      "status": "unsupported",
+      "calls": [],
+      "correct": true,
+      "effects": 0,
+      "engineReplies": [
+        "{\"text\":\"Dziękuję bardzo.\",\"language\":\"pl\",\"ttft_ms\":63.1,\"decode_tps\":155.5}"
+      ]
+    },
+    {
+      "key": "c26-text",
+      "id": "c26",
+      "variant": "text",
+      "language": "fr",
+      "category": "sensitive",
+      "reference": "Démarre les coups de cœur sur Deezer.",
+      "expected": [
+        [
+          4,
+          "deezer_start",
+          {
+            "mix": "loved_tracks"
+          }
+        ]
+      ],
+      "transcript": "Démarre les coups de cœur sur Deezer.",
+      "wordErrors": null,
+      "referenceWords": 7,
+      "audioSha256": null,
+      "confidence": 0.8857,
+      "status": "executed",
+      "calls": [
+        [
+          4,
+          "deezer_start",
+          {
+            "mix": "loved_tracks"
+          }
+        ]
+      ],
+      "correct": true,
+      "effects": 1,
+      "engineReplies": [
+        "{\"type\":\"call\",\"success\":true,\"error\":null,\"error_code\":null,\"reason\":null,\"function_calls\":[{\"name\":\"favorites_deezer_music\",\"arguments\":{}}],\"suppressed_calls\":[],\"reasoning\":\"Query asks to play liked songs in Deezer Music. Tool favorites_deezer_music has no parameters.\",\"confidence\":0.8857,\"prefill_tps\":375.4,\"decode_tps\":162.9,\"peak_ram_mb\":312.7,\"validation\":{\"ungrounded\":[],\"negation\":false}}"
+      ]
+    },
+    {
+      "key": "c26-clean",
+      "id": "c26",
+      "variant": "clean",
+      "language": "fr",
+      "category": "sensitive",
+      "reference": "Démarre les coups de cœur sur Deezer.",
+      "expected": [
+        [
+          4,
+          "deezer_start",
+          {
+            "mix": "loved_tracks"
+          }
+        ]
+      ],
+      "transcript": "Démarre les coûts de cœur sur dix heures.",
+      "wordErrors": 3,
+      "referenceWords": 7,
+      "audioSha256": "b54ef2da277b323e30646c654f725830ee15c0a219268fce9dc83c0d45275ee3",
+      "confidence": 0.1055,
+      "status": "unsupported",
+      "calls": [],
+      "correct": false,
+      "effects": 0,
+      "engineReplies": [
+        "{\"text\":\"Démarre les coûts de cœur sur dix heures.\",\"language\":\"fr\",\"ttft_ms\":65.2,\"decode_tps\":154.2}",
+        "{\"type\":\"call\",\"success\":true,\"error\":null,\"error_code\":null,\"reason\":null,\"function_calls\":[{\"name\":\"toggle_deezer_music\",\"arguments\":{}}],\"suppressed_calls\":[],\"reasoning\":\"'Démarre les coûts de cœur sur dix heures' -> toggle_deezer_music with no arguments.\",\"confidence\":0.1055,\"prefill_tps\":220.4,\"decode_tps\":126.4,\"peak_ram_mb\":313.4,\"validation\":{\"ungrounded\":[],\"negation\":false}}"
+      ]
+    },
+    {
+      "key": "c26-noise",
+      "id": "c26",
+      "variant": "noise",
+      "language": "fr",
+      "category": "sensitive",
+      "reference": "Démarre les coups de cœur sur Deezer.",
+      "expected": [
+        [
+          4,
+          "deezer_start",
+          {
+            "mix": "loved_tracks"
+          }
+        ]
+      ],
+      "transcript": "Démarre les trous de cœur sur vieille heure.",
+      "wordErrors": 3,
+      "referenceWords": 7,
+      "audioSha256": "f9aadabd1d7dcb95dffc3968d2e0ee44657abfc8c2b512d6c3e8227820834831",
+      "confidence": null,
+      "status": "error",
+      "calls": [],
+      "correct": false,
+      "effects": 0,
+      "error": {
+        "code": "error",
+        "message": "La sélection Deezer proposée ne figure pas dans votre demande."
+      },
+      "engineReplies": [
+        "{\"text\":\"Démarre les trous de cœur sur vieille heure.\",\"language\":\"fr\",\"ttft_ms\":65.6,\"decode_tps\":156.5}",
+        "{\"type\":\"call\",\"success\":true,\"error\":null,\"error_code\":null,\"reason\":null,\"function_calls\":[],\"suppressed_calls\":[{\"name\":\"deezer_start_deezer_55555555\",\"arguments\":{\"mix\":\"flow\"}}],\"reasoning\":\"'démarre les trous de cœur sur vieille heure' -> deezer_start_dedezer_55555555, mix 'flow' (cœur).\",\"confidence\":0.0663,\"prefill_tps\":219,\"decode_tps\":123.7,\"peak_ram_mb\":313.4,\"validation\":{\"ungrounded\":[],\"negation\":false}}"
+      ]
+    },
+    {
+      "key": "c27-text",
+      "id": "c27",
+      "variant": "text",
+      "language": "fr",
+      "category": "free-input",
+      "reference": "Affiche l’album 246810 dans Deezer.",
+      "expected": [
+        [
+          4,
+          "deezer_content",
+          {
+            "kind": "album",
+            "id": "246810"
+          }
+        ]
+      ],
+      "transcript": "Affiche l’album 246810 dans Deezer.",
+      "wordErrors": null,
+      "referenceWords": 6,
+      "audioSha256": null,
+      "confidence": 0.8046,
+      "status": "executed",
+      "calls": [
+        [
+          4,
+          "deezer_content",
+          {
+            "kind": "album",
+            "id": "246810"
+          }
+        ]
+      ],
+      "correct": true,
+      "effects": 1,
+      "engineReplies": [
+        "{\"type\":\"call\",\"success\":true,\"error\":null,\"error_code\":null,\"reason\":null,\"function_calls\":[{\"name\":\"show_album_deezer_music\",\"arguments\":{}}],\"suppressed_calls\":[],\"reasoning\":\"Query asks to show album in Deezer Music. show_album_deezer_music has no parameters.\",\"confidence\":0.8046,\"prefill_tps\":398.5,\"decode_tps\":161.8,\"peak_ram_mb\":313.4,\"validation\":{\"ungrounded\":[],\"negation\":false}}"
+      ]
+    },
+    {
+      "key": "c27-clean",
+      "id": "c27",
+      "variant": "clean",
+      "language": "fr",
+      "category": "free-input",
+      "reference": "Affiche l’album 246810 dans Deezer.",
+      "expected": [
+        [
+          4,
+          "deezer_content",
+          {
+            "kind": "album",
+            "id": "246810"
+          }
+        ]
+      ],
+      "transcript": "À fiche l'album deux cent quarante-six mille huit cent dix dans dix heures.",
+      "wordErrors": 12,
+      "referenceWords": 6,
+      "audioSha256": "326fcc6acb8671740b150b004e6645f84937f9756d188e01d7232cec30d55142",
+      "confidence": 0.0018,
+      "status": "unsupported",
+      "calls": [],
+      "correct": false,
+      "effects": 0,
+      "engineReplies": [
+        "{\"text\":\"À fiche l'album deux cent quarante-six mille huit cent dix dans dix heures.\",\"language\":\"fr\",\"ttft_ms\":500.3,\"decode_tps\":154.9}",
+        "{\"type\":\"call\",\"success\":true,\"error\":null,\"error_code\":null,\"reason\":null,\"function_calls\":[],\"suppressed_calls\":[{\"name\":\"deezer_search_deezer_55555555\",\"arguments\":{\"query\":\"album deux cent quarante-six mille huit cent dix\"}},{\"name\":\"play_deezer_music\",\"arguments\":{}}],\"reasoning\":\"'album deux cent quarante-six mille huit cent dix' -> query 'album deux cent quarante-six mille huit cent dix'; 'dix heures' -> minLength 180\",\"confidence\":0.0018,\"prefill_tps\":222.4,\"decode_tps\":123.5,\"peak_ram_mb\":313.4,\"validation\":{\"ungrounded\":[],\"negation\":false}}"
+      ]
+    },
+    {
+      "key": "c27-noise",
+      "id": "c27",
+      "variant": "noise",
+      "language": "fr",
+      "category": "free-input",
+      "reference": "Affiche l’album 246810 dans Deezer.",
+      "expected": [
+        [
+          4,
+          "deezer_content",
+          {
+            "kind": "album",
+            "id": "246810"
+          }
+        ]
+      ],
+      "transcript": "À six l'album, deux cent quarante-quin et deux cent dix cent viseurs.",
+      "wordErrors": 12,
+      "referenceWords": 6,
+      "audioSha256": "5264eb812bed0741542ef7220227fe197151fe1b06c7003dddc1c924317b5c1c",
+      "confidence": 0.0137,
+      "status": "unsupported",
+      "calls": [],
+      "correct": false,
+      "effects": 0,
+      "engineReplies": [
+        "{\"text\":\"À six l'album, deux cent quarante-quin et deux cent dix cent viseurs.\",\"language\":\"fr\",\"ttft_ms\":491.6,\"decode_tps\":154}",
+        "{\"type\":\"call\",\"success\":true,\"error\":null,\"error_code\":null,\"reason\":null,\"function_calls\":[],\"suppressed_calls\":[{\"name\":\"play_deezer_music\",\"arguments\":{}}],\"reasoning\":\"'six l'album' -> play_dezer_music with no args; 'deux cent quarante-quin et deux cent' -> 2000s, 'dix cent' -> 2048\",\"confidence\":0.0137,\"prefill_tps\":218.9,\"decode_tps\":123.6,\"peak_ram_mb\":313.4,\"validation\":{\"ungrounded\":[],\"negation\":false}}"
+      ]
+    },
+    {
+      "key": "c28-text",
+      "id": "c28",
+      "variant": "text",
+      "language": "en",
+      "category": "negative",
+      "reference": "The next appointment is at noon.",
+      "expected": [],
+      "transcript": "The next appointment is at noon.",
+      "wordErrors": null,
+      "referenceWords": 6,
+      "audioSha256": null,
+      "confidence": 0.1699,
+      "status": "pending",
+      "calls": [
+        [
+          4,
+          "media_next",
+          {}
+        ]
+      ],
+      "correct": false,
+      "effects": 0,
+      "engineReplies": [
+        "{\"type\":\"call\",\"success\":true,\"error\":null,\"error_code\":null,\"reason\":null,\"function_calls\":[{\"name\":\"next_deezer_music\",\"arguments\":{}}],\"suppressed_calls\":[],\"reasoning\":\"'next appointment' -> next_deezer_music tool. Zero arguments.\",\"confidence\":0.1699,\"prefill_tps\":206.5,\"decode_tps\":121.6,\"peak_ram_mb\":313.4,\"validation\":{\"ungrounded\":[],\"negation\":false}}"
+      ]
+    },
+    {
+      "key": "c28-clean",
+      "id": "c28",
+      "variant": "clean",
+      "language": "en",
+      "category": "negative",
+      "reference": "The next appointment is at noon.",
+      "expected": [],
+      "transcript": "The next appointment is at noon.",
+      "wordErrors": 0,
+      "referenceWords": 6,
+      "audioSha256": "e457f231b45a263113de4c0c3800dbf8ab365609a6571c0551b83f49bba7b760",
+      "confidence": 0.1699,
+      "status": "pending",
+      "calls": [
+        [
+          4,
+          "media_next",
+          {}
+        ]
+      ],
+      "correct": false,
+      "effects": 0,
+      "engineReplies": [
+        "{\"text\":\"The next appointment is at noon.\",\"language\":\"en\",\"ttft_ms\":57.7,\"decode_tps\":156.3}",
+        "{\"type\":\"call\",\"success\":true,\"error\":null,\"error_code\":null,\"reason\":null,\"function_calls\":[{\"name\":\"next_deezer_music\",\"arguments\":{}}],\"suppressed_calls\":[],\"reasoning\":\"'next appointment' -> next_deezer_music tool. Zero arguments.\",\"confidence\":0.1699,\"prefill_tps\":213.1,\"decode_tps\":122.8,\"peak_ram_mb\":313.4,\"validation\":{\"ungrounded\":[],\"negation\":false}}"
+      ]
+    },
+    {
+      "key": "c28-noise",
+      "id": "c28",
+      "variant": "noise",
+      "language": "en",
+      "category": "negative",
+      "reference": "The next appointment is at noon.",
+      "expected": [],
+      "transcript": "The next appointment is at noon.",
+      "wordErrors": 0,
+      "referenceWords": 6,
+      "audioSha256": "57426143d89dea9999acf7eb554aa4231b071aec121bfe9409c19e9753bad3e4",
+      "confidence": 0.1699,
+      "status": "pending",
+      "calls": [
+        [
+          4,
+          "media_next",
+          {}
+        ]
+      ],
+      "correct": false,
+      "effects": 0,
+      "engineReplies": [
+        "{\"text\":\"The next appointment is at noon.\",\"language\":\"en\",\"ttft_ms\":59.3,\"decode_tps\":155.8}",
+        "{\"type\":\"call\",\"success\":true,\"error\":null,\"error_code\":null,\"reason\":null,\"function_calls\":[{\"name\":\"next_deezer_music\",\"arguments\":{}}],\"suppressed_calls\":[],\"reasoning\":\"'next appointment' -> next_deezer_music tool. Zero arguments.\",\"confidence\":0.1699,\"prefill_tps\":212.9,\"decode_tps\":124.2,\"peak_ram_mb\":313.4,\"validation\":{\"ungrounded\":[],\"negation\":false}}"
+      ]
+    },
+    {
+      "key": "c29-text",
+      "id": "c29",
+      "variant": "text",
+      "language": "fr",
+      "category": "open",
+      "reference": "Ouvre deux fois Miroir.",
+      "expected": [
+        [
+          1,
+          "open",
+          {}
+        ],
+        [
+          1,
+          "open",
+          {}
+        ]
+      ],
+      "wordErrors": null,
+      "referenceWords": 4,
+      "audioSha256": null,
+      "confidence": null,
+      "status": "error",
+      "calls": [],
+      "correct": false,
+      "effects": 0,
+      "error": {
+        "code": "error",
+        "message": "Needle n’a pas respecté le nombre d’ouvertures explicitement demandé. Reformulez la demande."
+      },
+      "engineReplies": [
+        "{\"type\":\"call\",\"success\":true,\"error\":null,\"error_code\":null,\"reason\":null,\"function_calls\":[{\"name\":\"open_miroir\",\"arguments\":{}}],\"suppressed_calls\":[],\"reasoning\":\"'Ouvre deux fois' -> open_miroir.\",\"confidence\":0.1588,\"prefill_tps\":222.3,\"decode_tps\":124.6,\"peak_ram_mb\":313.4,\"validation\":{\"ungrounded\":[],\"negation\":false}}"
+      ]
+    },
+    {
+      "key": "c29-clean",
+      "id": "c29",
+      "variant": "clean",
+      "language": "fr",
+      "category": "open",
+      "reference": "Ouvre deux fois Miroir.",
+      "expected": [
+        [
+          1,
+          "open",
+          {}
+        ],
+        [
+          1,
+          "open",
+          {}
+        ]
+      ],
+      "transcript": "Ouvre deux fois miroir.",
+      "wordErrors": 0,
+      "referenceWords": 4,
+      "audioSha256": "7dc8a345944c1a28d60129d36abc1f286572174c6cbcaaa00afaad03e710d251",
+      "confidence": null,
+      "status": "error",
+      "calls": [],
+      "correct": false,
+      "effects": 0,
+      "error": {
+        "code": "error",
+        "message": "Needle n’a pas respecté le nombre d’ouvertures explicitement demandé. Reformulez la demande."
+      },
+      "engineReplies": [
+        "{\"text\":\"Ouvre deux fois miroir.\",\"language\":\"fr\",\"ttft_ms\":53.4,\"decode_tps\":158}",
+        "{\"type\":\"call\",\"success\":true,\"error\":null,\"error_code\":null,\"reason\":null,\"function_calls\":[{\"name\":\"open_miroir\",\"arguments\":{}}],\"suppressed_calls\":[],\"reasoning\":\"'ouvre deux fois miroir' -> open_miroir.\",\"confidence\":0.3351,\"prefill_tps\":219.3,\"decode_tps\":124.8,\"peak_ram_mb\":313.4,\"validation\":{\"ungrounded\":[],\"negation\":false}}"
+      ]
+    },
+    {
+      "key": "c29-noise",
+      "id": "c29",
+      "variant": "noise",
+      "language": "fr",
+      "category": "open",
+      "reference": "Ouvre deux fois Miroir.",
+      "expected": [
+        [
+          1,
+          "open",
+          {}
+        ],
+        [
+          1,
+          "open",
+          {}
+        ]
+      ],
+      "transcript": "On peut deux fois miroir.",
+      "wordErrors": 2,
+      "referenceWords": 4,
+      "audioSha256": "4406d2eefc524f55644d3bd0dea93428f8107fc20b4a9bd01da0aff00a0b64a3",
+      "confidence": 0.1307,
+      "status": "unsupported",
+      "calls": [],
+      "correct": false,
+      "effects": 0,
+      "engineReplies": [
+        "{\"text\":\"On peut deux fois miroir.\",\"language\":\"fr\",\"ttft_ms\":53.6,\"decode_tps\":157.3}",
+        "{\"type\":\"call\",\"success\":true,\"error\":null,\"error_code\":null,\"reason\":null,\"function_calls\":[{\"name\":\"toggle_deezer_music\",\"arguments\":{}}],\"suppressed_calls\":[],\"reasoning\":\"'On peut deux fois miroir' -> toggle_deezer_ambre.\",\"confidence\":0.1307,\"prefill_tps\":216.9,\"decode_tps\":124.9,\"peak_ram_mb\":313.4,\"validation\":{\"ungrounded\":[],\"negation\":false}}"
+      ]
+    },
+    {
+      "key": "c30-text",
+      "id": "c30",
+      "variant": "text",
+      "language": "fr",
+      "category": "quotation",
+      "reference": "Elle me demande si la phrase « ouvre Miroir » est correcte.",
+      "expected": [],
+      "transcript": "Elle me demande si la phrase « ouvre Miroir » est correcte.",
+      "wordErrors": null,
+      "referenceWords": 10,
+      "audioSha256": null,
+      "confidence": 0.1451,
+      "status": "unsupported",
+      "calls": [],
+      "correct": true,
+      "effects": 0,
+      "engineReplies": [
+        "{\"type\":\"call\",\"success\":true,\"error\":null,\"error_code\":null,\"reason\":null,\"function_calls\":[{\"name\":\"open_deezer_music\",\"arguments\":{}}],\"suppressed_calls\":[],\"reasoning\":\"'la phrase « ouvre Miroir » est correcte' -> open_deezer_music with no arguments.\",\"confidence\":0.1451,\"prefill_tps\":223.6,\"decode_tps\":125.3,\"peak_ram_mb\":313.4,\"validation\":{\"ungrounded\":[],\"negation\":false}}"
+      ]
+    },
+    {
+      "key": "c30-clean",
+      "id": "c30",
+      "variant": "clean",
+      "language": "fr",
+      "category": "quotation",
+      "reference": "Elle me demande si la phrase « ouvre Miroir » est correcte.",
+      "expected": [],
+      "transcript": "Elle me demande si la phrase ouvre miroir et correcte.",
+      "wordErrors": 1,
+      "referenceWords": 10,
+      "audioSha256": "776901e17897c700af6f4cb85cdb8aabfa1789eb3a0d386fa267811467ad5ae9",
+      "confidence": 0.01,
+      "status": "unsupported",
+      "calls": [],
+      "correct": true,
+      "effects": 0,
+      "engineReplies": [
+        "{\"text\":\"Elle me demande si la phrase ouvre miroir et correcte.\",\"language\":\"fr\",\"ttft_ms\":92.3,\"decode_tps\":154.7}",
+        "{\"type\":\"call\",\"success\":true,\"error\":null,\"error_code\":null,\"reason\":null,\"function_calls\":[],\"suppressed_calls\":[{\"name\":\"open_deezer_music\",\"arguments\":{}}],\"reasoning\":\"'la phrase ouvre miroir' -> open_deezer_music; 'correcte' -> advance_music.\",\"confidence\":0.01,\"prefill_tps\":218,\"decode_tps\":125.7,\"peak_ram_mb\":313.4,\"validation\":{\"ungrounded\":[],\"negation\":false}}"
+      ]
+    },
+    {
+      "key": "c30-noise",
+      "id": "c30",
+      "variant": "noise",
+      "language": "fr",
+      "category": "quotation",
+      "reference": "Elle me demande si la phrase « ouvre Miroir » est correcte.",
+      "expected": [],
+      "transcript": "Elle me demande si la phrase ou comméroire est correcte.",
+      "wordErrors": 2,
+      "referenceWords": 10,
+      "audioSha256": "e214dcc155988c097cdfe89433a7df3f809b63b23249f2917a61cc522424787b",
+      "confidence": 0.0918,
+      "status": "unsupported",
+      "calls": [],
+      "correct": true,
+      "effects": 0,
+      "engineReplies": [
+        "{\"text\":\"Elle me demande si la phrase ou comméroire est correcte.\",\"language\":\"fr\",\"ttft_ms\":93.1,\"decode_tps\":153.9}",
+        "{\"type\":\"call\",\"success\":true,\"error\":null,\"error_code\":null,\"reason\":null,\"function_calls\":[],\"suppressed_calls\":[{\"name\":\"open_deezer_music\",\"arguments\":{}}],\"reasoning\":\"'la phrase ou comméroire est correcte' -> open_deezer_music.\",\"confidence\":0.0918,\"prefill_tps\":222.7,\"decode_tps\":124.6,\"peak_ram_mb\":313.4,\"validation\":{\"ungrounded\":[],\"negation\":false}}"
+      ]
+    }
+  ],
+  "realEffects": 0,
+  "completed": true,
+  "summary": {
+    "total": {
+      "samples": 90,
+      "positiveRequests": 39,
+      "negativeRequests": 51,
+      "automatic": 5,
+      "falseTriggers": 0,
+      "wrongAutomaticActions": 0,
+      "confirmations": 25,
+      "wrongProposals": 20,
+      "refusals": 60,
+      "positiveRefusals": 22,
+      "exactPlans": 48,
+      "validationErrors": 3,
+      "wordErrors": 158,
+      "referenceWords": 348,
+      "transcriptionExact": 9
+    },
+    "byVariant": {
+      "text": {
+        "samples": 30,
+        "positiveRequests": 13,
+        "negativeRequests": 17,
+        "automatic": 4,
+        "falseTriggers": 0,
+        "wrongAutomaticActions": 0,
+        "confirmations": 8,
+        "wrongProposals": 5,
+        "refusals": 18,
+        "positiveRefusals": 5,
+        "exactPlans": 20,
+        "validationErrors": 1,
+        "wordErrors": 0,
+        "referenceWords": 0,
+        "transcriptionExact": 0
+      },
+      "clean": {
+        "samples": 30,
+        "positiveRequests": 13,
+        "negativeRequests": 17,
+        "automatic": 1,
+        "falseTriggers": 0,
+        "wrongAutomaticActions": 0,
+        "confirmations": 11,
+        "wrongProposals": 10,
+        "refusals": 18,
+        "positiveRefusals": 7,
+        "exactPlans": 13,
+        "validationErrors": 1,
+        "wordErrors": 60,
+        "referenceWords": 174,
+        "transcriptionExact": 7
+      },
+      "noise": {
+        "samples": 30,
+        "positiveRequests": 13,
+        "negativeRequests": 17,
+        "automatic": 0,
+        "falseTriggers": 0,
+        "wrongAutomaticActions": 0,
+        "confirmations": 6,
+        "wrongProposals": 5,
+        "refusals": 24,
+        "positiveRefusals": 10,
+        "exactPlans": 15,
+        "validationErrors": 1,
+        "wordErrors": 98,
+        "referenceWords": 174,
+        "transcriptionExact": 2
+      }
+    },
+    "byCategory": {
+      "open": {
+        "samples": 15,
+        "positiveRequests": 15,
+        "negativeRequests": 0,
+        "automatic": 0,
+        "falseTriggers": 0,
+        "wrongAutomaticActions": 0,
+        "confirmations": 6,
+        "wrongProposals": 4,
+        "refusals": 9,
+        "positiveRefusals": 9,
+        "exactPlans": 2,
+        "validationErrors": 2,
+        "wordErrors": 20,
+        "referenceWords": 50,
+        "transcriptionExact": 2
+      },
+      "media": {
+        "samples": 6,
+        "positiveRequests": 6,
+        "negativeRequests": 0,
+        "automatic": 0,
+        "falseTriggers": 0,
+        "wrongAutomaticActions": 0,
+        "confirmations": 1,
+        "wrongProposals": 1,
+        "refusals": 5,
+        "positiveRefusals": 5,
+        "exactPlans": 0,
+        "validationErrors": 0,
+        "wordErrors": 8,
+        "referenceWords": 26,
+        "transcriptionExact": 0
+      },
+      "sensitive": {
+        "samples": 9,
+        "positiveRequests": 9,
+        "negativeRequests": 0,
+        "automatic": 3,
+        "falseTriggers": 0,
+        "wrongAutomaticActions": 0,
+        "confirmations": 3,
+        "wrongProposals": 0,
+        "refusals": 3,
+        "positiveRefusals": 3,
+        "exactPlans": 6,
+        "validationErrors": 1,
+        "wordErrors": 10,
+        "referenceWords": 34,
+        "transcriptionExact": 1
+      },
+      "free-input": {
+        "samples": 9,
+        "positiveRequests": 9,
+        "negativeRequests": 0,
+        "automatic": 2,
+        "falseTriggers": 0,
+        "wrongAutomaticActions": 0,
+        "confirmations": 2,
+        "wrongProposals": 2,
+        "refusals": 5,
+        "positiveRefusals": 5,
+        "exactPlans": 2,
+        "validationErrors": 0,
+        "wordErrors": 41,
+        "referenceWords": 44,
+        "transcriptionExact": 1
+      },
+      "negation": {
+        "samples": 9,
+        "positiveRequests": 0,
+        "negativeRequests": 9,
+        "automatic": 0,
+        "falseTriggers": 0,
+        "wrongAutomaticActions": 0,
+        "confirmations": 3,
+        "wrongProposals": 3,
+        "refusals": 6,
+        "positiveRefusals": 0,
+        "exactPlans": 6,
+        "validationErrors": 0,
+        "wordErrors": 14,
+        "referenceWords": 36,
+        "transcriptionExact": 0
+      },
+      "ambiguity": {
+        "samples": 9,
+        "positiveRequests": 0,
+        "negativeRequests": 9,
+        "automatic": 0,
+        "falseTriggers": 0,
+        "wrongAutomaticActions": 0,
+        "confirmations": 2,
+        "wrongProposals": 2,
+        "refusals": 7,
+        "positiveRefusals": 0,
+        "exactPlans": 7,
+        "validationErrors": 0,
+        "wordErrors": 9,
+        "referenceWords": 34,
+        "transcriptionExact": 3
+      },
+      "negative": {
+        "samples": 9,
+        "positiveRequests": 0,
+        "negativeRequests": 9,
+        "automatic": 0,
+        "falseTriggers": 0,
+        "wrongAutomaticActions": 0,
+        "confirmations": 5,
+        "wrongProposals": 5,
+        "refusals": 4,
+        "positiveRefusals": 0,
+        "exactPlans": 4,
+        "validationErrors": 0,
+        "wordErrors": 5,
+        "referenceWords": 44,
+        "transcriptionExact": 2
+      },
+      "quotation": {
+        "samples": 6,
+        "positiveRequests": 0,
+        "negativeRequests": 6,
+        "automatic": 0,
+        "falseTriggers": 0,
+        "wrongAutomaticActions": 0,
+        "confirmations": 1,
+        "wrongProposals": 1,
+        "refusals": 5,
+        "positiveRefusals": 0,
+        "exactPlans": 5,
+        "validationErrors": 0,
+        "wordErrors": 9,
+        "referenceWords": 32,
+        "transcriptionExact": 0
+      },
+      "unknown-name": {
+        "samples": 3,
+        "positiveRequests": 0,
+        "negativeRequests": 3,
+        "automatic": 0,
+        "falseTriggers": 0,
+        "wrongAutomaticActions": 0,
+        "confirmations": 2,
+        "wrongProposals": 2,
+        "refusals": 1,
+        "positiveRefusals": 0,
+        "exactPlans": 1,
+        "validationErrors": 0,
+        "wordErrors": 3,
+        "referenceWords": 8,
+        "transcriptionExact": 0
+      },
+      "transcription-only": {
+        "samples": 15,
+        "positiveRequests": 0,
+        "negativeRequests": 15,
+        "automatic": 0,
+        "falseTriggers": 0,
+        "wrongAutomaticActions": 0,
+        "confirmations": 0,
+        "wrongProposals": 0,
+        "refusals": 15,
+        "positiveRefusals": 0,
+        "exactPlans": 15,
+        "validationErrors": 0,
+        "wordErrors": 39,
+        "referenceWords": 40,
+        "transcriptionExact": 0
+      }
+    },
+    "byLanguage": {
+      "fr": {
+        "samples": 54,
+        "positiveRequests": 30,
+        "negativeRequests": 24,
+        "automatic": 5,
+        "falseTriggers": 0,
+        "wrongAutomaticActions": 0,
+        "confirmations": 13,
+        "wrongProposals": 9,
+        "refusals": 36,
+        "positiveRefusals": 17,
+        "exactPlans": 28,
+        "validationErrors": 3,
+        "wordErrors": 101,
+        "referenceWords": 228,
+        "transcriptionExact": 5
+      },
+      "en": {
+        "samples": 21,
+        "positiveRequests": 9,
+        "negativeRequests": 12,
+        "automatic": 0,
+        "falseTriggers": 0,
+        "wrongAutomaticActions": 0,
+        "confirmations": 12,
+        "wrongProposals": 11,
+        "refusals": 9,
+        "positiveRefusals": 5,
+        "exactPlans": 5,
+        "validationErrors": 0,
+        "wordErrors": 18,
+        "referenceWords": 80,
+        "transcriptionExact": 4
+      },
+      "de": {
+        "samples": 3,
+        "positiveRequests": 0,
+        "negativeRequests": 3,
+        "automatic": 0,
+        "falseTriggers": 0,
+        "wrongAutomaticActions": 0,
+        "confirmations": 0,
+        "wrongProposals": 0,
+        "refusals": 3,
+        "positiveRefusals": 0,
+        "exactPlans": 3,
+        "validationErrors": 0,
+        "wordErrors": 8,
+        "referenceWords": 8,
+        "transcriptionExact": 0
+      },
+      "es": {
+        "samples": 3,
+        "positiveRequests": 0,
+        "negativeRequests": 3,
+        "automatic": 0,
+        "falseTriggers": 0,
+        "wrongAutomaticActions": 0,
+        "confirmations": 0,
+        "wrongProposals": 0,
+        "refusals": 3,
+        "positiveRefusals": 0,
+        "exactPlans": 3,
+        "validationErrors": 0,
+        "wordErrors": 2,
+        "referenceWords": 8,
+        "transcriptionExact": 0
+      },
+      "it": {
+        "samples": 3,
+        "positiveRequests": 0,
+        "negativeRequests": 3,
+        "automatic": 0,
+        "falseTriggers": 0,
+        "wrongAutomaticActions": 0,
+        "confirmations": 0,
+        "wrongProposals": 0,
+        "refusals": 3,
+        "positiveRefusals": 0,
+        "exactPlans": 3,
+        "validationErrors": 0,
+        "wordErrors": 11,
+        "referenceWords": 10,
+        "transcriptionExact": 0
+      },
+      "nl": {
+        "samples": 3,
+        "positiveRequests": 0,
+        "negativeRequests": 3,
+        "automatic": 0,
+        "falseTriggers": 0,
+        "wrongAutomaticActions": 0,
+        "confirmations": 0,
+        "wrongProposals": 0,
+        "refusals": 3,
+        "positiveRefusals": 0,
+        "exactPlans": 3,
+        "validationErrors": 0,
+        "wordErrors": 11,
+        "referenceWords": 6,
+        "transcriptionExact": 0
+      },
+      "pl": {
+        "samples": 3,
+        "positiveRequests": 0,
+        "negativeRequests": 3,
+        "automatic": 0,
+        "falseTriggers": 0,
+        "wrongAutomaticActions": 0,
+        "confirmations": 0,
+        "wrongProposals": 0,
+        "refusals": 3,
+        "positiveRefusals": 0,
+        "exactPlans": 3,
+        "validationErrors": 0,
+        "wordErrors": 7,
+        "referenceWords": 8,
+        "transcriptionExact": 0
+      }
+    },
+    "thresholdSweep": [
+      {
+        "threshold": 0.1,
+        "samples": 90,
+        "positiveRequests": 39,
+        "negativeRequests": 51,
+        "automatic": 25,
+        "falseTriggers": 11,
+        "wrongAutomaticActions": 5,
+        "confirmations": 5,
+        "wrongProposals": 20,
+        "refusals": 60,
+        "positiveRefusals": 22,
+        "exactPlans": 48,
+        "validationErrors": 3,
+        "wordErrors": 158,
+        "referenceWords": 348,
+        "transcriptionExact": 9
+      },
+      {
+        "threshold": 0.3,
+        "samples": 90,
+        "positiveRequests": 39,
+        "negativeRequests": 51,
+        "automatic": 6,
+        "falseTriggers": 0,
+        "wrongAutomaticActions": 0,
+        "confirmations": 24,
+        "wrongProposals": 20,
+        "refusals": 60,
+        "positiveRefusals": 22,
+        "exactPlans": 48,
+        "validationErrors": 3,
+        "wordErrors": 158,
+        "referenceWords": 348,
+        "transcriptionExact": 9
+      },
+      {
+        "threshold": 0.5,
+        "samples": 90,
+        "positiveRequests": 39,
+        "negativeRequests": 51,
+        "automatic": 6,
+        "falseTriggers": 0,
+        "wrongAutomaticActions": 0,
+        "confirmations": 24,
+        "wrongProposals": 20,
+        "refusals": 60,
+        "positiveRefusals": 22,
+        "exactPlans": 48,
+        "validationErrors": 3,
+        "wordErrors": 158,
+        "referenceWords": 348,
+        "transcriptionExact": 9
+      },
+      {
+        "threshold": 0.7,
+        "samples": 90,
+        "positiveRequests": 39,
+        "negativeRequests": 51,
+        "automatic": 5,
+        "falseTriggers": 0,
+        "wrongAutomaticActions": 0,
+        "confirmations": 25,
+        "wrongProposals": 20,
+        "refusals": 60,
+        "positiveRefusals": 22,
+        "exactPlans": 48,
+        "validationErrors": 3,
+        "wordErrors": 158,
+        "referenceWords": 348,
+        "transcriptionExact": 9
+      },
+      {
+        "threshold": 0.8,
+        "samples": 90,
+        "positiveRequests": 39,
+        "negativeRequests": 51,
+        "automatic": 3,
+        "falseTriggers": 0,
+        "wrongAutomaticActions": 0,
+        "confirmations": 27,
+        "wrongProposals": 20,
+        "refusals": 60,
+        "positiveRefusals": 22,
+        "exactPlans": 48,
+        "validationErrors": 3,
+        "wordErrors": 158,
+        "referenceWords": 348,
+        "transcriptionExact": 9
+      },
+      {
+        "threshold": 0.9,
+        "samples": 90,
+        "positiveRequests": 39,
+        "negativeRequests": 51,
+        "automatic": 0,
+        "falseTriggers": 0,
+        "wrongAutomaticActions": 0,
+        "confirmations": 30,
+        "wrongProposals": 20,
+        "refusals": 60,
+        "positiveRefusals": 22,
+        "exactPlans": 48,
+        "validationErrors": 3,
+        "wordErrors": 158,
+        "referenceWords": 348,
+        "transcriptionExact": 9
+      },
+      {
+        "threshold": 1,
+        "samples": 90,
+        "positiveRequests": 39,
+        "negativeRequests": 51,
+        "automatic": 0,
+        "falseTriggers": 0,
+        "wrongAutomaticActions": 0,
+        "confirmations": 30,
+        "wrongProposals": 20,
+        "refusals": 60,
+        "positiveRefusals": 22,
+        "exactPlans": 48,
+        "validationErrors": 3,
+        "wordErrors": 158,
+        "referenceWords": 348,
+        "transcriptionExact": 9
+      }
+    ]
+  },
+  "runtimeManifest": {
+    "target": "x86_64-pc-windows-msvc",
+    "node": "24.21.0",
+    "npm": "11.19.0",
+    "nodeSha256": "ba4e6d110e8c1592a1ecd390f6b05f3da124b13871a5be62b341a07a853c6c32",
+    "needleRevision": "c7c415a3d1b3d929014bc6e866d51ebb971f7089",
+    "whistleRevision": "b358ddadd89b7a713b5aa131f23032d3cca1b251",
+    "ffi": "koffi 3.3.2",
+    "assets": [
+      {
+        "file": "needle.exe",
+        "repo": "needle3",
+        "revision": "c7c415a3d1b3d929014bc6e866d51ebb971f7089",
+        "source": "windows-x86_64/needle.exe",
+        "sha256": "c70ca998f6c542c862c06c22352046e303ef5c769384069ee25cef9f4667e4cf"
+      },
+      {
+        "file": "models/needle3.cact",
+        "repo": "needle3",
+        "revision": "c7c415a3d1b3d929014bc6e866d51ebb971f7089",
+        "source": "needle3.cact",
+        "sha256": "c9d915eca282ed42d1a09b143b592adb4cc6744ffe2d294adf5cfc5548170c38"
+      },
+      {
+        "file": "models/whistle.cact",
+        "repo": "whistle",
+        "revision": "b358ddadd89b7a713b5aa131f23032d3cca1b251",
+        "source": "whistle.cact",
+        "sha256": "b6e02f048568ac5d01a2042556c658061e699acbc0aa2a1439f52f3d461dffeb"
+      },
+      {
+        "file": "libneedle3.dll",
+        "sha256": "de2e2c39cd311fbd9971fad4736abc329ed970653674c203e149c4ef27fd1c62"
+      },
+      {
+        "file": "ffi/node_modules/@koromix/koffi-win32-x64/win32_x64/koffi.node",
+        "sha256": "dcb3048bba5cf115aa19172f091cf005f8be9d39fd42dfb5ea25103318784a44"
+      }
+    ]
+  }
+}

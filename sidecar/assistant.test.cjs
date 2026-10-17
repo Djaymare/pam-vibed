@@ -22,7 +22,7 @@ async function fixture(t, response, overrides = {}, assistantOptions = {}) {
     assert.ok(path.basename(temporary).startsWith('pam-test-'));
     await fs.rm(temporary, { recursive: true, force: true });
   });
-  const config = { ...DEFAULT_CONFIG, applications: [structuredClone(application)], ...overrides };
+  const config = { ...DEFAULT_CONFIG, autoExecute: true, applications: [structuredClone(application)], ...overrides };
   await fs.writeFile(path.join(temporary, 'applications.json'), JSON.stringify(config));
   const launched = [];
   const requests = [];

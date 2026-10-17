@@ -32,6 +32,7 @@ const {
   validateCalls,
 } = require('./intent.cjs');
 const { configDigest } = require('./config-repository.cjs');
+const { confirmationReason } = require('./confirmation.cjs');
 function parseEngineOutput(stdout) {
   // Engine diagnostics may precede the JSON; never interpret diagnostics as calls.
   try {
@@ -525,17 +526,16 @@ function createPlanner({ runtimeDirectory, configDirectory, runEngine, media, te
       }
       const ungrounded =
         Array.isArray(response.validation?.ungrounded) && response.validation.ungrounded.length > 0;
-      if (
-        method !== 'correct_request' &&
-        config.autoExecute &&
-        !suppressed &&
-        !ungrounded &&
-        confidence !== null &&
-        confidence >= config.confidenceThreshold
-      ) {
+      const reason = confirmationReason(method, turn, config, {
+        suppressed,
+        ungrounded,
+        tools,
+      });
+      if (!reason) {
         return { turn, execute: true };
       } else {
         turn.status = 'pending';
+        turn.message = reason;
       }
       return turn;
     } finally {

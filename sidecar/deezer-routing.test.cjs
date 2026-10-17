@@ -90,7 +90,8 @@ test('le vocal et le texte utilisent la même commande fixe avec le score brut',
 });
 test('les préférences d’exécution et les faibles scores continuent à s’appliquer',async t=>{
   const f=await fixture(t,{config:{autoExecute:true,confidenceThreshold:0.7}});
-  const turn=await f.handle('process_text',{text:'Démarrer Flow dans Diseur'});assert.equal(turn.status,'executed');assert.equal(f.executions.length,1);
+  const turn=await f.handle('process_text',{text:'Démarrer Flow dans Diseur'});assert.equal(turn.status,'pending');assert.equal(f.executions.length,0);
+  assert.equal((await f.handle('confirm',{id:turn.id})).status,'executed');assert.equal(f.executions.length,1);
   const low=await fixture(t,{config:{autoExecute:true},response:{confidence:0.3,function_calls:[{name:'flow_deezer_music',arguments:{}}]}});
   assert.equal((await low.handle('process_text',{text:'Démarrer Flow dans Diseur'})).status,'pending');assert.equal(low.executions.length,0);
 });

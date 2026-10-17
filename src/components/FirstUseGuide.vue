@@ -12,6 +12,7 @@ const props = defineProps<{
 }>();
 const emit = defineEmits<{ add: []; repair: [app: Application] }>();
 const { text } = toRefs(props.requests);
+const { settingsDraft, saveSettings, settingsDirty, settingsError } = toRefs(props.profile);
 const selectedId = ref(''),
   testedIdentity = ref(''),
   message = ref(''),
@@ -182,10 +183,27 @@ async function useExample() {
         </p>
       </li>
     </ol>
-    <p v-if="profile.config.autoExecute">
-      Les demandes reconnues avec assez de confiance peuvent s’exécuter automatiquement. Les autres
-      demandent votre validation. Ce réglage est disponible dans Préférences.
+    <p id="first-use-auto-help">
+      L’exécution automatique est désactivée pour un nouveau profil. Si vous l’activez, une commande
+      écrite simple d’ouverture sans arguments ou de lecture / pause peut s’exécuter immédiatement
+      au-dessus du seuil. La voix, les arguments, les demandes composées et les autres actions
+      demandent toujours votre confirmation. Le score Needle ne mesure pas la fidélité de la
+      transcription. Vous pouvez modifier ce réglage dans Préférences.
     </p>
-    <p v-else>Les actions proposées attendent votre validation avant exécution.</p>
+    <button
+      role="switch"
+      aria-label="Exécution automatique au premier usage"
+      aria-describedby="first-use-auto-help"
+      :aria-checked="settingsDraft.autoExecute"
+      :disabled="locked"
+      @click="
+        settingsDraft.autoExecute = !settingsDraft.autoExecute;
+        saveSettings();
+      "
+    >
+      Exécution automatique : {{ settingsDraft.autoExecute ? 'activée' : 'désactivée' }}
+    </button>
+    <p v-if="settingsDirty" role="status">Préférence non enregistrée.</p>
+    <p v-if="settingsError" role="alert">{{ settingsError }}</p>
   </section>
 </template>

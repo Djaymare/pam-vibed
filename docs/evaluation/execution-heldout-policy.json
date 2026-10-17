@@ -1,0 +1,3126 @@
+{
+  "schemaVersion": 1,
+  "split": "heldout",
+  "createdAt": "2026-10-17T23:35:36.611Z",
+  "corpusSha256": "f09549a56e240e312a819f868880717d1a2978401fdc885cc71b10eedb6b15ad",
+  "sourceBaseCommit": "e5beb5587b8d64ef672cc91d3fc8ca1c2b3da32e",
+  "mode": "replayed native responses",
+  "node": "v24.21.0",
+  "voices": [
+    {
+      "id": "h01",
+      "text": "J’aimerais que tu ouvres Nova.",
+      "voice": "Microsoft Julie",
+      "rate": 1
+    },
+    {
+      "id": "h02",
+      "text": "Could you start Quartz now, please?",
+      "voice": "Microsoft Zira Desktop",
+      "rate": 1
+    },
+    {
+      "id": "h03",
+      "text": "Ouvrir Quartz, merci beaucoup.",
+      "voice": "Microsoft Julie",
+      "rate": 1
+    },
+    {
+      "id": "h04",
+      "text": "Please open Nova, then Quartz.",
+      "voice": "Microsoft Zira Desktop",
+      "rate": 1
+    },
+    {
+      "id": "h05",
+      "text": "Suspends la lecture dans Lecteur cobalt.",
+      "voice": "Microsoft Julie",
+      "rate": 1
+    },
+    {
+      "id": "h06",
+      "text": "Play the audio in Lecteur cobalt please.",
+      "voice": "Microsoft Zira Desktop",
+      "rate": 1
+    },
+    {
+      "id": "h07",
+      "text": "Reviens à la piste précédente sur Lecteur cobalt.",
+      "voice": "Microsoft Julie",
+      "rate": 1
+    },
+    {
+      "id": "h08",
+      "text": "Lance Expéditeur avec le texte arrivée prévue demain matin.",
+      "voice": "Microsoft Paul",
+      "rate": 1
+    },
+    {
+      "id": "h09",
+      "text": "Recherche Lumière boréale dans Deezer, s’il te plaît.",
+      "voice": "Microsoft Julie",
+      "rate": 1
+    },
+    {
+      "id": "h10",
+      "text": "Reload Deezer please.",
+      "voice": "Microsoft Zira Desktop",
+      "rate": 1
+    },
+    {
+      "id": "h11",
+      "text": "N’ouvre surtout pas Nova maintenant.",
+      "voice": "Microsoft Julie",
+      "rate": 1
+    },
+    {
+      "id": "h12",
+      "text": "Never open Quartz for this task.",
+      "voice": "Microsoft Zira Desktop",
+      "rate": 1
+    },
+    {
+      "id": "h13",
+      "text": "Je ne veux pas reprendre la lecture de Lecteur cobalt.",
+      "voice": "Microsoft Julie",
+      "rate": 1
+    },
+    {
+      "id": "h14",
+      "text": "Ouvre soit Nova soit Quartz.",
+      "voice": "Microsoft Paul",
+      "rate": 1
+    },
+    {
+      "id": "h15",
+      "text": "Launch Nova or perhaps Quartz.",
+      "voice": "Microsoft Zira Desktop",
+      "rate": 1
+    },
+    {
+      "id": "h16",
+      "text": "Lance ce programme-là, tu sais lequel.",
+      "voice": "Microsoft Paul",
+      "rate": 1
+    },
+    {
+      "id": "h17",
+      "text": "Le quartz est un minéral très répandu.",
+      "voice": "Microsoft Julie",
+      "rate": 1
+    },
+    {
+      "id": "h18",
+      "text": "Why would somebody say open Nova?",
+      "voice": "Microsoft Zira Desktop",
+      "rate": 1
+    },
+    {
+      "id": "h19",
+      "text": "Il a écrit hier : lance Quartz.",
+      "voice": "Microsoft Julie",
+      "rate": 1
+    },
+    {
+      "id": "h20",
+      "text": "Démarre l’application Sélène.",
+      "voice": "Microsoft Paul",
+      "rate": 1
+    },
+    {
+      "id": "h21",
+      "text": "Bitte öffne jetzt Nova für mich.",
+      "voice": "Microsoft Julie",
+      "rate": 1
+    },
+    {
+      "id": "h22",
+      "text": "Por favor abre Quartz ahora.",
+      "voice": "Microsoft Paul",
+      "rate": 1
+    },
+    {
+      "id": "h23",
+      "text": "Per favore apri Nova subito.",
+      "voice": "Microsoft Julie",
+      "rate": 1
+    },
+    {
+      "id": "h24",
+      "text": "Wil je Quartz nu openen?",
+      "voice": "Microsoft Paul",
+      "rate": 1
+    },
+    {
+      "id": "h25",
+      "text": "Proszę otwórz Nova w tej chwili.",
+      "voice": "Microsoft Julie",
+      "rate": 1
+    },
+    {
+      "id": "h26",
+      "text": "Lance Flow sur Deezer, merci.",
+      "voice": "Microsoft Paul",
+      "rate": 1
+    },
+    {
+      "id": "h27",
+      "text": "Dans Deezer affiche la playlist 97531.",
+      "voice": "Microsoft Julie",
+      "rate": 1
+    },
+    {
+      "id": "h28",
+      "text": "We should pause this discussion until tomorrow.",
+      "voice": "Microsoft Zira Desktop",
+      "rate": 1
+    },
+    {
+      "id": "h29",
+      "text": "Launch Quartz twice please.",
+      "voice": "Microsoft Zira Desktop",
+      "rate": 1
+    },
+    {
+      "id": "h30",
+      "text": "Comment traduire « ouvre Nova » pour un manuel ?",
+      "voice": "Microsoft Paul",
+      "rate": 1
+    }
+  ],
+  "noise": {
+    "kind": "seeded white noise",
+    "snrDb": 8,
+    "seed": 290018
+  },
+  "samples": [
+    {
+      "key": "h01-text",
+      "id": "h01",
+      "variant": "text",
+      "language": "fr",
+      "category": "open",
+      "reference": "J’aimerais que tu ouvres Nova.",
+      "expected": [
+        [
+          0,
+          "open",
+          {}
+        ]
+      ],
+      "transcript": "J’aimerais que tu ouvres Nova.",
+      "wordErrors": null,
+      "referenceWords": 6,
+      "audioSha256": null,
+      "confidence": 0.0853,
+      "status": "unsupported",
+      "calls": [],
+      "correct": false,
+      "effects": 0,
+      "engineReplies": [
+        "{\"type\":\"call\",\"success\":true,\"error\":null,\"error_code\":null,\"reason\":null,\"function_calls\":[],\"suppressed_calls\":[{\"name\":\"play_deezer_music\",\"arguments\":{}}],\"reasoning\":\"'ouvres Nova' -> play_dezer_music with no arguments.\",\"confidence\":0.0853,\"prefill_tps\":395.7,\"decode_tps\":240.5,\"peak_ram_mb\":209.2,\"validation\":{\"ungrounded\":[],\"negation\":false}}"
+      ]
+    },
+    {
+      "key": "h01-clean",
+      "id": "h01",
+      "variant": "clean",
+      "language": "fr",
+      "category": "open",
+      "reference": "J’aimerais que tu ouvres Nova.",
+      "expected": [
+        [
+          0,
+          "open",
+          {}
+        ]
+      ],
+      "transcript": "J'aimerais que tu ouvres Nova.",
+      "wordErrors": 0,
+      "referenceWords": 6,
+      "audioSha256": "eb30c8035d84d57a72f376662241080781b63b12406b60d755583aa1a6c86649",
+      "confidence": 0.0878,
+      "status": "unsupported",
+      "calls": [],
+      "correct": false,
+      "effects": 0,
+      "engineReplies": [
+        "{\"text\":\"J'aimerais que tu ouvres Nova.\",\"language\":\"fr\",\"ttft_ms\":27.7,\"decode_tps\":269.3}",
+        "{\"type\":\"call\",\"success\":true,\"error\":null,\"error_code\":null,\"reason\":null,\"function_calls\":[],\"suppressed_calls\":[{\"name\":\"play_deezer_music\",\"arguments\":{}}],\"reasoning\":\"'ouvres Nova' -> play_dezer_music with no arguments.\",\"confidence\":0.0878,\"prefill_tps\":381.3,\"decode_tps\":221.9,\"peak_ram_mb\":226.8,\"validation\":{\"ungrounded\":[],\"negation\":false}}"
+      ]
+    },
+    {
+      "key": "h01-noise",
+      "id": "h01",
+      "variant": "noise",
+      "language": "fr",
+      "category": "open",
+      "reference": "J’aimerais que tu ouvres Nova.",
+      "expected": [
+        [
+          0,
+          "open",
+          {}
+        ]
+      ],
+      "transcript": "J'aimerais que tu nous renouvages.",
+      "wordErrors": 2,
+      "referenceWords": 6,
+      "audioSha256": "f984e5f982f0c2c04d338493980836fdb1799ecaee96555690630c255af75900",
+      "confidence": 0.0806,
+      "status": "pending",
+      "calls": [
+        [
+          4,
+          "deezer_reload",
+          {}
+        ]
+      ],
+      "correct": false,
+      "effects": 0,
+      "engineReplies": [
+        "{\"text\":\"J'aimerais que tu nous renouvages.\",\"language\":\"fr\",\"ttft_ms\":27.2,\"decode_tps\":268.2}",
+        "{\"type\":\"call\",\"success\":true,\"error\":null,\"error_code\":null,\"reason\":null,\"function_calls\":[],\"suppressed_calls\":[{\"name\":\"deezer_reload_deezer_55555555\",\"arguments\":{}}],\"reasoning\":\"'renouvages' -> reload_dezer_dezer_5555555555 (zero args).\",\"confidence\":0.0806,\"prefill_tps\":385,\"decode_tps\":237.8,\"peak_ram_mb\":233.2,\"validation\":{\"ungrounded\":[],\"negation\":false}}"
+      ]
+    },
+    {
+      "key": "h02-text",
+      "id": "h02",
+      "variant": "text",
+      "language": "en",
+      "category": "open",
+      "reference": "Could you start Quartz now, please?",
+      "expected": [
+        [
+          1,
+          "open",
+          {}
+        ]
+      ],
+      "transcript": "Could you start Quartz now, please?",
+      "wordErrors": null,
+      "referenceWords": 6,
+      "audioSha256": null,
+      "confidence": 0.1157,
+      "status": "unsupported",
+      "calls": [],
+      "correct": false,
+      "effects": 0,
+      "engineReplies": [
+        "{\"type\":\"call\",\"success\":true,\"error\":null,\"error_code\":null,\"reason\":null,\"function_calls\":[{\"name\":\"play_deezer_music\",\"arguments\":{}}],\"suppressed_calls\":[],\"reasoning\":\"'start Quartz' -> play_dezer_music with no arguments; 'now' implies next item.\",\"confidence\":0.1157,\"prefill_tps\":218.7,\"decode_tps\":123,\"peak_ram_mb\":233.2,\"validation\":{\"ungrounded\":[],\"negation\":false}}"
+      ]
+    },
+    {
+      "key": "h02-clean",
+      "id": "h02",
+      "variant": "clean",
+      "language": "en",
+      "category": "open",
+      "reference": "Could you start Quartz now, please?",
+      "expected": [
+        [
+          1,
+          "open",
+          {}
+        ]
+      ],
+      "transcript": "\"Could you start quartz now, please?\"",
+      "wordErrors": 0,
+      "referenceWords": 6,
+      "audioSha256": "1a3dbd6e7be0dedf547b49af82a80baa169467cec282be6ccebf689ca6463c7a",
+      "confidence": 0.2225,
+      "status": "unsupported",
+      "calls": [],
+      "correct": false,
+      "effects": 0,
+      "engineReplies": [
+        "{\"text\":\"\\\"Could you start quartz now, please?\\\"\",\"language\":\"en\",\"ttft_ms\":62.6,\"decode_tps\":156.5}",
+        "{\"type\":\"call\",\"success\":true,\"error\":null,\"error_code\":null,\"reason\":null,\"function_calls\":[{\"name\":\"play_deezer_music\",\"arguments\":{}}],\"suppressed_calls\":[],\"reasoning\":\"'start quartz' -> play_dezer_cobalt. No arguments needed.\",\"confidence\":0.2225,\"prefill_tps\":213.2,\"decode_tps\":124.1,\"peak_ram_mb\":234.4,\"validation\":{\"ungrounded\":[],\"negation\":false}}"
+      ]
+    },
+    {
+      "key": "h02-noise",
+      "id": "h02",
+      "variant": "noise",
+      "language": "en",
+      "category": "open",
+      "reference": "Could you start Quartz now, please?",
+      "expected": [
+        [
+          1,
+          "open",
+          {}
+        ]
+      ],
+      "transcript": "\"Could you start quartz now, please?\"",
+      "wordErrors": 0,
+      "referenceWords": 6,
+      "audioSha256": "1134ce015ee48dff459d02d7dbc5ffc40be4608b16144b94f56fbcbdc8e71079",
+      "confidence": 0.2225,
+      "status": "unsupported",
+      "calls": [],
+      "correct": false,
+      "effects": 0,
+      "engineReplies": [
+        "{\"text\":\"\\\"Could you start quartz now, please?\\\"\",\"language\":\"en\",\"ttft_ms\":63,\"decode_tps\":156.3}",
+        "{\"type\":\"call\",\"success\":true,\"error\":null,\"error_code\":null,\"reason\":null,\"function_calls\":[{\"name\":\"play_deezer_music\",\"arguments\":{}}],\"suppressed_calls\":[],\"reasoning\":\"'start quartz' -> play_dezer_cobalt. No arguments needed.\",\"confidence\":0.2225,\"prefill_tps\":213.2,\"decode_tps\":121.7,\"peak_ram_mb\":237.2,\"validation\":{\"ungrounded\":[],\"negation\":false}}"
+      ]
+    },
+    {
+      "key": "h03-text",
+      "id": "h03",
+      "variant": "text",
+      "language": "fr",
+      "category": "open",
+      "reference": "Ouvrir Quartz, merci beaucoup.",
+      "expected": [
+        [
+          1,
+          "open",
+          {}
+        ]
+      ],
+      "transcript": "Ouvrir Quartz, merci beaucoup.",
+      "wordErrors": null,
+      "referenceWords": 4,
+      "audioSha256": null,
+      "confidence": 0.2823,
+      "status": "pending",
+      "calls": [
+        [
+          1,
+          "open",
+          {}
+        ]
+      ],
+      "correct": true,
+      "effects": 0,
+      "engineReplies": [
+        "{\"type\":\"call\",\"success\":true,\"error\":null,\"error_code\":null,\"reason\":null,\"function_calls\":[{\"name\":\"open_quartz\",\"arguments\":{}}],\"suppressed_calls\":[],\"reasoning\":\"'Ouvrir Quartz' -> open_quartz.\",\"confidence\":0.2823,\"prefill_tps\":218.9,\"decode_tps\":121.7,\"peak_ram_mb\":237.2,\"validation\":{\"ungrounded\":[],\"negation\":false}}"
+      ]
+    },
+    {
+      "key": "h03-clean",
+      "id": "h03",
+      "variant": "clean",
+      "language": "fr",
+      "category": "open",
+      "reference": "Ouvrir Quartz, merci beaucoup.",
+      "expected": [
+        [
+          1,
+          "open",
+          {}
+        ]
+      ],
+      "transcript": "Ouvrir quartz, merci beaucoup.",
+      "wordErrors": 0,
+      "referenceWords": 4,
+      "audioSha256": "97fb6f0672e0b702de78a73e17f7a5526eea335a8839fd35cddd4395299b38f7",
+      "confidence": 0.2209,
+      "status": "pending",
+      "calls": [
+        [
+          1,
+          "open",
+          {}
+        ]
+      ],
+      "correct": true,
+      "effects": 0,
+      "engineReplies": [
+        "{\"text\":\"Ouvrir quartz, merci beaucoup.\",\"language\":\"fr\",\"ttft_ms\":57.5,\"decode_tps\":157.2}",
+        "{\"type\":\"call\",\"success\":true,\"error\":null,\"error_code\":null,\"reason\":null,\"function_calls\":[{\"name\":\"open_quartz\",\"arguments\":{}}],\"suppressed_calls\":[],\"reasoning\":\"'ouvrir quartz' -> open_quartz.\",\"confidence\":0.2209,\"prefill_tps\":219.7,\"decode_tps\":120.8,\"peak_ram_mb\":237.2,\"validation\":{\"ungrounded\":[],\"negation\":false}}"
+      ]
+    },
+    {
+      "key": "h03-noise",
+      "id": "h03",
+      "variant": "noise",
+      "language": "fr",
+      "category": "open",
+      "reference": "Ouvrir Quartz, merci beaucoup.",
+      "expected": [
+        [
+          1,
+          "open",
+          {}
+        ]
+      ],
+      "transcript": "Oubliez-moi, merci beaucoup.",
+      "wordErrors": 2,
+      "referenceWords": 4,
+      "audioSha256": "6fe168ecac33c88918bcd345fa9783f90866d83e49b17cc54aa34afe03ce4ca4",
+      "confidence": 0.3867,
+      "status": "unsupported",
+      "calls": [],
+      "correct": false,
+      "effects": 0,
+      "engineReplies": [
+        "{\"text\":\"Oubliez-moi, merci beaucoup.\",\"language\":\"fr\",\"ttft_ms\":56.9,\"decode_tps\":156.1}",
+        "{\"type\":\"call\",\"success\":true,\"error\":null,\"error_code\":null,\"reason\":null,\"function_calls\":[{\"name\":\"stop_deezer_music\",\"arguments\":{}}],\"suppressed_calls\":[],\"reasoning\":\"'Oubliez-moi' -> stop_deezer_music.\",\"confidence\":0.3867,\"prefill_tps\":215.1,\"decode_tps\":122.9,\"peak_ram_mb\":237.2,\"validation\":{\"ungrounded\":[],\"negation\":false}}"
+      ]
+    },
+    {
+      "key": "h04-text",
+      "id": "h04",
+      "variant": "text",
+      "language": "en",
+      "category": "open",
+      "reference": "Please open Nova, then Quartz.",
+      "expected": [
+        [
+          0,
+          "open",
+          {}
+        ],
+        [
+          1,
+          "open",
+          {}
+        ]
+      ],
+      "transcript": "Please open Nova, then Quartz.",
+      "wordErrors": null,
+      "referenceWords": 5,
+      "audioSha256": null,
+      "confidence": 0.0534,
+      "status": "unsupported",
+      "calls": [],
+      "correct": false,
+      "effects": 0,
+      "engineReplies": [
+        "{\"type\":\"call\",\"success\":true,\"error\":null,\"error_code\":null,\"reason\":null,\"function_calls\":[],\"suppressed_calls\":[{\"name\":\"open_nova\",\"arguments\":{}},{\"name\":\"play_deezer_music\",\"arguments\":{}}],\"reasoning\":\"'Open Nova' -> open_nova. 'Quartz' -> play_decoder_cobalt.\",\"confidence\":0.0534,\"prefill_tps\":213.8,\"decode_tps\":124.8,\"peak_ram_mb\":237.2,\"validation\":{\"ungrounded\":[],\"negation\":false}}"
+      ]
+    },
+    {
+      "key": "h04-clean",
+      "id": "h04",
+      "variant": "clean",
+      "language": "en",
+      "category": "open",
+      "reference": "Please open Nova, then Quartz.",
+      "expected": [
+        [
+          0,
+          "open",
+          {}
+        ],
+        [
+          1,
+          "open",
+          {}
+        ]
+      ],
+      "transcript": "Please open Nova, then quartz.",
+      "wordErrors": 0,
+      "referenceWords": 5,
+      "audioSha256": "d50a7fd3df3329ed123f1fa7b376d29f5c24845fa9567661363957355d82406e",
+      "confidence": 0.0258,
+      "status": "unsupported",
+      "calls": [],
+      "correct": false,
+      "effects": 0,
+      "engineReplies": [
+        "{\"text\":\"Please open Nova, then quartz.\",\"language\":\"en\",\"ttft_ms\":59.5,\"decode_tps\":157.7}",
+        "{\"type\":\"call\",\"success\":true,\"error\":null,\"error_code\":null,\"reason\":null,\"function_calls\":[],\"suppressed_calls\":[{\"name\":\"open_nova\",\"arguments\":{}},{\"name\":\"play_deezer_music\",\"arguments\":{}}],\"reasoning\":\"'Open Nova' -> open_nova. 'quartz' -> play_decoder_cobalt.\",\"confidence\":0.0258,\"prefill_tps\":213.8,\"decode_tps\":124.3,\"peak_ram_mb\":237.2,\"validation\":{\"ungrounded\":[],\"negation\":false}}"
+      ]
+    },
+    {
+      "key": "h04-noise",
+      "id": "h04",
+      "variant": "noise",
+      "language": "en",
+      "category": "open",
+      "reference": "Please open Nova, then Quartz.",
+      "expected": [
+        [
+          0,
+          "open",
+          {}
+        ],
+        [
+          1,
+          "open",
+          {}
+        ]
+      ],
+      "transcript": "Please open Nova, then quartz.",
+      "wordErrors": 0,
+      "referenceWords": 5,
+      "audioSha256": "857d949b1be5788864dd786457f163811d0065ceedb9cea8bd1852658c9fb005",
+      "confidence": 0.0258,
+      "status": "unsupported",
+      "calls": [],
+      "correct": false,
+      "effects": 0,
+      "engineReplies": [
+        "{\"text\":\"Please open Nova, then quartz.\",\"language\":\"en\",\"ttft_ms\":60.1,\"decode_tps\":157.6}",
+        "{\"type\":\"call\",\"success\":true,\"error\":null,\"error_code\":null,\"reason\":null,\"function_calls\":[],\"suppressed_calls\":[{\"name\":\"open_nova\",\"arguments\":{}},{\"name\":\"play_deezer_music\",\"arguments\":{}}],\"reasoning\":\"'Open Nova' -> open_nova. 'quartz' -> play_decoder_cobalt.\",\"confidence\":0.0258,\"prefill_tps\":213.4,\"decode_tps\":122.8,\"peak_ram_mb\":238,\"validation\":{\"ungrounded\":[],\"negation\":false}}"
+      ]
+    },
+    {
+      "key": "h05-text",
+      "id": "h05",
+      "variant": "text",
+      "language": "fr",
+      "category": "media",
+      "reference": "Suspends la lecture dans Lecteur cobalt.",
+      "expected": [
+        [
+          3,
+          "media_pause",
+          {}
+        ]
+      ],
+      "transcript": "Suspends la lecture dans Lecteur cobalt.",
+      "wordErrors": null,
+      "referenceWords": 6,
+      "audioSha256": null,
+      "confidence": 0.224,
+      "status": "unsupported",
+      "calls": [],
+      "correct": false,
+      "effects": 0,
+      "engineReplies": [
+        "{\"type\":\"call\",\"success\":true,\"error\":null,\"error_code\":null,\"reason\":null,\"function_calls\":[{\"name\":\"stop_deezer_music\",\"arguments\":{}}],\"suppressed_calls\":[],\"reasoning\":\"'Suspends la lecture dans Lecteur cobalt' -> stop_deezer_music.\",\"confidence\":0.224,\"prefill_tps\":218,\"decode_tps\":123.2,\"peak_ram_mb\":238,\"validation\":{\"ungrounded\":[],\"negation\":false}}"
+      ]
+    },
+    {
+      "key": "h05-clean",
+      "id": "h05",
+      "variant": "clean",
+      "language": "fr",
+      "category": "media",
+      "reference": "Suspends la lecture dans Lecteur cobalt.",
+      "expected": [
+        [
+          3,
+          "media_pause",
+          {}
+        ]
+      ],
+      "transcript": "Suspende la lecture dans lecteur cobalt.",
+      "wordErrors": 1,
+      "referenceWords": 6,
+      "audioSha256": "66a5d9ef32c55ef9795053f910935a27909706959cdc87e4e7df499def920afb",
+      "confidence": 0.1872,
+      "status": "unsupported",
+      "calls": [],
+      "correct": false,
+      "effects": 0,
+      "engineReplies": [
+        "{\"text\":\"Suspende la lecture dans lecteur cobalt.\",\"language\":\"fr\",\"ttft_ms\":64.2,\"decode_tps\":155.4}",
+        "{\"type\":\"call\",\"success\":true,\"error\":null,\"error_code\":null,\"reason\":null,\"function_calls\":[{\"name\":\"toggle_deezer_music\",\"arguments\":{}}],\"suppressed_calls\":[],\"reasoning\":\"'Suspende la lecture dans lecteur cobalt' -> toggle_deezer_cobalt('cobalt').\",\"confidence\":0.1872,\"prefill_tps\":213.5,\"decode_tps\":122.3,\"peak_ram_mb\":238.7,\"validation\":{\"ungrounded\":[],\"negation\":false}}"
+      ]
+    },
+    {
+      "key": "h05-noise",
+      "id": "h05",
+      "variant": "noise",
+      "language": "fr",
+      "category": "media",
+      "reference": "Suspends la lecture dans Lecteur cobalt.",
+      "expected": [
+        [
+          3,
+          "media_pause",
+          {}
+        ]
+      ],
+      "transcript": "Ce scène est une allecture dans lecteur cobalt.",
+      "wordErrors": 5,
+      "referenceWords": 6,
+      "audioSha256": "16467f24ba426c6ddaf7e6d6239c907c6533d76a1d6b8103fede26ea330bfc0e",
+      "confidence": 0.1351,
+      "status": "unsupported",
+      "calls": [],
+      "correct": false,
+      "effects": 0,
+      "engineReplies": [
+        "{\"text\":\"Ce scène est une allecture dans lecteur cobalt.\",\"language\":\"fr\",\"ttft_ms\":65,\"decode_tps\":155}",
+        "{\"type\":\"call\",\"success\":true,\"error\":null,\"error_code\":null,\"reason\":null,\"function_calls\":[{\"name\":\"open_deezer_music\",\"arguments\":{}}],\"suppressed_calls\":[],\"reasoning\":\"'scène est une allecture dans lecteur cobalt' -> open_deezer_music with no arguments.\",\"confidence\":0.1351,\"prefill_tps\":216.8,\"decode_tps\":123,\"peak_ram_mb\":240.8,\"validation\":{\"ungrounded\":[],\"negation\":false}}"
+      ]
+    },
+    {
+      "key": "h06-text",
+      "id": "h06",
+      "variant": "text",
+      "language": "en",
+      "category": "media",
+      "reference": "Play the audio in Lecteur cobalt please.",
+      "expected": [
+        [
+          3,
+          "media_play",
+          {}
+        ]
+      ],
+      "transcript": "Play the audio in Lecteur cobalt please.",
+      "wordErrors": null,
+      "referenceWords": 7,
+      "audioSha256": null,
+      "confidence": 0.2923,
+      "status": "unsupported",
+      "calls": [],
+      "correct": false,
+      "effects": 0,
+      "engineReplies": [
+        "{\"type\":\"call\",\"success\":true,\"error\":null,\"error_code\":null,\"reason\":null,\"function_calls\":[{\"name\":\"play_deezer_music\",\"arguments\":{}}],\"suppressed_calls\":[],\"reasoning\":\"Query asks to play 'Lecteur cobalt' -> play_dezer_music with that exact name.\",\"confidence\":0.2923,\"prefill_tps\":214,\"decode_tps\":123,\"peak_ram_mb\":240.8,\"validation\":{\"ungrounded\":[],\"negation\":false}}"
+      ]
+    },
+    {
+      "key": "h06-clean",
+      "id": "h06",
+      "variant": "clean",
+      "language": "en",
+      "category": "media",
+      "reference": "Play the audio in Lecteur cobalt please.",
+      "expected": [
+        [
+          3,
+          "media_play",
+          {}
+        ]
+      ],
+      "transcript": "Play the audio in Lecteur Cobalt, please.",
+      "wordErrors": 0,
+      "referenceWords": 7,
+      "audioSha256": "1476199667de79b45e9695a0b3a2d8c3c4ef6b6ec767cbe4035acd029b01a188",
+      "confidence": 0.3245,
+      "status": "unsupported",
+      "calls": [],
+      "correct": false,
+      "effects": 0,
+      "engineReplies": [
+        "{\"text\":\"Play the audio in Lecteur Cobalt, please.\",\"language\":\"en\",\"ttft_ms\":64,\"decode_tps\":153.5}",
+        "{\"type\":\"call\",\"success\":true,\"error\":null,\"error_code\":null,\"reason\":null,\"function_calls\":[{\"name\":\"play_deezer_music\",\"arguments\":{}}],\"suppressed_calls\":[],\"reasoning\":\"Query asks to play 'Lecteur Cobalt' -> play_dezer_music with that exact name.\",\"confidence\":0.3245,\"prefill_tps\":219.1,\"decode_tps\":124.1,\"peak_ram_mb\":240.8,\"validation\":{\"ungrounded\":[],\"negation\":false}}"
+      ]
+    },
+    {
+      "key": "h06-noise",
+      "id": "h06",
+      "variant": "noise",
+      "language": "en",
+      "category": "media",
+      "reference": "Play the audio in Lecteur cobalt please.",
+      "expected": [
+        [
+          3,
+          "media_play",
+          {}
+        ]
+      ],
+      "transcript": "Play the audio and lecture co-ball please.",
+      "wordErrors": 4,
+      "referenceWords": 7,
+      "audioSha256": "4755833f6e548b182c83712c3e07c14888a41b30b290bdca2903e46d0af5fb68",
+      "confidence": 0.2074,
+      "status": "pending",
+      "calls": [
+        [
+          4,
+          "media_play",
+          {}
+        ]
+      ],
+      "correct": false,
+      "effects": 0,
+      "engineReplies": [
+        "{\"text\":\"Play the audio and lecture co-ball please.\",\"language\":\"en\",\"ttft_ms\":64.8,\"decode_tps\":157.6}",
+        "{\"type\":\"call\",\"success\":true,\"error\":null,\"error_code\":null,\"reason\":null,\"function_calls\":[{\"name\":\"play_deezer_music\",\"arguments\":{}}],\"suppressed_calls\":[],\"reasoning\":\"'Play the audio and lecture co-ball' -> play_decoder_ezer_cobalt. Zero arguments.\",\"confidence\":0.2074,\"prefill_tps\":215.9,\"decode_tps\":124.8,\"peak_ram_mb\":242.1,\"validation\":{\"ungrounded\":[],\"negation\":false}}"
+      ]
+    },
+    {
+      "key": "h07-text",
+      "id": "h07",
+      "variant": "text",
+      "language": "fr",
+      "category": "sensitive",
+      "reference": "Reviens à la piste précédente sur Lecteur cobalt.",
+      "expected": [
+        [
+          3,
+          "media_previous",
+          {}
+        ]
+      ],
+      "transcript": "Reviens à la piste précédente sur Lecteur cobalt.",
+      "wordErrors": null,
+      "referenceWords": 8,
+      "audioSha256": null,
+      "confidence": 0.0844,
+      "status": "unsupported",
+      "calls": [],
+      "correct": false,
+      "effects": 0,
+      "engineReplies": [
+        "{\"type\":\"call\",\"success\":true,\"error\":null,\"error_code\":null,\"reason\":null,\"function_calls\":[],\"suppressed_calls\":[{\"name\":\"play_deezer_music\",\"arguments\":{}}],\"reasoning\":\"'Reviens à la piste précédente' -> play_dezer_music; 'Lecteur cobalt' -> query 'Lecteur cobalt'.\",\"confidence\":0.0844,\"prefill_tps\":218.5,\"decode_tps\":125.5,\"peak_ram_mb\":242.1,\"validation\":{\"ungrounded\":[],\"negation\":false}}"
+      ]
+    },
+    {
+      "key": "h07-clean",
+      "id": "h07",
+      "variant": "clean",
+      "language": "fr",
+      "category": "sensitive",
+      "reference": "Reviens à la piste précédente sur Lecteur cobalt.",
+      "expected": [
+        [
+          3,
+          "media_previous",
+          {}
+        ]
+      ],
+      "transcript": "Revient à la piste précédente sur lecteur cobalt.",
+      "wordErrors": 1,
+      "referenceWords": 8,
+      "audioSha256": "6eb469f5a3075ea47f77fe897bc442d66f1ad1237ca89992a370d967e0b6e8cd",
+      "confidence": 0.0576,
+      "status": "unsupported",
+      "calls": [],
+      "correct": false,
+      "effects": 0,
+      "engineReplies": [
+        "{\"text\":\"Revient à la piste précédente sur lecteur cobalt.\",\"language\":\"fr\",\"ttft_ms\":71.1,\"decode_tps\":156.3}",
+        "{\"type\":\"call\",\"success\":true,\"error\":null,\"error_code\":null,\"reason\":null,\"function_calls\":[],\"suppressed_calls\":[{\"name\":\"play_deezer_music\",\"arguments\":{}}],\"reasoning\":\"'revient à la piste précédente sur lecteur cobalt' -> play_dezer_cobalt with no arguments.\",\"confidence\":0.0576,\"prefill_tps\":218.6,\"decode_tps\":125.1,\"peak_ram_mb\":242.1,\"validation\":{\"ungrounded\":[],\"negation\":false}}"
+      ]
+    },
+    {
+      "key": "h07-noise",
+      "id": "h07",
+      "variant": "noise",
+      "language": "fr",
+      "category": "sensitive",
+      "reference": "Reviens à la piste précédente sur Lecteur cobalt.",
+      "expected": [
+        [
+          3,
+          "media_previous",
+          {}
+        ]
+      ],
+      "transcript": "Reviens à la piste précédente sur lecteur cobalt.",
+      "wordErrors": 0,
+      "referenceWords": 8,
+      "audioSha256": "aa06d05f0ba998862c6e09ebc4c43741fb99eb5981e35185d507f0a5de10d386",
+      "confidence": 0.0835,
+      "status": "unsupported",
+      "calls": [],
+      "correct": false,
+      "effects": 0,
+      "engineReplies": [
+        "{\"text\":\"Reviens à la piste précédente sur lecteur cobalt.\",\"language\":\"fr\",\"ttft_ms\":71.8,\"decode_tps\":156.2}",
+        "{\"type\":\"call\",\"success\":true,\"error\":null,\"error_code\":null,\"reason\":null,\"function_calls\":[],\"suppressed_calls\":[{\"name\":\"open_deezer_music\",\"arguments\":{}}],\"reasoning\":\"'reviens à la piste précédente' -> advance_deezer_music.\",\"confidence\":0.0835,\"prefill_tps\":218.8,\"decode_tps\":122.8,\"peak_ram_mb\":242.1,\"validation\":{\"ungrounded\":[],\"negation\":false}}"
+      ]
+    },
+    {
+      "key": "h08-text",
+      "id": "h08",
+      "variant": "text",
+      "language": "fr",
+      "category": "free-input",
+      "reference": "Lance Expéditeur avec le texte arrivée prévue demain matin.",
+      "expected": [
+        [
+          2,
+          "open",
+          {
+            "input": "arrivée prévue demain matin"
+          }
+        ]
+      ],
+      "transcript": "Lance Expéditeur avec le texte arrivée prévue demain matin.",
+      "wordErrors": null,
+      "referenceWords": 9,
+      "audioSha256": null,
+      "confidence": 0.022,
+      "status": "unsupported",
+      "calls": [],
+      "correct": false,
+      "effects": 0,
+      "engineReplies": [
+        "{\"type\":\"call\",\"success\":true,\"error\":null,\"error_code\":null,\"reason\":null,\"function_calls\":[],\"suppressed_calls\":[{\"name\":\"open_deezer_music\",\"arguments\":{}}],\"reasoning\":\"'Expéditeur' -> open_deezer_music; 'le texte arrivée prévue demain matin' -> no params needed.\",\"confidence\":0.022,\"prefill_tps\":218.1,\"decode_tps\":123.1,\"peak_ram_mb\":242.1,\"validation\":{\"ungrounded\":[],\"negation\":false}}"
+      ]
+    },
+    {
+      "key": "h08-clean",
+      "id": "h08",
+      "variant": "clean",
+      "language": "fr",
+      "category": "free-input",
+      "reference": "Lance Expéditeur avec le texte arrivée prévue demain matin.",
+      "expected": [
+        [
+          2,
+          "open",
+          {
+            "input": "arrivée prévue demain matin"
+          }
+        ]
+      ],
+      "transcript": "Lance expéditeur avec le texte arrivé prévu demain matin.",
+      "wordErrors": 2,
+      "referenceWords": 9,
+      "audioSha256": "f1acdc6631288fff68fef061993b1c7e223c30a9a70d223c0f2295f57b0b99f5",
+      "confidence": 0.0148,
+      "status": "pending",
+      "calls": [
+        [
+          2,
+          "open",
+          {
+            "input": "demain matin"
+          }
+        ]
+      ],
+      "correct": false,
+      "effects": 0,
+      "engineReplies": [
+        "{\"text\":\"Lance expéditeur avec le texte arrivé prévu demain matin.\",\"language\":\"fr\",\"ttft_ms\":73.2,\"decode_tps\":155.5}",
+        "{\"type\":\"call\",\"success\":true,\"error\":null,\"error_code\":null,\"reason\":null,\"function_calls\":[],\"suppressed_calls\":[{\"name\":\"open_expediteur\",\"arguments\":{\"input\":\"demain matin\"}}],\"reasoning\":\"'expéditeur' -> open_expiteur. 'texte arrivé prévu demain matin' -> input 'demain matin'.\",\"confidence\":0.0148,\"prefill_tps\":222.1,\"decode_tps\":124.6,\"peak_ram_mb\":242.1,\"validation\":{\"ungrounded\":[],\"negation\":false}}"
+      ]
+    },
+    {
+      "key": "h08-noise",
+      "id": "h08",
+      "variant": "noise",
+      "language": "fr",
+      "category": "free-input",
+      "reference": "Lance Expéditeur avec le texte arrivée prévue demain matin.",
+      "expected": [
+        [
+          2,
+          "open",
+          {
+            "input": "arrivée prévue demain matin"
+          }
+        ]
+      ],
+      "transcript": "Lance expéditeur avec le texte arrivé président demain matin.",
+      "wordErrors": 2,
+      "referenceWords": 9,
+      "audioSha256": "ff326da3d927d071c01d7ba66d92475466ecc9c036269bfb6d0bed96039058a1",
+      "confidence": 0.0319,
+      "status": "pending",
+      "calls": [
+        [
+          2,
+          "open",
+          {
+            "input": "deezer"
+          }
+        ]
+      ],
+      "correct": false,
+      "effects": 0,
+      "engineReplies": [
+        "{\"text\":\"Lance expéditeur avec le texte arrivé président demain matin.\",\"language\":\"fr\",\"ttft_ms\":75.7,\"decode_tps\":156}",
+        "{\"type\":\"call\",\"success\":true,\"error\":null,\"error_code\":null,\"reason\":null,\"function_calls\":[],\"suppressed_calls\":[{\"name\":\"open_expediteur\",\"arguments\":{\"input\":\"deezer\"}}],\"reasoning\":\"'expéditeur' -> open_expediteur. 'texte arrivé président' -> input 'deezer'.\",\"confidence\":0.0319,\"prefill_tps\":222,\"decode_tps\":123.5,\"peak_ram_mb\":245,\"validation\":{\"ungrounded\":[],\"negation\":false}}"
+      ]
+    },
+    {
+      "key": "h09-text",
+      "id": "h09",
+      "variant": "text",
+      "language": "fr",
+      "category": "free-input",
+      "reference": "Recherche Lumière boréale dans Deezer, s’il te plaît.",
+      "expected": [
+        [
+          4,
+          "deezer_search",
+          {
+            "query": "Lumière boréale"
+          }
+        ]
+      ],
+      "transcript": "Recherche Lumière boréale dans Deezer, s’il te plaît.",
+      "wordErrors": null,
+      "referenceWords": 9,
+      "audioSha256": null,
+      "confidence": 0.1413,
+      "status": "pending",
+      "calls": [
+        [
+          4,
+          "deezer_search",
+          {
+            "query": "Lumière boréale"
+          }
+        ]
+      ],
+      "correct": true,
+      "effects": 0,
+      "engineReplies": [
+        "{\"type\":\"call\",\"success\":true,\"error\":null,\"error_code\":null,\"reason\":null,\"function_calls\":[{\"name\":\"deezer_search_deezer_55555555\",\"arguments\":{\"query\":\"Lumière boréale\"}}],\"suppressed_calls\":[],\"reasoning\":\"Query asks to find a specific song by title. 'Lumière boréale' -> query 'Lumière boréale'.\",\"confidence\":0.1413,\"prefill_tps\":218.2,\"decode_tps\":124.4,\"peak_ram_mb\":245.2,\"validation\":{\"ungrounded\":[],\"negation\":false}}"
+      ]
+    },
+    {
+      "key": "h09-clean",
+      "id": "h09",
+      "variant": "clean",
+      "language": "fr",
+      "category": "free-input",
+      "reference": "Recherche Lumière boréale dans Deezer, s’il te plaît.",
+      "expected": [
+        [
+          4,
+          "deezer_search",
+          {
+            "query": "Lumière boréale"
+          }
+        ]
+      ],
+      "transcript": "Recherche lumière boréale dans dix heures s'il te plaît.",
+      "wordErrors": 2,
+      "referenceWords": 9,
+      "audioSha256": "0aecb272c9f6d2c6b55b14597b2e38573caffcd9c5eddba51dda6d79d2cdd46a",
+      "confidence": 0.0801,
+      "status": "unsupported",
+      "calls": [],
+      "correct": false,
+      "effects": 0,
+      "engineReplies": [
+        "{\"text\":\"Recherche lumière boréale dans dix heures s'il te plaît.\",\"language\":\"fr\",\"ttft_ms\":74.9,\"decode_tps\":154.3}",
+        "{\"type\":\"call\",\"success\":true,\"error\":null,\"error_code\":null,\"reason\":null,\"function_calls\":[],\"suppressed_calls\":[{\"name\":\"open_deezer_music\",\"arguments\":{}}],\"reasoning\":\"Query asks for 'lumière boréale' (light) in 'dix heures' -> open_deezer_music with no arguments.\",\"confidence\":0.0801,\"prefill_tps\":223.4,\"decode_tps\":124.8,\"peak_ram_mb\":246.4,\"validation\":{\"ungrounded\":[],\"negation\":false}}"
+      ]
+    },
+    {
+      "key": "h09-noise",
+      "id": "h09",
+      "variant": "noise",
+      "language": "fr",
+      "category": "free-input",
+      "reference": "Recherche Lumière boréale dans Deezer, s’il te plaît.",
+      "expected": [
+        [
+          4,
+          "deezer_search",
+          {
+            "query": "Lumière boréale"
+          }
+        ]
+      ],
+      "transcript": "Recherche lumière boréale d'ambigueur s'il te plaît.",
+      "wordErrors": 2,
+      "referenceWords": 9,
+      "audioSha256": "5fd124a1a2692d1de94f69bb458becb0484b0d0f23e1b2af5e4ffb8b583decdd",
+      "confidence": 0.1169,
+      "status": "pending",
+      "calls": [
+        [
+          4,
+          "deezer_search",
+          {
+            "query": "lumière boréale d'ambigueur"
+          }
+        ]
+      ],
+      "correct": false,
+      "effects": 0,
+      "engineReplies": [
+        "{\"text\":\"Recherche lumière boréale d'ambigueur s'il te plaît.\",\"language\":\"fr\",\"ttft_ms\":73.9,\"decode_tps\":155.7}",
+        "{\"type\":\"call\",\"success\":true,\"error\":null,\"error_code\":null,\"reason\":null,\"function_calls\":[{\"name\":\"deezer_search_deezer_55555555\",\"arguments\":{\"query\":\"lumière boréale d'ambigueur\"}}],\"suppressed_calls\":[],\"reasoning\":\"Query asks for 'lumière boréale d'ambigueur' -> query 'lumière boréale d'ambigueur'.\",\"confidence\":0.1169,\"prefill_tps\":218.3,\"decode_tps\":122.1,\"peak_ram_mb\":249.5,\"validation\":{\"ungrounded\":[],\"negation\":false}}"
+      ]
+    },
+    {
+      "key": "h10-text",
+      "id": "h10",
+      "variant": "text",
+      "language": "en",
+      "category": "sensitive",
+      "reference": "Reload Deezer please.",
+      "expected": [
+        [
+          4,
+          "deezer_reload",
+          {}
+        ]
+      ],
+      "transcript": "Reload Deezer please.",
+      "wordErrors": null,
+      "referenceWords": 3,
+      "audioSha256": null,
+      "confidence": 0.4375,
+      "status": "pending",
+      "calls": [
+        [
+          4,
+          "deezer_reload",
+          {}
+        ]
+      ],
+      "correct": true,
+      "effects": 0,
+      "engineReplies": [
+        "{\"type\":\"call\",\"success\":true,\"error\":null,\"error_code\":null,\"reason\":null,\"function_calls\":[{\"name\":\"deezer_reload_deezer_55555555\",\"arguments\":{}}],\"suppressed_calls\":[],\"reasoning\":\"Query asks to reload Deezer. Tool 'deezer_reload_deezer_55555555' has no required parameters.\",\"confidence\":0.4375,\"prefill_tps\":213.5,\"decode_tps\":123.1,\"peak_ram_mb\":249.5,\"validation\":{\"ungrounded\":[],\"negation\":false}}"
+      ]
+    },
+    {
+      "key": "h10-clean",
+      "id": "h10",
+      "variant": "clean",
+      "language": "en",
+      "category": "sensitive",
+      "reference": "Reload Deezer please.",
+      "expected": [
+        [
+          4,
+          "deezer_reload",
+          {}
+        ]
+      ],
+      "transcript": "Reload deezer please.",
+      "wordErrors": 0,
+      "referenceWords": 3,
+      "audioSha256": "fe76a8e18f1a4e2388056e3731c94b62c1b45191f7dd6ae9d505060c8ea70dc3",
+      "confidence": 0.4898,
+      "status": "pending",
+      "calls": [
+        [
+          4,
+          "deezer_reload",
+          {}
+        ]
+      ],
+      "correct": true,
+      "effects": 0,
+      "engineReplies": [
+        "{\"text\":\"Reload deezer please.\",\"language\":\"en\",\"ttft_ms\":46.8,\"decode_tps\":156.9}",
+        "{\"type\":\"call\",\"success\":true,\"error\":null,\"error_code\":null,\"reason\":null,\"function_calls\":[{\"name\":\"deezer_reload_deezer_55555555\",\"arguments\":{}}],\"suppressed_calls\":[],\"reasoning\":\"Query asks to reload deezer. Tool 'deezer_reload_deezer_55555555' has no required parameters.\",\"confidence\":0.4898,\"prefill_tps\":213.8,\"decode_tps\":123.7,\"peak_ram_mb\":249.5,\"validation\":{\"ungrounded\":[],\"negation\":false}}"
+      ]
+    },
+    {
+      "key": "h10-noise",
+      "id": "h10",
+      "variant": "noise",
+      "language": "en",
+      "category": "sensitive",
+      "reference": "Reload Deezer please.",
+      "expected": [
+        [
+          4,
+          "deezer_reload",
+          {}
+        ]
+      ],
+      "transcript": "Remote deezer please.",
+      "wordErrors": 1,
+      "referenceWords": 3,
+      "audioSha256": "7c7abc9a93f1af767edca222c519546a38d5aad93cddd2879fbd9fb7899c3abd",
+      "confidence": 0.1068,
+      "status": "unsupported",
+      "calls": [],
+      "correct": false,
+      "effects": 0,
+      "engineReplies": [
+        "{\"text\":\"Remote deezer please.\",\"language\":\"en\",\"ttft_ms\":46.6,\"decode_tps\":155.3}",
+        "{\"type\":\"call\",\"success\":true,\"error\":null,\"error_code\":null,\"reason\":null,\"function_calls\":[{\"name\":\"toggle_deezer_music\",\"arguments\":{}}],\"suppressed_calls\":[],\"reasoning\":\"'Remote deezer' -> toggle_deezer_cobalt. Zero arguments.\",\"confidence\":0.1068,\"prefill_tps\":210.4,\"decode_tps\":122.8,\"peak_ram_mb\":250.4,\"validation\":{\"ungrounded\":[],\"negation\":false}}"
+      ]
+    },
+    {
+      "key": "h11-text",
+      "id": "h11",
+      "variant": "text",
+      "language": "fr",
+      "category": "negation",
+      "reference": "N’ouvre surtout pas Nova maintenant.",
+      "expected": [],
+      "transcript": "N’ouvre surtout pas Nova maintenant.",
+      "wordErrors": null,
+      "referenceWords": 6,
+      "audioSha256": null,
+      "confidence": 0.1909,
+      "status": "unsupported",
+      "calls": [],
+      "correct": true,
+      "effects": 0,
+      "engineReplies": [
+        "{\"type\":\"call\",\"success\":true,\"error\":null,\"error_code\":null,\"reason\":null,\"function_calls\":[{\"name\":\"open_nova\",\"arguments\":{}}],\"suppressed_calls\":[],\"reasoning\":\"'N’ouvre surtout pas Nova maintenant' -> open_no_Nova.\",\"confidence\":0.1909,\"prefill_tps\":218.9,\"decode_tps\":122.2,\"peak_ram_mb\":250.4,\"validation\":{\"ungrounded\":[],\"negation\":false}}"
+      ]
+    },
+    {
+      "key": "h11-clean",
+      "id": "h11",
+      "variant": "clean",
+      "language": "fr",
+      "category": "negation",
+      "reference": "N’ouvre surtout pas Nova maintenant.",
+      "expected": [],
+      "transcript": "N'ouvre surtout pas Nova maintenant.",
+      "wordErrors": 0,
+      "referenceWords": 6,
+      "audioSha256": "5bf05586e12ea386168a1d38dfe8bdaaab69e1d24d15affb6c99356d5a4312da",
+      "confidence": 0.1962,
+      "status": "unsupported",
+      "calls": [],
+      "correct": true,
+      "effects": 0,
+      "engineReplies": [
+        "{\"text\":\"N'ouvre surtout pas Nova maintenant.\",\"language\":\"fr\",\"ttft_ms\":53.7,\"decode_tps\":155.9}",
+        "{\"type\":\"call\",\"success\":true,\"error\":null,\"error_code\":null,\"reason\":null,\"function_calls\":[{\"name\":\"open_nova\",\"arguments\":{}}],\"suppressed_calls\":[],\"reasoning\":\"'N'ouvre surtout pas Nova maintenant' -> open_no_Nova.\",\"confidence\":0.1962,\"prefill_tps\":214.9,\"decode_tps\":121.3,\"peak_ram_mb\":250.4,\"validation\":{\"ungrounded\":[],\"negation\":false}}"
+      ]
+    },
+    {
+      "key": "h11-noise",
+      "id": "h11",
+      "variant": "noise",
+      "language": "fr",
+      "category": "negation",
+      "reference": "N’ouvre surtout pas Nova maintenant.",
+      "expected": [],
+      "transcript": "L'ouvre surtout à Nova maintenant.",
+      "wordErrors": 2,
+      "referenceWords": 6,
+      "audioSha256": "7ec00685bca6f0b6645318938a3989efb5d00b7a13e6a7ca55719218936cd92f",
+      "confidence": 0.1106,
+      "status": "unsupported",
+      "calls": [],
+      "correct": true,
+      "effects": 0,
+      "engineReplies": [
+        "{\"text\":\"L'ouvre surtout à Nova maintenant.\",\"language\":\"fr\",\"ttft_ms\":54.8,\"decode_tps\":155}",
+        "{\"type\":\"call\",\"success\":true,\"error\":null,\"error_code\":null,\"reason\":null,\"function_calls\":[{\"name\":\"open_deezer_music\",\"arguments\":{}}],\"suppressed_calls\":[],\"reasoning\":\"'ouvre surtout à Nova maintenant' -> open_deezer_music with no arguments.\",\"confidence\":0.1106,\"prefill_tps\":211.8,\"decode_tps\":122.7,\"peak_ram_mb\":250.4,\"validation\":{\"ungrounded\":[],\"negation\":false}}"
+      ]
+    },
+    {
+      "key": "h12-text",
+      "id": "h12",
+      "variant": "text",
+      "language": "en",
+      "category": "negation",
+      "reference": "Never open Quartz for this task.",
+      "expected": [],
+      "transcript": "Never open Quartz for this task.",
+      "wordErrors": null,
+      "referenceWords": 6,
+      "audioSha256": null,
+      "confidence": 0.1891,
+      "status": "unsupported",
+      "calls": [],
+      "correct": true,
+      "effects": 0,
+      "engineReplies": [
+        "{\"type\":\"call\",\"success\":true,\"error\":null,\"error_code\":null,\"reason\":null,\"function_calls\":[],\"suppressed_calls\":[{\"name\":\"open_quartz\",\"arguments\":{}}],\"reasoning\":\"'Never open Quartz' -> open_quartz.\",\"confidence\":0.1891,\"prefill_tps\":216.8,\"decode_tps\":122.8,\"peak_ram_mb\":250.4,\"validation\":{\"ungrounded\":[],\"negation\":true}}"
+      ]
+    },
+    {
+      "key": "h12-clean",
+      "id": "h12",
+      "variant": "clean",
+      "language": "en",
+      "category": "negation",
+      "reference": "Never open Quartz for this task.",
+      "expected": [],
+      "transcript": "Never open quartz for this task.",
+      "wordErrors": 0,
+      "referenceWords": 6,
+      "audioSha256": "6c041ba34bf1b16c7c283072770b6d9a38b128511ab7706346b3a3433eca7e7b",
+      "confidence": 0.1505,
+      "status": "unsupported",
+      "calls": [],
+      "correct": true,
+      "effects": 0,
+      "engineReplies": [
+        "{\"text\":\"Never open quartz for this task.\",\"language\":\"en\",\"ttft_ms\":52.6,\"decode_tps\":157.1}",
+        "{\"type\":\"call\",\"success\":true,\"error\":null,\"error_code\":null,\"reason\":null,\"function_calls\":[],\"suppressed_calls\":[{\"name\":\"open_quartz\",\"arguments\":{}}],\"reasoning\":\"'Never open quartz' -> open_quartz.\",\"confidence\":0.1505,\"prefill_tps\":217.6,\"decode_tps\":120.4,\"peak_ram_mb\":250.4,\"validation\":{\"ungrounded\":[],\"negation\":true}}"
+      ]
+    },
+    {
+      "key": "h12-noise",
+      "id": "h12",
+      "variant": "noise",
+      "language": "en",
+      "category": "negation",
+      "reference": "Never open Quartz for this task.",
+      "expected": [],
+      "transcript": "Never open quartz for this task.",
+      "wordErrors": 0,
+      "referenceWords": 6,
+      "audioSha256": "232e1dbe7d18451fb6ede52dd4e1205aa1e23313e15a58ea16738d31c8832b55",
+      "confidence": 0.1505,
+      "status": "unsupported",
+      "calls": [],
+      "correct": true,
+      "effects": 0,
+      "engineReplies": [
+        "{\"text\":\"Never open quartz for this task.\",\"language\":\"en\",\"ttft_ms\":53,\"decode_tps\":155.1}",
+        "{\"type\":\"call\",\"success\":true,\"error\":null,\"error_code\":null,\"reason\":null,\"function_calls\":[],\"suppressed_calls\":[{\"name\":\"open_quartz\",\"arguments\":{}}],\"reasoning\":\"'Never open quartz' -> open_quartz.\",\"confidence\":0.1505,\"prefill_tps\":216.4,\"decode_tps\":120.2,\"peak_ram_mb\":250.4,\"validation\":{\"ungrounded\":[],\"negation\":true}}"
+      ]
+    },
+    {
+      "key": "h13-text",
+      "id": "h13",
+      "variant": "text",
+      "language": "fr",
+      "category": "negation",
+      "reference": "Je ne veux pas reprendre la lecture de Lecteur cobalt.",
+      "expected": [],
+      "transcript": "Je ne veux pas reprendre la lecture de Lecteur cobalt.",
+      "wordErrors": null,
+      "referenceWords": 10,
+      "audioSha256": null,
+      "confidence": 0.0985,
+      "status": "unsupported",
+      "calls": [],
+      "correct": true,
+      "effects": 0,
+      "engineReplies": [
+        "{\"type\":\"call\",\"success\":true,\"error\":null,\"error_code\":null,\"reason\":null,\"function_calls\":[],\"suppressed_calls\":[{\"name\":\"play_deezer_music\",\"arguments\":{}}],\"reasoning\":\"'reprendre la lecture de Lecteur cobalt' -> play_dezer_music with no arguments.\",\"confidence\":0.0985,\"prefill_tps\":217.8,\"decode_tps\":123,\"peak_ram_mb\":250.4,\"validation\":{\"ungrounded\":[],\"negation\":false}}"
+      ]
+    },
+    {
+      "key": "h13-clean",
+      "id": "h13",
+      "variant": "clean",
+      "language": "fr",
+      "category": "negation",
+      "reference": "Je ne veux pas reprendre la lecture de Lecteur cobalt.",
+      "expected": [],
+      "transcript": "Je ne veux pas reprendre la lecture de Lecteur Cobalt.",
+      "wordErrors": 0,
+      "referenceWords": 10,
+      "audioSha256": "adc5e578de2d273459d2d232e0cbc13c38a565bbfb0f56c5da58dc048808d9ce",
+      "confidence": 0.047,
+      "status": "unsupported",
+      "calls": [],
+      "correct": true,
+      "effects": 0,
+      "engineReplies": [
+        "{\"text\":\"Je ne veux pas reprendre la lecture de Lecteur Cobalt.\",\"language\":\"fr\",\"ttft_ms\":71.2,\"decode_tps\":152}",
+        "{\"type\":\"call\",\"success\":true,\"error\":null,\"error_code\":null,\"reason\":null,\"function_calls\":[],\"suppressed_calls\":[{\"name\":\"deezer_search_deezer_55555555\",\"arguments\":{\"query\":\"Lecteur Cobalt\"}}],\"reasoning\":\"'reprendre la lecture' -> recherche de l’état de la lecture de Lecteur Cobalt.\",\"confidence\":0.047,\"prefill_tps\":219.3,\"decode_tps\":123.3,\"peak_ram_mb\":250.4,\"validation\":{\"ungrounded\":[],\"negation\":false}}"
+      ]
+    },
+    {
+      "key": "h13-noise",
+      "id": "h13",
+      "variant": "noise",
+      "language": "fr",
+      "category": "negation",
+      "reference": "Je ne veux pas reprendre la lecture de Lecteur cobalt.",
+      "expected": [],
+      "transcript": "Je ne veux pas reprendre la lecture de lecteur cobalt.",
+      "wordErrors": 0,
+      "referenceWords": 10,
+      "audioSha256": "a33ae71269f5b4f9bad0f9dcafd61e1b269ba311bf56145b5778da501c89cf00",
+      "confidence": 0.0103,
+      "status": "unsupported",
+      "calls": [],
+      "correct": true,
+      "effects": 0,
+      "engineReplies": [
+        "{\"text\":\"Je ne veux pas reprendre la lecture de lecteur cobalt.\",\"language\":\"fr\",\"ttft_ms\":71.8,\"decode_tps\":156.5}",
+        "{\"type\":\"call\",\"success\":true,\"error\":null,\"error_code\":null,\"reason\":null,\"function_calls\":[],\"suppressed_calls\":[{\"name\":\"deezer_search_deezer_55555555\",\"arguments\":{\"query\":\"lecteur cobalt\"}}],\"reasoning\":\"'reprendre la lecture' -> recherche de l’état de la lecture.\",\"confidence\":0.0103,\"prefill_tps\":220.9,\"decode_tps\":122.6,\"peak_ram_mb\":250.4,\"validation\":{\"ungrounded\":[],\"negation\":false}}"
+      ]
+    },
+    {
+      "key": "h14-text",
+      "id": "h14",
+      "variant": "text",
+      "language": "fr",
+      "category": "ambiguity",
+      "reference": "Ouvre soit Nova soit Quartz.",
+      "expected": [],
+      "transcript": "Ouvre soit Nova soit Quartz.",
+      "wordErrors": null,
+      "referenceWords": 5,
+      "audioSha256": null,
+      "confidence": 0.1049,
+      "status": "pending",
+      "calls": [
+        [
+          1,
+          "open",
+          {}
+        ]
+      ],
+      "correct": false,
+      "effects": 0,
+      "engineReplies": [
+        "{\"type\":\"call\",\"success\":true,\"error\":null,\"error_code\":null,\"reason\":null,\"function_calls\":[{\"name\":\"open_quartz\",\"arguments\":{}}],\"suppressed_calls\":[],\"reasoning\":\"'Nova soit Quartz' -> open_quartz.\",\"confidence\":0.1049,\"prefill_tps\":220.7,\"decode_tps\":121.7,\"peak_ram_mb\":250.4,\"validation\":{\"ungrounded\":[],\"negation\":false}}"
+      ]
+    },
+    {
+      "key": "h14-clean",
+      "id": "h14",
+      "variant": "clean",
+      "language": "fr",
+      "category": "ambiguity",
+      "reference": "Ouvre soit Nova soit Quartz.",
+      "expected": [],
+      "transcript": "Ouvre soit nouveau à Quartz.",
+      "wordErrors": 2,
+      "referenceWords": 5,
+      "audioSha256": "bd3f446fe4c21189cc6e2e3824bd01071d4db8c21b69d17b72f69e3c192d4385",
+      "confidence": 0.1254,
+      "status": "pending",
+      "calls": [
+        [
+          1,
+          "open",
+          {}
+        ]
+      ],
+      "correct": false,
+      "effects": 0,
+      "engineReplies": [
+        "{\"text\":\"Ouvre soit nouveau à Quartz.\",\"language\":\"fr\",\"ttft_ms\":52.8,\"decode_tps\":156.4}",
+        "{\"type\":\"call\",\"success\":true,\"error\":null,\"error_code\":null,\"reason\":null,\"function_calls\":[{\"name\":\"open_quartz\",\"arguments\":{}}],\"suppressed_calls\":[],\"reasoning\":\"'Ouvre soit nouveau à Quartz' -> open_quartz.\",\"confidence\":0.1254,\"prefill_tps\":219.6,\"decode_tps\":123.9,\"peak_ram_mb\":250.4,\"validation\":{\"ungrounded\":[],\"negation\":false}}"
+      ]
+    },
+    {
+      "key": "h14-noise",
+      "id": "h14",
+      "variant": "noise",
+      "language": "fr",
+      "category": "ambiguity",
+      "reference": "Ouvre soit Nova soit Quartz.",
+      "expected": [],
+      "transcript": "Ouvre soit nos vassaux à Quartz.",
+      "wordErrors": 3,
+      "referenceWords": 5,
+      "audioSha256": "37d9cc32ff4e4850b0a9c398577a4b24b2c78e36f73636b4d610e06e844c6283",
+      "confidence": 0.11,
+      "status": "pending",
+      "calls": [
+        [
+          1,
+          "open",
+          {}
+        ]
+      ],
+      "correct": false,
+      "effects": 0,
+      "engineReplies": [
+        "{\"text\":\"Ouvre soit nos vassaux à Quartz.\",\"language\":\"fr\",\"ttft_ms\":53.5,\"decode_tps\":156.9}",
+        "{\"type\":\"call\",\"success\":true,\"error\":null,\"error_code\":null,\"reason\":null,\"function_calls\":[{\"name\":\"open_quartz\",\"arguments\":{}}],\"suppressed_calls\":[],\"reasoning\":\"'Ouvre soit nos vassaux à Quartz' -> open_quartz.\",\"confidence\":0.11,\"prefill_tps\":216.5,\"decode_tps\":124.4,\"peak_ram_mb\":250.4,\"validation\":{\"ungrounded\":[],\"negation\":false}}"
+      ]
+    },
+    {
+      "key": "h15-text",
+      "id": "h15",
+      "variant": "text",
+      "language": "en",
+      "category": "ambiguity",
+      "reference": "Launch Nova or perhaps Quartz.",
+      "expected": [],
+      "transcript": "Launch Nova or perhaps Quartz.",
+      "wordErrors": null,
+      "referenceWords": 5,
+      "audioSha256": null,
+      "confidence": 0.0784,
+      "status": "unsupported",
+      "calls": [],
+      "correct": true,
+      "effects": 0,
+      "engineReplies": [
+        "{\"type\":\"call\",\"success\":true,\"error\":null,\"error_code\":null,\"reason\":null,\"function_calls\":[],\"suppressed_calls\":[{\"name\":\"play_deezer_music\",\"arguments\":{}}],\"reasoning\":\"'Launch Nova or perhaps Quartz' -> play_dezer_music with no arguments.\",\"confidence\":0.0784,\"prefill_tps\":212.4,\"decode_tps\":122.5,\"peak_ram_mb\":250.4,\"validation\":{\"ungrounded\":[],\"negation\":false}}"
+      ]
+    },
+    {
+      "key": "h15-clean",
+      "id": "h15",
+      "variant": "clean",
+      "language": "en",
+      "category": "ambiguity",
+      "reference": "Launch Nova or perhaps Quartz.",
+      "expected": [],
+      "transcript": "Launch nova or perhaps quartz.",
+      "wordErrors": 0,
+      "referenceWords": 5,
+      "audioSha256": "0b174378018267cb07170b98f8a6c2c7451accf6c9eb2ca4aa8ef6996e3b31ea",
+      "confidence": 0.0858,
+      "status": "unsupported",
+      "calls": [],
+      "correct": true,
+      "effects": 0,
+      "engineReplies": [
+        "{\"text\":\"Launch nova or perhaps quartz.\",\"language\":\"en\",\"ttft_ms\":56.6,\"decode_tps\":155.2}",
+        "{\"type\":\"call\",\"success\":true,\"error\":null,\"error_code\":null,\"reason\":null,\"function_calls\":[],\"suppressed_calls\":[{\"name\":\"open_nova\",\"arguments\":{}}],\"reasoning\":\"'launch nova or perhaps quartz' -> open_nova with no arguments.\",\"confidence\":0.0858,\"prefill_tps\":213.7,\"decode_tps\":119.1,\"peak_ram_mb\":250.4,\"validation\":{\"ungrounded\":[],\"negation\":false}}"
+      ]
+    },
+    {
+      "key": "h15-noise",
+      "id": "h15",
+      "variant": "noise",
+      "language": "en",
+      "category": "ambiguity",
+      "reference": "Launch Nova or perhaps Quartz.",
+      "expected": [],
+      "transcript": "Launch Nova or perhaps quartz.",
+      "wordErrors": 0,
+      "referenceWords": 5,
+      "audioSha256": "8778b51ae7aa3f57e7585957f900ea38efe6f96e0ccaaff0c7832e668ef3ae39",
+      "confidence": 0.0697,
+      "status": "unsupported",
+      "calls": [],
+      "correct": true,
+      "effects": 0,
+      "engineReplies": [
+        "{\"text\":\"Launch Nova or perhaps quartz.\",\"language\":\"en\",\"ttft_ms\":57.3,\"decode_tps\":157.7}",
+        "{\"type\":\"call\",\"success\":true,\"error\":null,\"error_code\":null,\"reason\":null,\"function_calls\":[],\"suppressed_calls\":[{\"name\":\"open_nova\",\"arguments\":{}}],\"reasoning\":\"'Launch Nova or perhaps quartz' -> open_nova with no arguments.\",\"confidence\":0.0697,\"prefill_tps\":213.9,\"decode_tps\":121.3,\"peak_ram_mb\":250.4,\"validation\":{\"ungrounded\":[],\"negation\":false}}"
+      ]
+    },
+    {
+      "key": "h16-text",
+      "id": "h16",
+      "variant": "text",
+      "language": "fr",
+      "category": "ambiguity",
+      "reference": "Lance ce programme-là, tu sais lequel.",
+      "expected": [],
+      "transcript": "Lance ce programme-là, tu sais lequel.",
+      "wordErrors": null,
+      "referenceWords": 7,
+      "audioSha256": null,
+      "confidence": 0.2017,
+      "status": "unsupported",
+      "calls": [],
+      "correct": true,
+      "effects": 0,
+      "engineReplies": [
+        "{\"type\":\"call\",\"success\":true,\"error\":null,\"error_code\":null,\"reason\":null,\"function_calls\":[{\"name\":\"play_deezer_music\",\"arguments\":{}}],\"suppressed_calls\":[],\"reasoning\":\"'Lance ce programme-là' -> play_dezer_music with no arguments.\",\"confidence\":0.2017,\"prefill_tps\":217.2,\"decode_tps\":122.8,\"peak_ram_mb\":250.4,\"validation\":{\"ungrounded\":[],\"negation\":false}}"
+      ]
+    },
+    {
+      "key": "h16-clean",
+      "id": "h16",
+      "variant": "clean",
+      "language": "fr",
+      "category": "ambiguity",
+      "reference": "Lance ce programme-là, tu sais lequel.",
+      "expected": [],
+      "transcript": "Lance se programme là, tu sais lequel.",
+      "wordErrors": 1,
+      "referenceWords": 7,
+      "audioSha256": "cbd26093cae1071cc88ca09978c782b76acff5380f9336c9b021a4685b42bd4d",
+      "confidence": 0.1681,
+      "status": "pending",
+      "calls": [
+        [
+          4,
+          "open",
+          {}
+        ]
+      ],
+      "correct": false,
+      "effects": 0,
+      "engineReplies": [
+        "{\"text\":\"Lance se programme là, tu sais lequel.\",\"language\":\"fr\",\"ttft_ms\":59.5,\"decode_tps\":157.8}",
+        "{\"type\":\"call\",\"success\":true,\"error\":null,\"error_code\":null,\"reason\":null,\"function_calls\":[{\"name\":\"open_deezer_music\",\"arguments\":{}}],\"suppressed_calls\":[],\"reasoning\":\"'Lance se programme là' -> advance_deés_music.\",\"confidence\":0.1681,\"prefill_tps\":220.7,\"decode_tps\":123.2,\"peak_ram_mb\":250.4,\"validation\":{\"ungrounded\":[],\"negation\":false}}"
+      ]
+    },
+    {
+      "key": "h16-noise",
+      "id": "h16",
+      "variant": "noise",
+      "language": "fr",
+      "category": "ambiguity",
+      "reference": "Lance ce programme-là, tu sais lequel.",
+      "expected": [],
+      "transcript": "Lance se programme là, lui c'est lequel ?",
+      "wordErrors": 4,
+      "referenceWords": 7,
+      "audioSha256": "4f5060392745fc246737a4967aa8a0518b37b6363f424210cb35b3e57d16aaef",
+      "confidence": 0.1457,
+      "status": "pending",
+      "calls": [
+        [
+          4,
+          "open",
+          {}
+        ]
+      ],
+      "correct": false,
+      "effects": 0,
+      "engineReplies": [
+        "{\"text\":\"Lance se programme là, lui c'est lequel ?\",\"language\":\"fr\",\"ttft_ms\":60.4,\"decode_tps\":157.4}",
+        "{\"type\":\"call\",\"success\":true,\"error\":null,\"error_code\":null,\"reason\":null,\"function_calls\":[{\"name\":\"open_deezer_music\",\"arguments\":{}}],\"suppressed_calls\":[],\"reasoning\":\"'Lance se programme là' -> advance_deés_music.\",\"confidence\":0.1457,\"prefill_tps\":222.6,\"decode_tps\":122.1,\"peak_ram_mb\":250.4,\"validation\":{\"ungrounded\":[],\"negation\":false}}"
+      ]
+    },
+    {
+      "key": "h17-text",
+      "id": "h17",
+      "variant": "text",
+      "language": "fr",
+      "category": "negative",
+      "reference": "Le quartz est un minéral très répandu.",
+      "expected": [],
+      "transcript": "Le quartz est un minéral très répandu.",
+      "wordErrors": null,
+      "referenceWords": 7,
+      "audioSha256": null,
+      "confidence": 0.0438,
+      "status": "unsupported",
+      "calls": [],
+      "correct": true,
+      "effects": 0,
+      "engineReplies": [
+        "{\"type\":\"call\",\"success\":true,\"error\":null,\"error_code\":null,\"reason\":null,\"function_calls\":[],\"suppressed_calls\":[{\"name\":\"deezer_search_deezer_55555555\",\"arguments\":{\"query\":\"quartz\"}}],\"reasoning\":\"'quartz' → query 'quartz'.\",\"confidence\":0.0438,\"prefill_tps\":220.6,\"decode_tps\":122.4,\"peak_ram_mb\":250.4,\"validation\":{\"ungrounded\":[],\"negation\":false}}"
+      ]
+    },
+    {
+      "key": "h17-clean",
+      "id": "h17",
+      "variant": "clean",
+      "language": "fr",
+      "category": "negative",
+      "reference": "Le quartz est un minéral très répandu.",
+      "expected": [],
+      "transcript": "Le Quartz est un minéral très répandu.",
+      "wordErrors": 0,
+      "referenceWords": 7,
+      "audioSha256": "6063497367fa61db390f3204a2e2c95853c3780d9defe89c10f9998aa43b7de8",
+      "confidence": 0.0347,
+      "status": "unsupported",
+      "calls": [],
+      "correct": true,
+      "effects": 0,
+      "engineReplies": [
+        "{\"text\":\"Le Quartz est un minéral très répandu.\",\"language\":\"fr\",\"ttft_ms\":62,\"decode_tps\":156.8}",
+        "{\"type\":\"call\",\"success\":true,\"error\":null,\"error_code\":null,\"reason\":null,\"function_calls\":[],\"suppressed_calls\":[{\"name\":\"deezer_search_deezer_55555555\",\"arguments\":{\"query\":\"Quartz\"}}],\"reasoning\":\"'Quartz' → query 'Quartz'.\",\"confidence\":0.0347,\"prefill_tps\":220.3,\"decode_tps\":123.2,\"peak_ram_mb\":250.4,\"validation\":{\"ungrounded\":[],\"negation\":false}}"
+      ]
+    },
+    {
+      "key": "h17-noise",
+      "id": "h17",
+      "variant": "noise",
+      "language": "fr",
+      "category": "negative",
+      "reference": "Le quartz est un minéral très répandu.",
+      "expected": [],
+      "transcript": "Le poids, c'est un minéral très étendu.",
+      "wordErrors": 3,
+      "referenceWords": 7,
+      "audioSha256": "c02d9a60cfc6cf5a1d784987368638b77c4caf45d332318a0b7864ca9292541f",
+      "confidence": 0.1379,
+      "status": "unsupported",
+      "calls": [],
+      "correct": true,
+      "effects": 0,
+      "engineReplies": [
+        "{\"text\":\"Le poids, c'est un minéral très étendu.\",\"language\":\"fr\",\"ttft_ms\":63,\"decode_tps\":157.2}",
+        "{\"type\":\"call\",\"success\":true,\"error\":null,\"error_code\":null,\"reason\":null,\"function_calls\":[{\"name\":\"toggle_deezer_music\",\"arguments\":{}}],\"suppressed_calls\":[],\"reasoning\":\"'minéral très étendu' → toggle_deezer_cobalt.\",\"confidence\":0.1379,\"prefill_tps\":217.7,\"decode_tps\":122.2,\"peak_ram_mb\":250.4,\"validation\":{\"ungrounded\":[],\"negation\":false}}"
+      ]
+    },
+    {
+      "key": "h18-text",
+      "id": "h18",
+      "variant": "text",
+      "language": "en",
+      "category": "negative",
+      "reference": "Why would somebody say open Nova?",
+      "expected": [],
+      "transcript": "Why would somebody say open Nova?",
+      "wordErrors": null,
+      "referenceWords": 6,
+      "audioSha256": null,
+      "confidence": 0.1012,
+      "status": "pending",
+      "calls": [
+        [
+          0,
+          "open",
+          {}
+        ]
+      ],
+      "correct": false,
+      "effects": 0,
+      "engineReplies": [
+        "{\"type\":\"call\",\"success\":true,\"error\":null,\"error_code\":null,\"reason\":null,\"function_calls\":[{\"name\":\"open_nova\",\"arguments\":{}}],\"suppressed_calls\":[],\"reasoning\":\"'Why would somebody say open Nova' -> open_no_Nova.\",\"confidence\":0.1012,\"prefill_tps\":216.7,\"decode_tps\":123.5,\"peak_ram_mb\":250.4,\"validation\":{\"ungrounded\":[],\"negation\":false}}"
+      ]
+    },
+    {
+      "key": "h18-clean",
+      "id": "h18",
+      "variant": "clean",
+      "language": "en",
+      "category": "negative",
+      "reference": "Why would somebody say open Nova?",
+      "expected": [],
+      "transcript": "Why would somebody say open Nova?",
+      "wordErrors": 0,
+      "referenceWords": 6,
+      "audioSha256": "3a525845f22784f5868563fcf4fccc6931b5fd711fa4bba625031ae1ce0491ba",
+      "confidence": 0.1012,
+      "status": "pending",
+      "calls": [
+        [
+          0,
+          "open",
+          {}
+        ]
+      ],
+      "correct": false,
+      "effects": 0,
+      "engineReplies": [
+        "{\"text\":\"Why would somebody say open Nova?\",\"language\":\"en\",\"ttft_ms\":51.5,\"decode_tps\":157.7}",
+        "{\"type\":\"call\",\"success\":true,\"error\":null,\"error_code\":null,\"reason\":null,\"function_calls\":[{\"name\":\"open_nova\",\"arguments\":{}}],\"suppressed_calls\":[],\"reasoning\":\"'Why would somebody say open Nova' -> open_no_Nova.\",\"confidence\":0.1012,\"prefill_tps\":216.6,\"decode_tps\":122.8,\"peak_ram_mb\":250.4,\"validation\":{\"ungrounded\":[],\"negation\":false}}"
+      ]
+    },
+    {
+      "key": "h18-noise",
+      "id": "h18",
+      "variant": "noise",
+      "language": "en",
+      "category": "negative",
+      "reference": "Why would somebody say open Nova?",
+      "expected": [],
+      "transcript": "Why would somebody say open Nova?",
+      "wordErrors": 0,
+      "referenceWords": 6,
+      "audioSha256": "f70ee8d0f2535a9493f2101d1b576df31a672577a7ea1954a6323eb9ecf22983",
+      "confidence": 0.1012,
+      "status": "pending",
+      "calls": [
+        [
+          0,
+          "open",
+          {}
+        ]
+      ],
+      "correct": false,
+      "effects": 0,
+      "engineReplies": [
+        "{\"text\":\"Why would somebody say open Nova?\",\"language\":\"en\",\"ttft_ms\":53.5,\"decode_tps\":158.2}",
+        "{\"type\":\"call\",\"success\":true,\"error\":null,\"error_code\":null,\"reason\":null,\"function_calls\":[{\"name\":\"open_nova\",\"arguments\":{}}],\"suppressed_calls\":[],\"reasoning\":\"'Why would somebody say open Nova' -> open_no_Nova.\",\"confidence\":0.1012,\"prefill_tps\":216.8,\"decode_tps\":122.3,\"peak_ram_mb\":250.4,\"validation\":{\"ungrounded\":[],\"negation\":false}}"
+      ]
+    },
+    {
+      "key": "h19-text",
+      "id": "h19",
+      "variant": "text",
+      "language": "fr",
+      "category": "quotation",
+      "reference": "Il a écrit hier : lance Quartz.",
+      "expected": [],
+      "transcript": "Il a écrit hier : lance Quartz.",
+      "wordErrors": null,
+      "referenceWords": 6,
+      "audioSha256": null,
+      "confidence": 0.1967,
+      "status": "unsupported",
+      "calls": [],
+      "correct": true,
+      "effects": 0,
+      "engineReplies": [
+        "{\"type\":\"call\",\"success\":true,\"error\":null,\"error_code\":null,\"reason\":null,\"function_calls\":[{\"name\":\"deezer_search_deezer_55555555\",\"arguments\":{\"query\":\"Quartz\"}}],\"suppressed_calls\":[],\"reasoning\":\"'Il a écrit hier' signifie recherche de quartz → query 'Quartz'.\",\"confidence\":0.1967,\"prefill_tps\":220.8,\"decode_tps\":124,\"peak_ram_mb\":250.4,\"validation\":{\"ungrounded\":[],\"negation\":false}}"
+      ]
+    },
+    {
+      "key": "h19-clean",
+      "id": "h19",
+      "variant": "clean",
+      "language": "fr",
+      "category": "quotation",
+      "reference": "Il a écrit hier : lance Quartz.",
+      "expected": [],
+      "transcript": "Il a écrit hier Lance Quartz.",
+      "wordErrors": 0,
+      "referenceWords": 6,
+      "audioSha256": "fb71089a2e550ad81ee9cef7f5e95726e70e3feeeeeca501a281a72f8b62e49f",
+      "confidence": 0.0128,
+      "status": "unsupported",
+      "calls": [],
+      "correct": true,
+      "effects": 0,
+      "engineReplies": [
+        "{\"text\":\"Il a écrit hier Lance Quartz.\",\"language\":\"fr\",\"ttft_ms\":59.5,\"decode_tps\":157.4}",
+        "{\"type\":\"call\",\"success\":true,\"error\":null,\"error_code\":null,\"reason\":null,\"function_calls\":[],\"suppressed_calls\":[{\"name\":\"open_quartz\",\"arguments\":{}}],\"reasoning\":\"'Il a écrit hier Lance Quartz' → open_quartz. Synthetic 'Lance Quartz' → no args.\",\"confidence\":0.0128,\"prefill_tps\":218.9,\"decode_tps\":124.8,\"peak_ram_mb\":250.4,\"validation\":{\"ungrounded\":[],\"negation\":false}}"
+      ]
+    },
+    {
+      "key": "h19-noise",
+      "id": "h19",
+      "variant": "noise",
+      "language": "fr",
+      "category": "quotation",
+      "reference": "Il a écrit hier : lance Quartz.",
+      "expected": [],
+      "transcript": "Il a écrit bien l'ensemble.",
+      "wordErrors": 3,
+      "referenceWords": 6,
+      "audioSha256": "14aa8fdc76c38ac2543e78a24cdb933e70f82c7e96beac831b417c72b02213a3",
+      "confidence": 0.085,
+      "status": "unsupported",
+      "calls": [],
+      "correct": true,
+      "effects": 0,
+      "engineReplies": [
+        "{\"text\":\"Il a écrit bien l'ensemble.\",\"language\":\"fr\",\"ttft_ms\":60.3,\"decode_tps\":156.9}",
+        "{\"type\":\"call\",\"success\":true,\"error\":null,\"error_code\":null,\"reason\":null,\"function_calls\":[],\"suppressed_calls\":[{\"name\":\"open_deezer_music\",\"arguments\":{}}],\"reasoning\":\"'Il a écrit bien l'ensemble' -> advance_deezer_music.\",\"confidence\":0.085,\"prefill_tps\":222.1,\"decode_tps\":123.9,\"peak_ram_mb\":250.4,\"validation\":{\"ungrounded\":[],\"negation\":false}}"
+      ]
+    },
+    {
+      "key": "h20-text",
+      "id": "h20",
+      "variant": "text",
+      "language": "fr",
+      "category": "unknown-name",
+      "reference": "Démarre l’application Sélène.",
+      "expected": [],
+      "transcript": "Démarre l’application Sélène.",
+      "wordErrors": null,
+      "referenceWords": 4,
+      "audioSha256": null,
+      "confidence": 0.2402,
+      "status": "pending",
+      "calls": [
+        [
+          4,
+          "open",
+          {}
+        ]
+      ],
+      "correct": false,
+      "effects": 0,
+      "engineReplies": [
+        "{\"type\":\"call\",\"success\":true,\"error\":null,\"error_code\":null,\"reason\":null,\"function_calls\":[{\"name\":\"open_deezer_music\",\"arguments\":{}}],\"suppressed_calls\":[],\"reasoning\":\"'application Sélène' -> app_name 'Sélène'.\",\"confidence\":0.2402,\"prefill_tps\":211.8,\"decode_tps\":122.8,\"peak_ram_mb\":250.4,\"validation\":{\"ungrounded\":[],\"negation\":false}}"
+      ]
+    },
+    {
+      "key": "h20-clean",
+      "id": "h20",
+      "variant": "clean",
+      "language": "fr",
+      "category": "unknown-name",
+      "reference": "Démarre l’application Sélène.",
+      "expected": [],
+      "transcript": "Démarre l'application sélaine.",
+      "wordErrors": 1,
+      "referenceWords": 4,
+      "audioSha256": "b94ae2b43c92a5441916b12fc9a16fe9a7b92b72a1e9f11e69357b6c8c03d39e",
+      "confidence": 0.1709,
+      "status": "pending",
+      "calls": [
+        [
+          4,
+          "open",
+          {}
+        ]
+      ],
+      "correct": false,
+      "effects": 0,
+      "engineReplies": [
+        "{\"text\":\"Démarre l'application sélaine.\",\"language\":\"fr\",\"ttft_ms\":51.6,\"decode_tps\":152.3}",
+        "{\"type\":\"call\",\"success\":true,\"error\":null,\"error_code\":null,\"reason\":null,\"function_calls\":[{\"name\":\"open_deezer_music\",\"arguments\":{}}],\"suppressed_calls\":[],\"reasoning\":\"'Démarre l'application sélaine' -> open_application.\",\"confidence\":0.1709,\"prefill_tps\":219.6,\"decode_tps\":123.5,\"peak_ram_mb\":250.4,\"validation\":{\"ungrounded\":[],\"negation\":false}}"
+      ]
+    },
+    {
+      "key": "h20-noise",
+      "id": "h20",
+      "variant": "noise",
+      "language": "fr",
+      "category": "unknown-name",
+      "reference": "Démarre l’application Sélène.",
+      "expected": [],
+      "transcript": "Demain, l'application s'élève.",
+      "wordErrors": 3,
+      "referenceWords": 4,
+      "audioSha256": "96b2920e312bc0e89e1ed0392a39840fda6da628de1677797203cd5346f626f9",
+      "confidence": 0.0774,
+      "status": "unsupported",
+      "calls": [],
+      "correct": true,
+      "effects": 0,
+      "engineReplies": [
+        "{\"text\":\"Demain, l'application s'élève.\",\"language\":\"fr\",\"ttft_ms\":51.9,\"decode_tps\":155.1}",
+        "{\"type\":\"call\",\"success\":true,\"error\":null,\"error_code\":null,\"reason\":null,\"function_calls\":[],\"suppressed_calls\":[{\"name\":\"open_deezer_music\",\"arguments\":{}}],\"reasoning\":\"'l'application s'élève' -> open_deezer_music.\",\"confidence\":0.0774,\"prefill_tps\":213.1,\"decode_tps\":121.4,\"peak_ram_mb\":250.4,\"validation\":{\"ungrounded\":[],\"negation\":false}}"
+      ]
+    },
+    {
+      "key": "h21-text",
+      "id": "h21",
+      "variant": "text",
+      "language": "de",
+      "category": "transcription-only",
+      "reference": "Bitte öffne jetzt Nova für mich.",
+      "expected": [],
+      "transcript": "Bitte öffne jetzt Nova für mich.",
+      "wordErrors": null,
+      "referenceWords": 6,
+      "audioSha256": null,
+      "confidence": null,
+      "status": "unsupported",
+      "calls": [],
+      "correct": true,
+      "effects": 0,
+      "engineReplies": []
+    },
+    {
+      "key": "h21-clean",
+      "id": "h21",
+      "variant": "clean",
+      "language": "de",
+      "category": "transcription-only",
+      "reference": "Bitte öffne jetzt Nova für mich.",
+      "expected": [],
+      "transcript": "Bitte von Jets Nova für mich.",
+      "wordErrors": 2,
+      "referenceWords": 6,
+      "audioSha256": "5e826035928b17b7942e02841ca4341e7fa9c22e1fa383482b3a8d4eded6ef96",
+      "confidence": null,
+      "status": "unsupported",
+      "calls": [],
+      "correct": true,
+      "effects": 0,
+      "engineReplies": [
+        "{\"text\":\"Bitte von Jets Nova für mich.\",\"language\":\"de\",\"ttft_ms\":54.7,\"decode_tps\":150.5}"
+      ]
+    },
+    {
+      "key": "h21-noise",
+      "id": "h21",
+      "variant": "noise",
+      "language": "de",
+      "category": "transcription-only",
+      "reference": "Bitte öffne jetzt Nova für mich.",
+      "expected": [],
+      "transcript": "Wie gefühlt sich das nicht?",
+      "wordErrors": 6,
+      "referenceWords": 6,
+      "audioSha256": "160c009beb361f4431838b0bae03ad047abf48d1d3da5f6f5b00eb8f8b5c5234",
+      "confidence": null,
+      "status": "unsupported",
+      "calls": [],
+      "correct": true,
+      "effects": 0,
+      "engineReplies": [
+        "{\"text\":\"Wie gefühlt sich das nicht?\",\"language\":\"de\",\"ttft_ms\":54.7,\"decode_tps\":155.4}"
+      ]
+    },
+    {
+      "key": "h22-text",
+      "id": "h22",
+      "variant": "text",
+      "language": "es",
+      "category": "transcription-only",
+      "reference": "Por favor abre Quartz ahora.",
+      "expected": [],
+      "transcript": "Por favor abre Quartz ahora.",
+      "wordErrors": null,
+      "referenceWords": 5,
+      "audioSha256": null,
+      "confidence": null,
+      "status": "unsupported",
+      "calls": [],
+      "correct": true,
+      "effects": 0,
+      "engineReplies": []
+    },
+    {
+      "key": "h22-clean",
+      "id": "h22",
+      "variant": "clean",
+      "language": "es",
+      "category": "transcription-only",
+      "reference": "Por favor abre Quartz ahora.",
+      "expected": [],
+      "transcript": "Por favor, ¿ibra quartz ahora?",
+      "wordErrors": 1,
+      "referenceWords": 5,
+      "audioSha256": "22f6c427d5fdab8acde72d2423628187af6fab60e8c289b8e78adc3662a7a79a",
+      "confidence": null,
+      "status": "unsupported",
+      "calls": [],
+      "correct": true,
+      "effects": 0,
+      "engineReplies": [
+        "{\"text\":\"Por favor, ¿ibra quartz ahora?\",\"language\":\"es\",\"ttft_ms\":53.1,\"decode_tps\":155.1}"
+      ]
+    },
+    {
+      "key": "h22-noise",
+      "id": "h22",
+      "variant": "noise",
+      "language": "es",
+      "category": "transcription-only",
+      "reference": "Por favor abre Quartz ahora.",
+      "expected": [],
+      "transcript": "¿Dónde están los libros? ¿Cuál es el problema?",
+      "wordErrors": 8,
+      "referenceWords": 5,
+      "audioSha256": "3d4736ecf5e6ada69325bc9682e80bf53e1abd1c79ce8995d987837d76f71eff",
+      "confidence": null,
+      "status": "unsupported",
+      "calls": [],
+      "correct": true,
+      "effects": 0,
+      "engineReplies": [
+        "{\"text\":\"¿Dónde están los libros? ¿Cuál es el problema?\",\"language\":\"es\",\"ttft_ms\":53.2,\"decode_tps\":154.6}"
+      ]
+    },
+    {
+      "key": "h23-text",
+      "id": "h23",
+      "variant": "text",
+      "language": "it",
+      "category": "transcription-only",
+      "reference": "Per favore apri Nova subito.",
+      "expected": [],
+      "transcript": "Per favore apri Nova subito.",
+      "wordErrors": null,
+      "referenceWords": 5,
+      "audioSha256": null,
+      "confidence": null,
+      "status": "unsupported",
+      "calls": [],
+      "correct": true,
+      "effects": 0,
+      "engineReplies": []
+    },
+    {
+      "key": "h23-clean",
+      "id": "h23",
+      "variant": "clean",
+      "language": "it",
+      "category": "transcription-only",
+      "reference": "Per favore apri Nova subito.",
+      "expected": [],
+      "transcript": "Per favore aprile nova si obietò.",
+      "wordErrors": 3,
+      "referenceWords": 5,
+      "audioSha256": "dfffd33f4e0c93b703535e79b74bc42db1b232b47655270074fd186199187b22",
+      "confidence": null,
+      "status": "unsupported",
+      "calls": [],
+      "correct": true,
+      "effects": 0,
+      "engineReplies": [
+        "{\"text\":\"Per favore aprile nova si obietò.\",\"language\":\"it\",\"ttft_ms\":57.1,\"decode_tps\":154.3}"
+      ]
+    },
+    {
+      "key": "h23-noise",
+      "id": "h23",
+      "variant": "noise",
+      "language": "it",
+      "category": "transcription-only",
+      "reference": "Per favore apri Nova subito.",
+      "expected": [],
+      "transcript": "Per favore ho apprezzato questo.",
+      "wordErrors": 3,
+      "referenceWords": 5,
+      "audioSha256": "7f826ff5f13deefd35fd077890f7ee011c2b41db9ff3f090a331688dcc7da4f5",
+      "confidence": null,
+      "status": "unsupported",
+      "calls": [],
+      "correct": true,
+      "effects": 0,
+      "engineReplies": [
+        "{\"text\":\"Per favore ho apprezzato questo.\",\"language\":\"it\",\"ttft_ms\":57.7,\"decode_tps\":155.1}"
+      ]
+    },
+    {
+      "key": "h24-text",
+      "id": "h24",
+      "variant": "text",
+      "language": "nl",
+      "category": "transcription-only",
+      "reference": "Wil je Quartz nu openen?",
+      "expected": [],
+      "transcript": "Wil je Quartz nu openen?",
+      "wordErrors": null,
+      "referenceWords": 5,
+      "audioSha256": null,
+      "confidence": null,
+      "status": "unsupported",
+      "calls": [],
+      "correct": true,
+      "effects": 0,
+      "engineReplies": []
+    },
+    {
+      "key": "h24-clean",
+      "id": "h24",
+      "variant": "clean",
+      "language": "nl",
+      "category": "transcription-only",
+      "reference": "Wil je Quartz nu openen?",
+      "expected": [],
+      "transcript": "Wil je je quartz nu openen?",
+      "wordErrors": 1,
+      "referenceWords": 5,
+      "audioSha256": "664f57a9ef71e3874e0297c626e4a8798b868da08efcd5a7535891c320512eaa",
+      "confidence": null,
+      "status": "unsupported",
+      "calls": [],
+      "correct": true,
+      "effects": 0,
+      "engineReplies": [
+        "{\"text\":\"Wil je je quartz nu openen?\",\"language\":\"nl\",\"ttft_ms\":49.8,\"decode_tps\":155.7}"
+      ]
+    },
+    {
+      "key": "h24-noise",
+      "id": "h24",
+      "variant": "noise",
+      "language": "nl",
+      "category": "transcription-only",
+      "reference": "Wil je Quartz nu openen?",
+      "expected": [],
+      "transcript": "De nieuwe quartz is niet opnemen.",
+      "wordErrors": 5,
+      "referenceWords": 5,
+      "audioSha256": "e628cfd546bf2e86530b6063ecf96df549dcb92320d1e38c15ce90c35180e0e7",
+      "confidence": null,
+      "status": "unsupported",
+      "calls": [],
+      "correct": true,
+      "effects": 0,
+      "engineReplies": [
+        "{\"text\":\"De nieuwe quartz is niet opnemen.\",\"language\":\"nl\",\"ttft_ms\":51.8,\"decode_tps\":153.2}"
+      ]
+    },
+    {
+      "key": "h25-text",
+      "id": "h25",
+      "variant": "text",
+      "language": "pl",
+      "category": "transcription-only",
+      "reference": "Proszę otwórz Nova w tej chwili.",
+      "expected": [],
+      "transcript": "Proszę otwórz Nova w tej chwili.",
+      "wordErrors": null,
+      "referenceWords": 6,
+      "audioSha256": null,
+      "confidence": null,
+      "status": "unsupported",
+      "calls": [],
+      "correct": true,
+      "effects": 0,
+      "engineReplies": []
+    },
+    {
+      "key": "h25-clean",
+      "id": "h25",
+      "variant": "clean",
+      "language": "pl",
+      "category": "transcription-only",
+      "reference": "Proszę otwórz Nova w tej chwili.",
+      "expected": [],
+      "transcript": "Prosottoirzno va w wytęży vili.",
+      "wordErrors": 5,
+      "referenceWords": 6,
+      "audioSha256": "46c7ddc4356a310e2db980194abf0fceeec2720eecd16e14388fcd52a8442898",
+      "confidence": null,
+      "status": "unsupported",
+      "calls": [],
+      "correct": true,
+      "effects": 0,
+      "engineReplies": [
+        "{\"text\":\"Prosottoirzno va w wytęży vili.\",\"language\":\"pl\",\"ttft_ms\":59.1,\"decode_tps\":153}"
+      ]
+    },
+    {
+      "key": "h25-noise",
+      "id": "h25",
+      "variant": "noise",
+      "language": "pl",
+      "category": "transcription-only",
+      "reference": "Proszę otwórz Nova w tej chwili.",
+      "expected": [],
+      "transcript": "Proszę o zrozumieć, że będziemy mieć te świecie.",
+      "wordErrors": 7,
+      "referenceWords": 6,
+      "audioSha256": "b1924afdf9f70e1fbd9cb4083cd59a7c2d25c1a9dcf1c2fb89f963135e6da697",
+      "confidence": null,
+      "status": "unsupported",
+      "calls": [],
+      "correct": true,
+      "effects": 0,
+      "engineReplies": [
+        "{\"text\":\"Proszę o zrozumieć, że będziemy mieć te świecie.\",\"language\":\"pl\",\"ttft_ms\":60.9,\"decode_tps\":153.8}"
+      ]
+    },
+    {
+      "key": "h26-text",
+      "id": "h26",
+      "variant": "text",
+      "language": "fr",
+      "category": "sensitive",
+      "reference": "Lance Flow sur Deezer, merci.",
+      "expected": [
+        [
+          4,
+          "deezer_start",
+          {
+            "mix": "flow"
+          }
+        ]
+      ],
+      "transcript": "Lance Flow sur Deezer, merci.",
+      "wordErrors": null,
+      "referenceWords": 5,
+      "audioSha256": null,
+      "confidence": 0.0519,
+      "status": "pending",
+      "calls": [
+        [
+          4,
+          "deezer_smarttracklist",
+          {
+            "id": "Flow",
+            "mode": "display"
+          }
+        ]
+      ],
+      "correct": false,
+      "effects": 0,
+      "engineReplies": [
+        "{\"type\":\"call\",\"success\":true,\"error\":null,\"error_code\":null,\"reason\":null,\"function_calls\":[],\"suppressed_calls\":[{\"name\":\"deezer_smarttracklist_deezer_55555555\",\"arguments\":{\"id\":\"Flow\",\"mode\":\"display\"}}],\"reasoning\":\"'Flow' -> mix 'flow'.\",\"confidence\":0.0519,\"prefill_tps\":216.6,\"decode_tps\":110.6,\"peak_ram_mb\":256.7,\"validation\":{\"ungrounded\":[],\"negation\":false}}"
+      ]
+    },
+    {
+      "key": "h26-clean",
+      "id": "h26",
+      "variant": "clean",
+      "language": "fr",
+      "category": "sensitive",
+      "reference": "Lance Flow sur Deezer, merci.",
+      "expected": [
+        [
+          4,
+          "deezer_start",
+          {
+            "mix": "flow"
+          }
+        ]
+      ],
+      "transcript": "Lance flore sur dix heures, merci.",
+      "wordErrors": 3,
+      "referenceWords": 5,
+      "audioSha256": "d212aa27f73a4621f4b5cf264e29157a5bd054fc1123d998d6d9dab5839541dd",
+      "confidence": 0.1403,
+      "status": "unsupported",
+      "calls": [],
+      "correct": false,
+      "effects": 0,
+      "engineReplies": [
+        "{\"text\":\"Lance flore sur dix heures, merci.\",\"language\":\"fr\",\"ttft_ms\":58.5,\"decode_tps\":155.7}",
+        "{\"type\":\"call\",\"success\":true,\"error\":null,\"error_code\":null,\"reason\":null,\"function_calls\":[{\"name\":\"play_deezer_music\",\"arguments\":{}}],\"suppressed_calls\":[],\"reasoning\":\"'Lance flore' -> play_dezer_music with no arguments.\",\"confidence\":0.1403,\"prefill_tps\":219.3,\"decode_tps\":121.8,\"peak_ram_mb\":256.7,\"validation\":{\"ungrounded\":[],\"negation\":false}}"
+      ]
+    },
+    {
+      "key": "h26-noise",
+      "id": "h26",
+      "variant": "noise",
+      "language": "fr",
+      "category": "sensitive",
+      "reference": "Lance Flow sur Deezer, merci.",
+      "expected": [
+        [
+          4,
+          "deezer_start",
+          {
+            "mix": "flow"
+          }
+        ]
+      ],
+      "transcript": "Lance Club sur Viseur, merci.",
+      "wordErrors": 2,
+      "referenceWords": 5,
+      "audioSha256": "2056fe4aa8c6b9cb72341c51f89b2919e963fece95bf03b827165a5b05a901c1",
+      "confidence": 0.1141,
+      "status": "unsupported",
+      "calls": [],
+      "correct": false,
+      "effects": 0,
+      "engineReplies": [
+        "{\"text\":\"Lance Club sur Viseur, merci.\",\"language\":\"fr\",\"ttft_ms\":58.3,\"decode_tps\":157.4}",
+        "{\"type\":\"call\",\"success\":true,\"error\":null,\"error_code\":null,\"reason\":null,\"function_calls\":[{\"name\":\"play_deezer_music\",\"arguments\":{}}],\"suppressed_calls\":[],\"reasoning\":\"'Club sur Viseur' -> play_dezer_music with title 'Club' and device 'Viseur'.\",\"confidence\":0.1141,\"prefill_tps\":216.9,\"decode_tps\":122.3,\"peak_ram_mb\":256.7,\"validation\":{\"ungrounded\":[],\"negation\":false}}"
+      ]
+    },
+    {
+      "key": "h27-text",
+      "id": "h27",
+      "variant": "text",
+      "language": "fr",
+      "category": "free-input",
+      "reference": "Dans Deezer affiche la playlist 97531.",
+      "expected": [
+        [
+          4,
+          "deezer_content",
+          {
+            "kind": "playlist",
+            "id": "97531"
+          }
+        ]
+      ],
+      "transcript": "Dans Deezer affiche la playlist 97531.",
+      "wordErrors": null,
+      "referenceWords": 6,
+      "audioSha256": null,
+      "confidence": 0.736,
+      "status": "pending",
+      "calls": [
+        [
+          4,
+          "deezer_content",
+          {
+            "kind": "playlist",
+            "id": "97531"
+          }
+        ]
+      ],
+      "correct": true,
+      "effects": 0,
+      "engineReplies": [
+        "{\"type\":\"call\",\"success\":true,\"error\":null,\"error_code\":null,\"reason\":null,\"function_calls\":[{\"name\":\"show_playlist_deezer_music\",\"arguments\":{}}],\"suppressed_calls\":[],\"reasoning\":\"Query asks for playlist in Deezer Music. show_playlist_dezer_music has no parameters.\",\"confidence\":0.736,\"prefill_tps\":394.8,\"decode_tps\":164,\"peak_ram_mb\":256.7,\"validation\":{\"ungrounded\":[],\"negation\":false}}"
+      ]
+    },
+    {
+      "key": "h27-clean",
+      "id": "h27",
+      "variant": "clean",
+      "language": "fr",
+      "category": "free-input",
+      "reference": "Dans Deezer affiche la playlist 97531.",
+      "expected": [
+        [
+          4,
+          "deezer_content",
+          {
+            "kind": "playlist",
+            "id": "97531"
+          }
+        ]
+      ],
+      "transcript": "Dans dix heures à fiches, la plaie liste quatre-vingt-dix-sept mille cinq cent trente-t-il ?",
+      "wordErrors": 16,
+      "referenceWords": 6,
+      "audioSha256": "089566118de0e0bcd53f866d8b363e45f2fe0587aac74c35bdba048f17fa4700",
+      "confidence": 0.0384,
+      "status": "unsupported",
+      "calls": [],
+      "correct": false,
+      "effects": 0,
+      "engineReplies": [
+        "{\"text\":\"Dans dix heures à fiches, la plaie liste quatre-vingt-dix-sept mille cinq cent trente-t-il ?\",\"language\":\"fr\",\"ttft_ms\":87.6,\"decode_tps\":152.6}",
+        "{\"type\":\"call\",\"success\":true,\"error\":null,\"error_code\":null,\"reason\":null,\"function_calls\":[],\"suppressed_calls\":[{\"name\":\"open_quartz\",\"arguments\":{}}],\"reasoning\":\"'plaie liste quatre-vingt-dix-sept mille cinq cent' -> open_quartz.\",\"confidence\":0.0384,\"prefill_tps\":218.8,\"decode_tps\":122.1,\"peak_ram_mb\":265.1,\"validation\":{\"ungrounded\":[],\"negation\":false}}"
+      ]
+    },
+    {
+      "key": "h27-noise",
+      "id": "h27",
+      "variant": "noise",
+      "language": "fr",
+      "category": "free-input",
+      "reference": "Dans Deezer affiche la playlist 97531.",
+      "expected": [
+        [
+          4,
+          "deezer_content",
+          {
+            "kind": "playlist",
+            "id": "97531"
+          }
+        ]
+      ],
+      "transcript": "Dans du bureaucratique, la playlist est à 97 000, 531.",
+      "wordErrors": 7,
+      "referenceWords": 6,
+      "audioSha256": "4baeffd2776c87260421bb3dc43c0c61862bd3a384cdf9d84f2deab987f7e538",
+      "confidence": 0.0142,
+      "status": "unsupported",
+      "calls": [],
+      "correct": false,
+      "effects": 0,
+      "engineReplies": [
+        "{\"text\":\"Dans du bureaucratique, la playlist est à 97 000, 531.\",\"language\":\"fr\",\"ttft_ms\":88.6,\"decode_tps\":154.2}",
+        "{\"type\":\"call\",\"success\":true,\"error\":null,\"error_code\":null,\"reason\":null,\"function_calls\":[],\"suppressed_calls\":[{\"name\":\"play_deezer_music\",\"arguments\":{}}],\"reasoning\":\"'playlist' -> play_dezer_music; '97 000, 531' -> 97000, '531' -> 531\",\"confidence\":0.0142,\"prefill_tps\":220,\"decode_tps\":122,\"peak_ram_mb\":265.1,\"validation\":{\"ungrounded\":[],\"negation\":false}}"
+      ]
+    },
+    {
+      "key": "h28-text",
+      "id": "h28",
+      "variant": "text",
+      "language": "en",
+      "category": "negative",
+      "reference": "We should pause this discussion until tomorrow.",
+      "expected": [],
+      "transcript": "We should pause this discussion until tomorrow.",
+      "wordErrors": null,
+      "referenceWords": 7,
+      "audioSha256": null,
+      "confidence": 0.3912,
+      "status": "pending",
+      "calls": [
+        [
+          4,
+          "media_pause",
+          {}
+        ]
+      ],
+      "correct": false,
+      "effects": 0,
+      "engineReplies": [
+        "{\"type\":\"call\",\"success\":true,\"error\":null,\"error_code\":null,\"reason\":null,\"function_calls\":[{\"name\":\"pause_deezer_music\",\"arguments\":{}}],\"suppressed_calls\":[],\"reasoning\":\"'pause this discussion' -> pause_dezer_music. Zero-argument tool.\",\"confidence\":0.3912,\"prefill_tps\":211,\"decode_tps\":124.3,\"peak_ram_mb\":265.4,\"validation\":{\"ungrounded\":[],\"negation\":false}}"
+      ]
+    },
+    {
+      "key": "h28-clean",
+      "id": "h28",
+      "variant": "clean",
+      "language": "en",
+      "category": "negative",
+      "reference": "We should pause this discussion until tomorrow.",
+      "expected": [],
+      "transcript": "We should pause this discussion until tomorrow.",
+      "wordErrors": 0,
+      "referenceWords": 7,
+      "audioSha256": "07f0e6453bf05ac3c149856ca16512e5d24e44b09ed149d46f4a8a78e9f142f9",
+      "confidence": 0.3912,
+      "status": "pending",
+      "calls": [
+        [
+          4,
+          "media_pause",
+          {}
+        ]
+      ],
+      "correct": false,
+      "effects": 0,
+      "engineReplies": [
+        "{\"text\":\"We should pause this discussion until tomorrow.\",\"language\":\"en\",\"ttft_ms\":61.8,\"decode_tps\":158.1}",
+        "{\"type\":\"call\",\"success\":true,\"error\":null,\"error_code\":null,\"reason\":null,\"function_calls\":[{\"name\":\"pause_deezer_music\",\"arguments\":{}}],\"suppressed_calls\":[],\"reasoning\":\"'pause this discussion' -> pause_dezer_music. Zero-argument tool.\",\"confidence\":0.3912,\"prefill_tps\":210.8,\"decode_tps\":122.1,\"peak_ram_mb\":268.6,\"validation\":{\"ungrounded\":[],\"negation\":false}}"
+      ]
+    },
+    {
+      "key": "h28-noise",
+      "id": "h28",
+      "variant": "noise",
+      "language": "en",
+      "category": "negative",
+      "reference": "We should pause this discussion until tomorrow.",
+      "expected": [],
+      "transcript": "We should pass this discussion until tomorrow.",
+      "wordErrors": 1,
+      "referenceWords": 7,
+      "audioSha256": "3218ee97faf82bd77f507b681f5cb33b87ba5b28435ea6060c438111ae8fe156",
+      "confidence": 0.1626,
+      "status": "unsupported",
+      "calls": [],
+      "correct": true,
+      "effects": 0,
+      "engineReplies": [
+        "{\"text\":\"We should pass this discussion until tomorrow.\",\"language\":\"en\",\"ttft_ms\":62.9,\"decode_tps\":157.1}",
+        "{\"type\":\"call\",\"success\":true,\"error\":null,\"error_code\":null,\"reason\":null,\"function_calls\":[{\"name\":\"next_deezer_music\",\"arguments\":{}}],\"suppressed_calls\":[],\"reasoning\":\"'pass this discussion' -> next_deezer_music. Zero-argument tool.\",\"confidence\":0.1626,\"prefill_tps\":212,\"decode_tps\":123.4,\"peak_ram_mb\":269.2,\"validation\":{\"ungrounded\":[],\"negation\":false}}"
+      ]
+    },
+    {
+      "key": "h29-text",
+      "id": "h29",
+      "variant": "text",
+      "language": "en",
+      "category": "open",
+      "reference": "Launch Quartz twice please.",
+      "expected": [
+        [
+          1,
+          "open",
+          {}
+        ],
+        [
+          1,
+          "open",
+          {}
+        ]
+      ],
+      "transcript": "Launch Quartz twice please.",
+      "wordErrors": null,
+      "referenceWords": 4,
+      "audioSha256": null,
+      "confidence": 0.0933,
+      "status": "unsupported",
+      "calls": [],
+      "correct": false,
+      "effects": 0,
+      "engineReplies": [
+        "{\"type\":\"call\",\"success\":true,\"error\":null,\"error_code\":null,\"reason\":null,\"function_calls\":[],\"suppressed_calls\":[{\"name\":\"play_deezer_music\",\"arguments\":{}}],\"reasoning\":\"'Quartz twice' -> play_deepzer_cobalt.\",\"confidence\":0.0933,\"prefill_tps\":214.6,\"decode_tps\":123.9,\"peak_ram_mb\":269.2,\"validation\":{\"ungrounded\":[],\"negation\":false}}"
+      ]
+    },
+    {
+      "key": "h29-clean",
+      "id": "h29",
+      "variant": "clean",
+      "language": "en",
+      "category": "open",
+      "reference": "Launch Quartz twice please.",
+      "expected": [
+        [
+          1,
+          "open",
+          {}
+        ],
+        [
+          1,
+          "open",
+          {}
+        ]
+      ],
+      "transcript": "\"Launch quartz twice, please.\"",
+      "wordErrors": 0,
+      "referenceWords": 4,
+      "audioSha256": "c6e9c51fc23ff22186e0cd0507859393d9da4d854e59faf2f67cf541b9a55dd9",
+      "confidence": 0.1717,
+      "status": "unsupported",
+      "calls": [],
+      "correct": false,
+      "effects": 0,
+      "engineReplies": [
+        "{\"text\":\"\\\"Launch quartz twice, please.\\\"\",\"language\":\"en\",\"ttft_ms\":52.4,\"decode_tps\":157.1}",
+        "{\"type\":\"call\",\"success\":true,\"error\":null,\"error_code\":null,\"reason\":null,\"function_calls\":[{\"name\":\"play_deezer_music\",\"arguments\":{}}],\"suppressed_calls\":[],\"reasoning\":\"'Launch quartz twice' -> play_dezer_cobalt.\",\"confidence\":0.1717,\"prefill_tps\":213,\"decode_tps\":124,\"peak_ram_mb\":270.5,\"validation\":{\"ungrounded\":[],\"negation\":false}}"
+      ]
+    },
+    {
+      "key": "h29-noise",
+      "id": "h29",
+      "variant": "noise",
+      "language": "en",
+      "category": "open",
+      "reference": "Launch Quartz twice please.",
+      "expected": [
+        [
+          1,
+          "open",
+          {}
+        ],
+        [
+          1,
+          "open",
+          {}
+        ]
+      ],
+      "transcript": "\"Launch quartz twice, please.\"",
+      "wordErrors": 0,
+      "referenceWords": 4,
+      "audioSha256": "4d35fd3a1be6637223b148941dbcf67909a4c163a71f13a2b2e62e9da8de02be",
+      "confidence": 0.1717,
+      "status": "unsupported",
+      "calls": [],
+      "correct": false,
+      "effects": 0,
+      "engineReplies": [
+        "{\"text\":\"\\\"Launch quartz twice, please.\\\"\",\"language\":\"en\",\"ttft_ms\":52.7,\"decode_tps\":158.2}",
+        "{\"type\":\"call\",\"success\":true,\"error\":null,\"error_code\":null,\"reason\":null,\"function_calls\":[{\"name\":\"play_deezer_music\",\"arguments\":{}}],\"suppressed_calls\":[],\"reasoning\":\"'Launch quartz twice' -> play_dezer_cobalt.\",\"confidence\":0.1717,\"prefill_tps\":211.4,\"decode_tps\":121.5,\"peak_ram_mb\":271.2,\"validation\":{\"ungrounded\":[],\"negation\":false}}"
+      ]
+    },
+    {
+      "key": "h30-text",
+      "id": "h30",
+      "variant": "text",
+      "language": "fr",
+      "category": "quotation",
+      "reference": "Comment traduire « ouvre Nova » pour un manuel ?",
+      "expected": [],
+      "transcript": "Comment traduire « ouvre Nova » pour un manuel ?",
+      "wordErrors": null,
+      "referenceWords": 7,
+      "audioSha256": null,
+      "confidence": 0.1282,
+      "status": "unsupported",
+      "calls": [],
+      "correct": true,
+      "effects": 0,
+      "engineReplies": [
+        "{\"type\":\"call\",\"success\":true,\"error\":null,\"error_code\":null,\"reason\":null,\"function_calls\":[{\"name\":\"open_deezer_music\",\"arguments\":{}}],\"suppressed_calls\":[],\"reasoning\":\"'comment traduire' -> open_deezer_music; 'ouvre Nova' -> query 'Nova'.\",\"confidence\":0.1282,\"prefill_tps\":219.7,\"decode_tps\":124.2,\"peak_ram_mb\":271.2,\"validation\":{\"ungrounded\":[],\"negation\":false}}"
+      ]
+    },
+    {
+      "key": "h30-clean",
+      "id": "h30",
+      "variant": "clean",
+      "language": "fr",
+      "category": "quotation",
+      "reference": "Comment traduire « ouvre Nova » pour un manuel ?",
+      "expected": [],
+      "transcript": "Comment traduire ouvre Nova pour un manuel ?",
+      "wordErrors": 0,
+      "referenceWords": 7,
+      "audioSha256": "bcbd31365d210672f1bdb5f2cb2c2fc229d41f8209928ee57eddb967b4fc54cd",
+      "confidence": 0.0584,
+      "status": "unsupported",
+      "calls": [],
+      "correct": true,
+      "effects": 0,
+      "engineReplies": [
+        "{\"text\":\"Comment traduire ouvre Nova pour un manuel ?\",\"language\":\"fr\",\"ttft_ms\":68.7,\"decode_tps\":154.9}",
+        "{\"type\":\"call\",\"success\":true,\"error\":null,\"error_code\":null,\"reason\":null,\"function_calls\":[],\"suppressed_calls\":[{\"name\":\"open_deezer_music\",\"arguments\":{}}],\"reasoning\":\"'comment traduire ouvre Nova' -> open_deezer_music with no arguments.\",\"confidence\":0.0584,\"prefill_tps\":216.2,\"decode_tps\":122.9,\"peak_ram_mb\":271.2,\"validation\":{\"ungrounded\":[],\"negation\":false}}"
+      ]
+    },
+    {
+      "key": "h30-noise",
+      "id": "h30",
+      "variant": "noise",
+      "language": "fr",
+      "category": "quotation",
+      "reference": "Comment traduire « ouvre Nova » pour un manuel ?",
+      "expected": [],
+      "transcript": "Comment traduire ouvre le bas pour un manuel ?",
+      "wordErrors": 2,
+      "referenceWords": 7,
+      "audioSha256": "845f4d7a1493932997f926ddef383992f993936097ae953891d22349c55ed1a1",
+      "confidence": 0.067,
+      "status": "pending",
+      "calls": [
+        [
+          4,
+          "open",
+          {}
+        ]
+      ],
+      "correct": false,
+      "effects": 0,
+      "engineReplies": [
+        "{\"text\":\"Comment traduire ouvre le bas pour un manuel ?\",\"language\":\"fr\",\"ttft_ms\":69.5,\"decode_tps\":155.1}",
+        "{\"type\":\"call\",\"success\":true,\"error\":null,\"error_code\":null,\"reason\":null,\"function_calls\":[],\"suppressed_calls\":[{\"name\":\"open_deezer_music\",\"arguments\":{}}],\"reasoning\":\"'traduire ouvre le bas' -> open_deezer_music with no arguments.\",\"confidence\":0.067,\"prefill_tps\":217.1,\"decode_tps\":124.1,\"peak_ram_mb\":271.2,\"validation\":{\"ungrounded\":[],\"negation\":false}}"
+      ]
+    }
+  ],
+  "realEffects": 0,
+  "sourceHashes": {
+    "sidecar/assistant/confirmation.cjs": "4ce4cf9dbf62c572240ddd0fa57767f10aae31b3c1c331a85db3474da563792e",
+    "sidecar/assistant/planner.cjs": "3fe72682b59688818f93515d400135e9053939e0a934796e1cc2bc7ea8166740",
+    "sidecar/config-schema.cjs": "95a8e28ecda034bf3dce0c596f3d7a143b74020d69940afd7848f7fd34611ff9",
+    "sidecar/needle-tools.cjs": "e169427e430cf4eae4fdb06d7524acf80d9d375336b690b83a3399f71d465771",
+    "sidecar/media-commands.cjs": "5eaebad248ebe3f5f5a6a7d785b36e5c7fb5a70e058817b5763def54cea003cf",
+    "sidecar/deezer-commands.cjs": "a34e4613055dcaa9636fa9e32201c1dbf7f1bbebf2b8e9a8e6f12828942f8ef9"
+  },
+  "completed": true,
+  "summary": {
+    "total": {
+      "samples": 90,
+      "positiveRequests": 39,
+      "negativeRequests": 51,
+      "automatic": 0,
+      "falseTriggers": 0,
+      "wrongAutomaticActions": 0,
+      "confirmations": 25,
+      "wrongProposals": 19,
+      "refusals": 65,
+      "positiveRefusals": 27,
+      "exactPlans": 44,
+      "validationErrors": 0,
+      "wordErrors": 118,
+      "referenceWords": 362,
+      "transcriptionExact": 24
+    },
+    "byVariant": {
+      "text": {
+        "samples": 30,
+        "positiveRequests": 13,
+        "negativeRequests": 17,
+        "automatic": 0,
+        "falseTriggers": 0,
+        "wrongAutomaticActions": 0,
+        "confirmations": 9,
+        "wrongProposals": 5,
+        "refusals": 21,
+        "positiveRefusals": 8,
+        "exactPlans": 17,
+        "validationErrors": 0,
+        "wordErrors": 0,
+        "referenceWords": 0,
+        "transcriptionExact": 0
+      },
+      "clean": {
+        "samples": 30,
+        "positiveRequests": 13,
+        "negativeRequests": 17,
+        "automatic": 0,
+        "falseTriggers": 0,
+        "wrongAutomaticActions": 0,
+        "confirmations": 8,
+        "wrongProposals": 6,
+        "refusals": 22,
+        "positiveRefusals": 10,
+        "exactPlans": 14,
+        "validationErrors": 0,
+        "wordErrors": 41,
+        "referenceWords": 181,
+        "transcriptionExact": 16
+      },
+      "noise": {
+        "samples": 30,
+        "positiveRequests": 13,
+        "negativeRequests": 17,
+        "automatic": 0,
+        "falseTriggers": 0,
+        "wrongAutomaticActions": 0,
+        "confirmations": 8,
+        "wrongProposals": 8,
+        "refusals": 22,
+        "positiveRefusals": 9,
+        "exactPlans": 13,
+        "validationErrors": 0,
+        "wordErrors": 77,
+        "referenceWords": 181,
+        "transcriptionExact": 8
+      }
+    },
+    "byCategory": {
+      "open": {
+        "samples": 15,
+        "positiveRequests": 15,
+        "negativeRequests": 0,
+        "automatic": 0,
+        "falseTriggers": 0,
+        "wrongAutomaticActions": 0,
+        "confirmations": 3,
+        "wrongProposals": 1,
+        "refusals": 12,
+        "positiveRefusals": 12,
+        "exactPlans": 2,
+        "validationErrors": 0,
+        "wordErrors": 4,
+        "referenceWords": 50,
+        "transcriptionExact": 8
+      },
+      "media": {
+        "samples": 6,
+        "positiveRequests": 6,
+        "negativeRequests": 0,
+        "automatic": 0,
+        "falseTriggers": 0,
+        "wrongAutomaticActions": 0,
+        "confirmations": 1,
+        "wrongProposals": 1,
+        "refusals": 5,
+        "positiveRefusals": 5,
+        "exactPlans": 0,
+        "validationErrors": 0,
+        "wordErrors": 10,
+        "referenceWords": 26,
+        "transcriptionExact": 1
+      },
+      "sensitive": {
+        "samples": 9,
+        "positiveRequests": 9,
+        "negativeRequests": 0,
+        "automatic": 0,
+        "falseTriggers": 0,
+        "wrongAutomaticActions": 0,
+        "confirmations": 3,
+        "wrongProposals": 1,
+        "refusals": 6,
+        "positiveRefusals": 6,
+        "exactPlans": 2,
+        "validationErrors": 0,
+        "wordErrors": 7,
+        "referenceWords": 32,
+        "transcriptionExact": 2
+      },
+      "free-input": {
+        "samples": 9,
+        "positiveRequests": 9,
+        "negativeRequests": 0,
+        "automatic": 0,
+        "falseTriggers": 0,
+        "wrongAutomaticActions": 0,
+        "confirmations": 5,
+        "wrongProposals": 3,
+        "refusals": 4,
+        "positiveRefusals": 4,
+        "exactPlans": 2,
+        "validationErrors": 0,
+        "wordErrors": 31,
+        "referenceWords": 48,
+        "transcriptionExact": 0
+      },
+      "negation": {
+        "samples": 9,
+        "positiveRequests": 0,
+        "negativeRequests": 9,
+        "automatic": 0,
+        "falseTriggers": 0,
+        "wrongAutomaticActions": 0,
+        "confirmations": 0,
+        "wrongProposals": 0,
+        "refusals": 9,
+        "positiveRefusals": 0,
+        "exactPlans": 9,
+        "validationErrors": 0,
+        "wordErrors": 2,
+        "referenceWords": 44,
+        "transcriptionExact": 5
+      },
+      "ambiguity": {
+        "samples": 9,
+        "positiveRequests": 0,
+        "negativeRequests": 9,
+        "automatic": 0,
+        "falseTriggers": 0,
+        "wrongAutomaticActions": 0,
+        "confirmations": 5,
+        "wrongProposals": 5,
+        "refusals": 4,
+        "positiveRefusals": 0,
+        "exactPlans": 4,
+        "validationErrors": 0,
+        "wordErrors": 10,
+        "referenceWords": 34,
+        "transcriptionExact": 2
+      },
+      "negative": {
+        "samples": 9,
+        "positiveRequests": 0,
+        "negativeRequests": 9,
+        "automatic": 0,
+        "falseTriggers": 0,
+        "wrongAutomaticActions": 0,
+        "confirmations": 5,
+        "wrongProposals": 5,
+        "refusals": 4,
+        "positiveRefusals": 0,
+        "exactPlans": 4,
+        "validationErrors": 0,
+        "wordErrors": 4,
+        "referenceWords": 40,
+        "transcriptionExact": 4
+      },
+      "quotation": {
+        "samples": 6,
+        "positiveRequests": 0,
+        "negativeRequests": 6,
+        "automatic": 0,
+        "falseTriggers": 0,
+        "wrongAutomaticActions": 0,
+        "confirmations": 1,
+        "wrongProposals": 1,
+        "refusals": 5,
+        "positiveRefusals": 0,
+        "exactPlans": 5,
+        "validationErrors": 0,
+        "wordErrors": 5,
+        "referenceWords": 26,
+        "transcriptionExact": 2
+      },
+      "unknown-name": {
+        "samples": 3,
+        "positiveRequests": 0,
+        "negativeRequests": 3,
+        "automatic": 0,
+        "falseTriggers": 0,
+        "wrongAutomaticActions": 0,
+        "confirmations": 2,
+        "wrongProposals": 2,
+        "refusals": 1,
+        "positiveRefusals": 0,
+        "exactPlans": 1,
+        "validationErrors": 0,
+        "wordErrors": 4,
+        "referenceWords": 8,
+        "transcriptionExact": 0
+      },
+      "transcription-only": {
+        "samples": 15,
+        "positiveRequests": 0,
+        "negativeRequests": 15,
+        "automatic": 0,
+        "falseTriggers": 0,
+        "wrongAutomaticActions": 0,
+        "confirmations": 0,
+        "wrongProposals": 0,
+        "refusals": 15,
+        "positiveRefusals": 0,
+        "exactPlans": 15,
+        "validationErrors": 0,
+        "wordErrors": 41,
+        "referenceWords": 54,
+        "transcriptionExact": 0
+      }
+    },
+    "byLanguage": {
+      "fr": {
+        "samples": 48,
+        "positiveRequests": 24,
+        "negativeRequests": 24,
+        "automatic": 0,
+        "falseTriggers": 0,
+        "wrongAutomaticActions": 0,
+        "confirmations": 17,
+        "wrongProposals": 13,
+        "refusals": 31,
+        "positiveRefusals": 15,
+        "exactPlans": 20,
+        "validationErrors": 0,
+        "wordErrors": 71,
+        "referenceWords": 210,
+        "transcriptionExact": 9
+      },
+      "en": {
+        "samples": 27,
+        "positiveRequests": 15,
+        "negativeRequests": 12,
+        "automatic": 0,
+        "falseTriggers": 0,
+        "wrongAutomaticActions": 0,
+        "confirmations": 8,
+        "wrongProposals": 6,
+        "refusals": 19,
+        "positiveRefusals": 12,
+        "exactPlans": 9,
+        "validationErrors": 0,
+        "wordErrors": 6,
+        "referenceWords": 98,
+        "transcriptionExact": 15
+      },
+      "de": {
+        "samples": 3,
+        "positiveRequests": 0,
+        "negativeRequests": 3,
+        "automatic": 0,
+        "falseTriggers": 0,
+        "wrongAutomaticActions": 0,
+        "confirmations": 0,
+        "wrongProposals": 0,
+        "refusals": 3,
+        "positiveRefusals": 0,
+        "exactPlans": 3,
+        "validationErrors": 0,
+        "wordErrors": 8,
+        "referenceWords": 12,
+        "transcriptionExact": 0
+      },
+      "es": {
+        "samples": 3,
+        "positiveRequests": 0,
+        "negativeRequests": 3,
+        "automatic": 0,
+        "falseTriggers": 0,
+        "wrongAutomaticActions": 0,
+        "confirmations": 0,
+        "wrongProposals": 0,
+        "refusals": 3,
+        "positiveRefusals": 0,
+        "exactPlans": 3,
+        "validationErrors": 0,
+        "wordErrors": 9,
+        "referenceWords": 10,
+        "transcriptionExact": 0
+      },
+      "it": {
+        "samples": 3,
+        "positiveRequests": 0,
+        "negativeRequests": 3,
+        "automatic": 0,
+        "falseTriggers": 0,
+        "wrongAutomaticActions": 0,
+        "confirmations": 0,
+        "wrongProposals": 0,
+        "refusals": 3,
+        "positiveRefusals": 0,
+        "exactPlans": 3,
+        "validationErrors": 0,
+        "wordErrors": 6,
+        "referenceWords": 10,
+        "transcriptionExact": 0
+      },
+      "nl": {
+        "samples": 3,
+        "positiveRequests": 0,
+        "negativeRequests": 3,
+        "automatic": 0,
+        "falseTriggers": 0,
+        "wrongAutomaticActions": 0,
+        "confirmations": 0,
+        "wrongProposals": 0,
+        "refusals": 3,
+        "positiveRefusals": 0,
+        "exactPlans": 3,
+        "validationErrors": 0,
+        "wordErrors": 6,
+        "referenceWords": 10,
+        "transcriptionExact": 0
+      },
+      "pl": {
+        "samples": 3,
+        "positiveRequests": 0,
+        "negativeRequests": 3,
+        "automatic": 0,
+        "falseTriggers": 0,
+        "wrongAutomaticActions": 0,
+        "confirmations": 0,
+        "wrongProposals": 0,
+        "refusals": 3,
+        "positiveRefusals": 0,
+        "exactPlans": 3,
+        "validationErrors": 0,
+        "wordErrors": 12,
+        "referenceWords": 12,
+        "transcriptionExact": 0
+      }
+    },
+    "thresholdSweep": [
+      {
+        "threshold": 0.1,
+        "samples": 90,
+        "positiveRequests": 39,
+        "negativeRequests": 51,
+        "automatic": 20,
+        "falseTriggers": 12,
+        "wrongAutomaticActions": 2,
+        "confirmations": 5,
+        "wrongProposals": 19,
+        "refusals": 65,
+        "positiveRefusals": 27,
+        "exactPlans": 44,
+        "validationErrors": 0,
+        "wordErrors": 118,
+        "referenceWords": 362,
+        "transcriptionExact": 24
+      },
+      {
+        "threshold": 0.3,
+        "samples": 90,
+        "positiveRequests": 39,
+        "negativeRequests": 51,
+        "automatic": 5,
+        "falseTriggers": 2,
+        "wrongAutomaticActions": 0,
+        "confirmations": 20,
+        "wrongProposals": 19,
+        "refusals": 65,
+        "positiveRefusals": 27,
+        "exactPlans": 44,
+        "validationErrors": 0,
+        "wordErrors": 118,
+        "referenceWords": 362,
+        "transcriptionExact": 24
+      },
+      {
+        "threshold": 0.5,
+        "samples": 90,
+        "positiveRequests": 39,
+        "negativeRequests": 51,
+        "automatic": 1,
+        "falseTriggers": 0,
+        "wrongAutomaticActions": 0,
+        "confirmations": 24,
+        "wrongProposals": 19,
+        "refusals": 65,
+        "positiveRefusals": 27,
+        "exactPlans": 44,
+        "validationErrors": 0,
+        "wordErrors": 118,
+        "referenceWords": 362,
+        "transcriptionExact": 24
+      },
+      {
+        "threshold": 0.7,
+        "samples": 90,
+        "positiveRequests": 39,
+        "negativeRequests": 51,
+        "automatic": 1,
+        "falseTriggers": 0,
+        "wrongAutomaticActions": 0,
+        "confirmations": 24,
+        "wrongProposals": 19,
+        "refusals": 65,
+        "positiveRefusals": 27,
+        "exactPlans": 44,
+        "validationErrors": 0,
+        "wordErrors": 118,
+        "referenceWords": 362,
+        "transcriptionExact": 24
+      },
+      {
+        "threshold": 0.8,
+        "samples": 90,
+        "positiveRequests": 39,
+        "negativeRequests": 51,
+        "automatic": 0,
+        "falseTriggers": 0,
+        "wrongAutomaticActions": 0,
+        "confirmations": 25,
+        "wrongProposals": 19,
+        "refusals": 65,
+        "positiveRefusals": 27,
+        "exactPlans": 44,
+        "validationErrors": 0,
+        "wordErrors": 118,
+        "referenceWords": 362,
+        "transcriptionExact": 24
+      },
+      {
+        "threshold": 0.9,
+        "samples": 90,
+        "positiveRequests": 39,
+        "negativeRequests": 51,
+        "automatic": 0,
+        "falseTriggers": 0,
+        "wrongAutomaticActions": 0,
+        "confirmations": 25,
+        "wrongProposals": 19,
+        "refusals": 65,
+        "positiveRefusals": 27,
+        "exactPlans": 44,
+        "validationErrors": 0,
+        "wordErrors": 118,
+        "referenceWords": 362,
+        "transcriptionExact": 24
+      },
+      {
+        "threshold": 1,
+        "samples": 90,
+        "positiveRequests": 39,
+        "negativeRequests": 51,
+        "automatic": 0,
+        "falseTriggers": 0,
+        "wrongAutomaticActions": 0,
+        "confirmations": 25,
+        "wrongProposals": 19,
+        "refusals": 65,
+        "positiveRefusals": 27,
+        "exactPlans": 44,
+        "validationErrors": 0,
+        "wordErrors": 118,
+        "referenceWords": 362,
+        "transcriptionExact": 24
+      }
+    ]
+  },
+  "runtimeManifest": {
+    "target": "x86_64-pc-windows-msvc",
+    "node": "24.21.0",
+    "npm": "11.19.0",
+    "nodeSha256": "ba4e6d110e8c1592a1ecd390f6b05f3da124b13871a5be62b341a07a853c6c32",
+    "needleRevision": "c7c415a3d1b3d929014bc6e866d51ebb971f7089",
+    "whistleRevision": "b358ddadd89b7a713b5aa131f23032d3cca1b251",
+    "ffi": "koffi 3.3.2",
+    "assets": [
+      {
+        "file": "needle.exe",
+        "repo": "needle3",
+        "revision": "c7c415a3d1b3d929014bc6e866d51ebb971f7089",
+        "source": "windows-x86_64/needle.exe",
+        "sha256": "c70ca998f6c542c862c06c22352046e303ef5c769384069ee25cef9f4667e4cf"
+      },
+      {
+        "file": "models/needle3.cact",
+        "repo": "needle3",
+        "revision": "c7c415a3d1b3d929014bc6e866d51ebb971f7089",
+        "source": "needle3.cact",
+        "sha256": "c9d915eca282ed42d1a09b143b592adb4cc6744ffe2d294adf5cfc5548170c38"
+      },
+      {
+        "file": "models/whistle.cact",
+        "repo": "whistle",
+        "revision": "b358ddadd89b7a713b5aa131f23032d3cca1b251",
+        "source": "whistle.cact",
+        "sha256": "b6e02f048568ac5d01a2042556c658061e699acbc0aa2a1439f52f3d461dffeb"
+      },
+      {
+        "file": "libneedle3.dll",
+        "sha256": "de2e2c39cd311fbd9971fad4736abc329ed970653674c203e149c4ef27fd1c62"
+      },
+      {
+        "file": "ffi/node_modules/@koromix/koffi-win32-x64/win32_x64/koffi.node",
+        "sha256": "dcb3048bba5cf115aa19172f091cf005f8be9d39fd42dfb5ea25103318784a44"
+      }
+    ]
+  }
+}

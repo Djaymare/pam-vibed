@@ -20,7 +20,7 @@ const browser = {id:'541b3fad-0000-4000-8000-000000000000',name:'Navigateur Oper
 const deezer = {...browser,id:'11111111-1111-4111-8111-111111111111',name:'Deezer',aliases:['Diseur'],media:{sourceAppId:'Deezer.exe',deezer:false}};
 const ea = {...browser,id:'22222222-2222-4222-8222-222222222222',name:'EA',aliases:[],media:undefined};
 const firefox = {...ea,id:'33333333-3333-4333-8333-333333333333',name:'Firefox',enabled:false};
-const config = {...DEFAULT_CONFIG,applications:[browser,deezer,ea,firefox],confidenceThreshold:0.65};
+const config = {...DEFAULT_CONFIG,autoExecute:true,applications:[browser,deezer,ea,firefox],confidenceThreshold:0.65};
 const engine = createEngine(runtime);
 const executions=[];
 const positive = [
@@ -59,7 +59,8 @@ try {
     const before=executions.length,turn=await handle('process_text',{text});
     assert.equal(turn.transcript,text);assert.equal(turn.calls.length,1,text);assert.equal(turn.calls[0].applicationId,applicationId,text);
     assert.equal(turn.calls[0].action || 'open',action,text);
-    assert.equal(turn.status,turn.confidence>=config.confidenceThreshold?'executed':'pending',text);
+    const eligible=['open','media_play','media_pause'].includes(action);
+    assert.equal(turn.status,eligible&&turn.confidence>=config.confidenceThreshold?'executed':'pending',text);
     assert.equal(executions.length-before,turn.status==='executed'?1:0,text);
     if(turn.status==='pending')await handle('discard',{id:turn.id});
     const check={text,expected:action,correct:true,confidence:turn.confidence,status:turn.status};report.checks.push(check);console.log(JSON.stringify(check));

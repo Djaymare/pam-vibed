@@ -43,7 +43,7 @@ async function fixture(t, language, speech) {
   });
   await fs.writeFile(
     path.join(directory, 'applications.json'),
-    JSON.stringify({ ...DEFAULT_CONFIG, language, applications: [first, second] }),
+    JSON.stringify({ ...DEFAULT_CONFIG, autoExecute: true, language, applications: [first, second] }),
   );
   let inferences = 0,
     effects = 0,
@@ -171,9 +171,9 @@ for (const detected of ['fr', 'en', 'es', 'de', 'it', 'nl', 'pl', undefined, 'xx
   test(`automatic audio detection ${detected}: language gate before inference`, async (t) => {
     const f = await fixture(t, 'auto', { text: 'Open Test', language: detected });
     const turn = await f.handle('process_audio', { audio: wav() });
-    assert.equal(turn.status, executable(detected) ? 'executed' : 'unsupported');
+    assert.equal(turn.status, executable(detected) ? 'pending' : 'unsupported');
     assert.equal(f.counts.inferences, executable(detected) ? 1 : 0);
-    assert.equal(f.counts.effects, executable(detected) ? 1 : 0);
+    assert.equal(f.counts.effects, 0);
     assert.equal(f.counts.transcriptions, 1);
   });
 test('automatic typed language never guesses from a model or an alias', async (t) => {

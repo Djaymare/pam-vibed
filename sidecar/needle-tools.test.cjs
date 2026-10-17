@@ -10,7 +10,7 @@ const browser = {id:'541b3fad-0000-4000-8000-000000000000',name:'Navigateur Oper
   description:'Navigateur Internet',enabled:true,executable:'C:\\browser.exe',arguments:[],media:{sourceAppId:'opera.exe',deezer:false}};
 const deezer = {...browser,id:'11111111-1111-4111-8111-111111111111',name:'Deezer',aliases:['Diseur'],media:{sourceAppId:'Deezer.exe',deezer:false}};
 const ea = {...browser,id:'22222222-2222-4222-8222-222222222222',name:'EA',aliases:[],media:undefined};
-const config = {...DEFAULT_CONFIG,applications:[browser,deezer,ea],confidenceThreshold:0.65};
+const config = {...DEFAULT_CONFIG,autoExecute:true,applications:[browser,deezer,ea],confidenceThreshold:0.65};
 async function fixture(t, response, options={}) {
   const directory = await fs.mkdtemp(path.join(os.tmpdir(),'pam-needle-test-'));
   t.after(async()=>{assert.equal(path.dirname(directory),path.resolve(os.tmpdir()));assert.ok(path.basename(directory).startsWith('pam-needle-test-'));await fs.rm(directory,{recursive:true,force:true});});
@@ -105,7 +105,9 @@ test('les négations dans une entrée explicitement transmise ne bloquent pas le
   const input='Ne joue pas sur le navigateur';
   const f=await fixture(t,{confidence:0.9,function_calls:[{name:'open_editeur',arguments:{input}}]},{config:{applications:[browser,editor]}});
   const text=`Ouvre Editor avec le texte « ${input} »`;
-  const turn=await f.handle('process_text',{text});
+  const pending=await f.handle('process_text',{text});
+  assert.equal(pending.status,'pending');assert.equal(f.executions.length,0);
+  const turn=await f.handle('confirm',{id:pending.id});
   assert.equal(turn.status,'executed');assert.equal(f.requests[0].prompt,text);
   assert.deepEqual(f.executions,[{applicationId:editor.id,action:'open',args:{input}}]);
 });
@@ -146,7 +148,9 @@ test('une négation dans une demande composée bloque tout le plan avant son pre
 test('une demande composée positive conserve ses deux actions explicites',async t=>{
   const text='Play le navigateur et ouvre EA';
   const f=await fixture(t,{confidence:0.9,function_calls:[{name:'play_opera_gx',arguments:{}},{name:'open_ea',arguments:{}}]});
-  const turn=await f.handle('process_text',{text});
+  const pending=await f.handle('process_text',{text});
+  assert.equal(pending.status,'pending');assert.equal(f.executions.length,0);
+  const turn=await f.handle('confirm',{id:pending.id});
   assert.equal(turn.status,'executed');assert.equal(f.executions.length,2);assert.equal(f.requests[0].prompt,text);
 });
 
