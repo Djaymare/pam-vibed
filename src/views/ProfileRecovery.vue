@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { toRefs, type UnwrapNestedRefs } from 'vue';
+import { languageLabel } from '../languages';
 import type { Profile } from '../composables/useProfile';
 
 const props = defineProps<{ profile: UnwrapNestedRefs<Profile>; locked: boolean }>();
@@ -33,8 +34,8 @@ const { status, recoveryOpen, recoveryBackup, recoveryChoice, beginRecovery, rec
         {{ recoveryChoice.backupSummary.applications.join(', ') }}
       </p>
       <p>
-        Langue : {{ recoveryChoice.backupSummary.language }} · Exécution automatique :
-        {{ recoveryChoice.backupSummary.autoExecute ? 'activée' : 'désactivée' }} · Seuil :
+        Langue : {{ languageLabel(recoveryChoice.backupSummary.language) }} · Exécution automatique
+        : {{ recoveryChoice.backupSummary.autoExecute ? 'activée' : 'désactivée' }} · Seuil :
         {{ Math.round(recoveryChoice.backupSummary.confidenceThreshold * 100) }} %.
       </p>
       <p>

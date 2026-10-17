@@ -1,0 +1,9 @@
+[
+  { "language": "fr", "open": "Ouvre Test", "negative": "N’ouvre pas Test", "ambiguous": "Ouvre Test ou Autre", "correction": "Ouvre Autre" },
+  { "language": "en", "open": "Open Test", "negative": "Do not open Test", "ambiguous": "Open Test or Autre", "correction": "Open Autre" },
+  { "language": "de", "open": "Öffne Test", "negative": "Öffne Test nicht", "ambiguous": "Öffne Test oder Autre", "correction": "Öffne Autre" },
+  { "language": "es", "open": "Abre Test", "negative": "No abras Test", "ambiguous": "Abre Test o Autre", "correction": "Abre Autre" },
+  { "language": "it", "open": "Apri Test", "negative": "Non aprire Test", "ambiguous": "Apri Test o Autre", "correction": "Apri Autre" },
+  { "language": "nl", "open": "Open Test", "negative": "Open Test niet", "ambiguous": "Open Test of Autre", "correction": "Open Autre" },
+  { "language": "pl", "open": "Otwórz Test", "negative": "Nie otwieraj Test", "ambiguous": "Otwórz Test lub Autre", "correction": "Otwórz Autre" }
+]

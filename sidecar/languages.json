@@ -1,0 +1,63 @@
+{
+  "languages": [
+    {
+      "id": "auto",
+      "label": "Détection automatique",
+      "execution": false,
+      "option": "Détection automatique — commandes si français ou anglais détecté"
+    },
+    {
+      "id": "fr",
+      "label": "Français",
+      "execution": true,
+      "option": "Français — transcription et commandes"
+    },
+    {
+      "id": "en",
+      "label": "Anglais",
+      "execution": true,
+      "option": "Anglais — transcription et commandes"
+    },
+    {
+      "id": "de",
+      "label": "Allemand",
+      "execution": false,
+      "option": "Allemand — transcription uniquement"
+    },
+    {
+      "id": "es",
+      "label": "Espagnol",
+      "execution": false,
+      "option": "Espagnol — transcription uniquement"
+    },
+    {
+      "id": "it",
+      "label": "Italien",
+      "execution": false,
+      "option": "Italien — transcription uniquement"
+    },
+    {
+      "id": "nl",
+      "label": "Néerlandais",
+      "execution": false,
+      "option": "Néerlandais — transcription uniquement"
+    },
+    {
+      "id": "pl",
+      "label": "Polonais",
+      "execution": false,
+      "option": "Polonais — transcription uniquement"
+    }
+  ],
+  "strings": {
+    "help": "Les commandes sont prises en charge en français et en anglais. Les cinq autres langues servent uniquement à transcrire, sans proposer ni exécuter d’action. En détection automatique, les commandes exigent une détection français ou anglais ; pour une demande écrite, sélectionnez l’une de ces deux langues. L’interface et les messages restent en français.",
+    "manualCorrection": "Vous pouvez toujours choisir vous-même une application et une action dans « Corriger la demande », puis confirmer. Ce choix manuel ne valide pas la compréhension de la langue.",
+    "transcriptionOnly": "Cette langue est disponible pour la transcription uniquement. Aucune action n’a été proposée. Choisissez le français ou l’anglais pour les commandes, ou choisissez manuellement une action dans « Corriger la demande ».",
+    "unknownDetection": "La langue détectée ne permet pas de vérifier les commandes. Aucune action n’a été proposée. Sélectionnez le français ou l’anglais pour une demande écrite, ou choisissez manuellement une action dans « Corriger la demande ».",
+    "negation": "La demande contient une négation. Aucune action ne sera proposée ; formulez séparément l’action souhaitée.",
+    "quoted": "Cette demande rapporte ou cite une commande. Reformulez directement l’action souhaitée.",
+    "ambiguous": "La demande désigne plusieurs applications possibles. Choisissez une seule application ou précisez son nom.",
+    "launch": "Aucune demande d’ouverture d’application n’a été reconnue. Reformulez la commande ou choisissez son action dans « Corriger la demande ».",
+    "unknown": "Langue inconnue"
+  }
+}

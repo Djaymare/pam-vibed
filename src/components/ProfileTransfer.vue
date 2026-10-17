@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { vField } from '../composables/fieldAccessibility';
+import { languageLabel } from '../languages';
 import { ref, watch } from 'vue';
 import type { ImportPreview } from '../types';
 import { describeError } from '../errors';
@@ -137,7 +138,7 @@ function loadFile(event: Event) {
       </p>
       <p>{{ preview.summary.applications.join(', ') || 'Aucune application' }}</p>
       <p>
-        Langue : {{ preview.summary.language }} · Exécution automatique :
+        Langue : {{ languageLabel(preview.summary.language) }} · Exécution automatique :
         {{ preview.summary.autoExecute ? 'activée' : 'désactivée' }} · Seuil :
         {{ Math.round(preview.summary.confidenceThreshold * 100) }} %.
       </p>

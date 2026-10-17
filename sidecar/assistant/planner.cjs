@@ -3,6 +3,7 @@ const fs = require('node:fs/promises');
 const path = require('node:path');
 const { randomUUID } = require('node:crypto');
 const { LANGUAGES } = require('../config-schema.cjs');
+const { languageIssue } = require('../languages.cjs');
 const {
   ACTIONS: ALIAS_ACTIONS,
   findCommandAlias,
@@ -236,6 +237,8 @@ function createPlanner({ runtimeDirectory, configDirectory, runEngine, media, te
         status: 'unsupported',
       };
       if (!transcript) return { ...turn, status: 'silence' };
+      const unsupportedLanguage = languageIssue(config.language, language, method);
+      if (unsupportedLanguage) return { ...turn, message: unsupportedLanguage };
       const alias = findCommandAlias(transcript, config);
       if (alias) {
         const target = config.applications.find(
@@ -390,8 +393,7 @@ function createPlanner({ runtimeDirectory, configDirectory, runEngine, media, te
           'Transcription Whistle invalide.',
         );
         turn.transcript = response.audio_text.trim();
-        if (LANGUAGES.has(response.audio_language) && response.audio_language !== 'auto')
-          turn.language = response.audio_language;
+        // Needle's inference locale is not a transcription language detection.
         if (!turn.transcript) return { ...turn, status: 'silence', durationMs: budget.elapsed() };
       }
       const confidence =

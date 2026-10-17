@@ -50,6 +50,7 @@ function labels(application) {
   return [...new Set([application.name, ...application.aliases].map(label => label.normalize('NFKD').replace(/\p{M}/gu, '').toLowerCase().trim().replace(/\s+/g, ' ')))];
 }
 function requestIssue(text, config, calls, selectedApplicationId,approvedCommand) {
+  const { strings } = require('./languages.cjs');
   const normalized = text.normalize('NFKD').replace(/\p{M}/gu, '').toLowerCase().replace(/[’]/g, "'");
   const names=config.applications.flatMap(labels).map(label=>label.replace(/[.*+?^${}()|[\]\\]/g,'\\$&').replace(/ /g,'\\s+')).sort((a,b)=>b.length-a.length);
   const targetPrefix=names.length ? new RegExp(`^\\s*(?:(?:dans|sur)\\s+)?(?:${names.join('|')})(?:\\s*[:,]\\s*|\\s+)`,'u') : null;
@@ -61,14 +62,18 @@ function requestIssue(text, config, calls, selectedApplicationId,approvedCommand
     commandText = normalized.slice(0, transmission.index);
   const directCommand=targetPrefix ? commandText.replace(targetPrefix,'') : commandText;
   if (/(?:^\s*|\b(?:et|puis|mais|and|then|but)\s+)(?:(?:surtout|merci de)\s+)?(?:ne\s+|n'|don't\s+|do not\s+|never\s+|(?:joue|ouvre|lance|reprends|mets|arrete|demarre|passe|passer|pause|pauser|stoppe|stopper|bascule)\s+pas\b)/u.test(directCommand))
-    return 'La demande contient une négation. Aucune action ne sera proposée ; formulez séparément l’action souhaitée.';
+    return strings.negation;
   const directOriginal=targetPrefix ? normalized.replace(targetPrefix,'') : normalized;
   if (/^\s*(?:(?:elle|il|on)\s+(?:a dit|dit|a demande|a ecrit)|(?:she|he|they)\s+(?:said|says|asked|wrote))\b/u.test(directOriginal) || /^\s*[«"“]/u.test(directOriginal))
-    return 'Cette demande rapporte ou cite une commande. Reformulez directement l’action souhaitée.';
+    return strings.quoted;
   const mentioned = config.applications.filter(app => labels(app).some(label => {
     const escaped = label.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
     return new RegExp(`(?:^|[^\\p{L}\\p{N}])${escaped.replace(/ /g, '\\s+')}(?:$|[^\\p{L}\\p{N}])`, 'u').test(normalized);
   }));
+  if (!selectedApplicationId && calls.some(call => !call.action || call.action === 'open') &&
+      (mentioned.length > 1 && /\b(?:ou|or)\b/u.test(commandText) || mentioned.length > 1 && mentioned.some(app =>
+        mentioned.some(other => other.id !== app.id && labels(app).some(label => labels(other).includes(label) && normalized.includes(label))))))
+    return strings.ambiguous;
   if (!selectedApplicationId && mentioned.length && calls.some(call => !mentioned.some(app => app.id === call.applicationId)))
     return 'L’application proposée ne correspond pas à celle nommée dans votre demande. Précisez son nom ou son alias.';
   const deezer=recognizeDeezerCommand(text,config);
@@ -83,7 +88,7 @@ function requestIssue(text, config, calls, selectedApplicationId,approvedCommand
     const launch=/\b(?:ouvre|ouvrez|ouvrir|lance|lancez|lancer|demarre|demarrer|open|launch|start)\b/u.test(commandText);
     const mediaClue=/\b(?:lecture|play|joue|jouer|pause|pose|pauser|pauiser|reprends|reprendre|stop|arrete|arreter|bascule|suivante?|prochaine?|precedente?|next|previous)\b/u.test(commandText);
     if(calls.some(call=>(!call.action || call.action==='open') && call.applicationId!==selectedApplicationId && !launch && !labels(config.applications.find(app=>app.id===call.applicationId)).includes(normalized.trim().replace(/[.!?]+$/u,'').trim())))
-      return 'Aucune demande d’ouverture d’application n’a été reconnue. Reformulez la commande ou choisissez son action dans « Corriger la demande ».';
+      return strings.launch;
     if(calls.some(call=>call.action?.startsWith('media_')) && !media.action && !mediaClue)
       return 'Aucune commande de lecture, pause ou changement de piste n’a été reconnue. Reformulez la demande ou mémorisez votre formulation.';
   }

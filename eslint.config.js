@@ -14,6 +14,7 @@ export default [
       'src/launchArguments.ts',
       'src/deezerLink.ts',
       'src/firstUse.ts',
+      'src/languages.ts',
     ],
   })),
   ...vue.configs['flat/essential'],

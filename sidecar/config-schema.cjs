@@ -3,7 +3,7 @@ const { randomUUID } = require('node:crypto');
 const { DEEZER_APP_ID, DEEZER_SOURCE_IDS } = require('./deezer.cjs');
 const { validateStore, normalizePhrase } = require('./command-aliases.cjs');
 
-const LANGUAGES = new Set(['auto', 'fr', 'en', 'de', 'es', 'it', 'nl', 'pl']);
+const { LANGUAGES } = require('./languages.cjs');
 const CURRENT_VERSION = 2;
 const DEFAULT_CONFIG = { version: CURRENT_VERSION, applications: [], commandAliases: [], language: 'fr', autoExecute: true, confidenceThreshold: 0.7 };
 const MAX_CONFIG_BYTES = 2 * 1024 * 1024;

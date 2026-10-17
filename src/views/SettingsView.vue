@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { vField } from '../composables/fieldAccessibility';
+import { languages, languageStrings } from '../languages';
 import { toRefs, type UnwrapNestedRefs } from 'vue';
 import type { Profile } from '../composables/useProfile';
 import CommandAliases from '../components/CommandAliases.vue';
@@ -64,7 +65,9 @@ const desktop = (action: 'hide' | 'quit') => emit('desktop', action);
     <div class="setting-row">
       <div>
         <label for="settings-language">Langue de transcription</label>
-        <p id="settings-language-help">Choisissez la langue parlée ou la détection automatique.</p>
+        <p id="settings-language-help">
+          {{ languageStrings.help }} {{ languageStrings.manualCorrection }}
+        </p>
       </div>
       <select
         v-field
@@ -75,14 +78,9 @@ const desktop = (action: 'hide' | 'quit') => emit('desktop', action);
         aria-label="Langue de transcription"
         @change="saveSettings"
       >
-        <option value="auto">Détection automatique</option>
-        <option value="fr">Français</option>
-        <option value="en">English</option>
-        <option value="de">Deutsch</option>
-        <option value="es">Español</option>
-        <option value="it">Italiano</option>
-        <option value="nl">Nederlands</option>
-        <option value="pl">Polski</option>
+        <option v-for="language in languages" :key="language.id" :value="language.id">
+          {{ language.option }}
+        </option>
       </select>
     </div>
     <div class="setting-row">

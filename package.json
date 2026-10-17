@@ -28,6 +28,7 @@
     "test:applications": "node scripts/smoke-applications.mjs",
     "test:media": "node scripts/smoke-media.mjs",
     "test:confidence": "node scripts/smoke-confidence.mjs",
+    "test:languages": "node scripts/smoke-languages.mjs",
     "test:deezer:routing": "node scripts/smoke-deezer-routing.mjs",
     "test:media:commands": "node scripts/smoke-media-commands.mjs",
     "test:media:refresh": "node scripts/test-media-refresh.mjs",

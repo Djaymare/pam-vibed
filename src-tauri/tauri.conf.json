@@ -43,6 +43,8 @@
       "../sidecar/config-store.cjs": "sidecar/config-store.cjs",
       "../sidecar/config-migrations.cjs": "sidecar/config-migrations.cjs",
       "../sidecar/config-schema.cjs": "sidecar/config-schema.cjs",
+      "../sidecar/languages.cjs": "sidecar/languages.cjs",
+      "../sidecar/languages.json": "sidecar/languages.json",
       "../sidecar/execution.cjs": "sidecar/execution.cjs",
       "../sidecar/proposals.cjs": "sidecar/proposals.cjs",
       "../sidecar/temporary-files.cjs": "sidecar/temporary-files.cjs",
