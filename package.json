@@ -31,6 +31,7 @@
     "test:languages": "node scripts/smoke-languages.mjs",
     "test:execution": "node scripts/evaluate-execution.mjs heldout",
     "test:execution:calibration": "node scripts/evaluate-execution.mjs calibration",
+    "bench:performance": "node scripts/benchmark-performance.mjs",
     "test:deezer:routing": "node scripts/smoke-deezer-routing.mjs",
     "test:media:commands": "node scripts/smoke-media-commands.mjs",
     "test:media:refresh": "node scripts/test-media-refresh.mjs",

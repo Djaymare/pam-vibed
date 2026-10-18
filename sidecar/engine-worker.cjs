@@ -1,6 +1,7 @@
 const fs = require('node:fs');
 const path = require('node:path');
 const { parentPort, workerData } = require('node:worker_threads');
+const { contextBudget, capacityError, requireCapacity, requireToolLimit } = require('./assistant/context-capacity.cjs');
 const koffi = require(path.join(workerData.runtimeDirectory, 'ffi/node_modules/koffi'));
 const lib = koffi.load(path.join(workerData.runtimeDirectory, 'libneedle3.dll'));
 const load = lib.func('int needle_load(const unsigned char *cact, uint64_t n)');
@@ -38,15 +39,21 @@ parentPort.on('message', ({ id, operation, payload }) => {
         const pcm = new Float32Array((wav.length - 44) / 2);
         for (let i = 0; i < pcm.length; i++) pcm[i] = wav.readInt16LE(44 + i * 2) / 32768;
         check(transcribe(pcm, pcm.length, payload.language || null, payload.keywords || null, 0, output, output.length));
-      } else if (operation === 'complete') {
+      } else if (operation === 'complete' || operation === 'capacity') {
+        if (operation === 'complete') requireToolLimit(payload.tools);
         // Refresh the session and tools without reloading the model weights.
         reset();
-        const prefix = check(init(payload.system, JSON.stringify(payload.tools), null));
-        // The pinned Needle 3 model has an 8192-token context. UTF-8 bytes
-        // upper-bound its byte-fallback tokenizer; reserve reply and framing.
-        if (prefix + Buffer.byteLength(payload.text, 'utf8') + 256 + 32 > 8192) {
-          throw new Error('La demande et les outils dépassent la capacité du modèle. Raccourcissez la demande.');
+        const prefix = init(payload.system, JSON.stringify(payload.tools), null);
+        if (prefix < 0 && /context|prefix.*(?:long|large|limit|exceed)|token.*(?:limit|exceed|overflow)/i.test(lastError() || '')) {
+          throw capacityError(contextBudget(8192, payload.text, payload.tools), true);
         }
+        check(prefix);
+        const capacity = contextBudget(prefix, payload.text, payload.tools);
+        if (operation === 'capacity') {
+          parentPort.postMessage({ id, ok: true, result: capacity });
+          return;
+        }
+        requireCapacity(capacity);
         check(complete(payload.text, null, 0, 256, output, output.length));
       } else throw new Error('Opération native inconnue.');
       const end = output.indexOf(0);
@@ -54,5 +61,6 @@ parentPort.on('message', ({ id, operation, payload }) => {
       result = JSON.parse(output.toString('utf8', 0, end));
     }
     parentPort.postMessage({ id, ok: true, result });
-  } catch (error) { parentPort.postMessage({ id, ok: false, error: error.message }); }
+  } catch (error) { parentPort.postMessage({ id, ok: false, error: error.message,
+    ...(['catalog_capacity','request_capacity'].includes(error.code) ? {code:error.code} : {}) }); }
 });

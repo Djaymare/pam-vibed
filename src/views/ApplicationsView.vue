@@ -19,6 +19,11 @@ const { editApplication, addApplication } = toRefs(props.applicationEditor);
       <div class="eyebrow">VOTRE BOÎTE À OUTILS</div>
       <h1 tabindex="-1">Applications</h1>
       <p>Choisissez les applications que PAM peut lancer.</p>
+      <p>
+        Jusqu’à 32 applications enregistrées et 32 outils proposés par demande. La capacité dépend
+        des outils, descriptions et alias : nommez une application et une action précises si le
+        catalogue est trop volumineux.
+      </p>
     </div>
     <button class="primary" :disabled="locked" @click="addApplication()">
       <Icon name="plus" :size="18" />Ajouter une application

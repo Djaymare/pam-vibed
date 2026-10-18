@@ -23,6 +23,7 @@ const { createPlanner, correctRequest, parseEngineOutput } = require('./assistan
 const { validateWav } = require('./assistant/audio.cjs');
 const { toolsFor, validateCalls, toolName, actionToolName } = require('./assistant/intent.cjs');
 const { ensure, cleanText } = require('./assistant/validation.cjs');
+const { measure } = require('./assistant/performance.cjs');
 function createAssistant({
   runtimeDirectory,
   configDirectory,
@@ -35,6 +36,7 @@ function createAssistant({
   setTimer,
   clearTimer,
   budgetMs = 40_000,
+  onPerformance,
 }) {
   const temporaryFiles = createTemporaryFiles(configDirectory);
   const proposals = proposalStore(configDirectory, { now: proposalNow });
@@ -110,9 +112,8 @@ function createAssistant({
       const ready = !configError && checks.every((check) => check.available);
       if (ready && engine) {
         try {
-          await budget.run(
-            () => engine.warm({ timeout: budget.timeout() }),
-            'chargement des moteurs',
+          await measure(context, 'warmup', () =>
+            budget.run(() => engine.warm({ timeout: budget.timeout() }), 'chargement des moteurs'),
           );
         } catch (error) {
           throw annotate(error, context, 'model_failure', 'inference');
@@ -139,9 +140,8 @@ function createAssistant({
       ensure(engine, 'Le moteur persistant est indisponible.');
       await engine.close();
       try {
-        await budget.run(
-          () => engine.warm({ timeout: budget.timeout() }),
-          'chargement des moteurs',
+        await measure(context, 'warmup', () =>
+          budget.run(() => engine.warm({ timeout: budget.timeout() }), 'chargement des moteurs'),
         );
       } catch (error) {
         throw annotate(error, context, 'model_failure', 'inference');
@@ -219,7 +219,7 @@ function createAssistant({
     return prepared;
   }
   return async (method, payload = {}, context = {}) => {
-    context = { ...context, requestId: requestId(context.requestId) };
+    context = { onPerformance, ...context, requestId: requestId(context.requestId) };
     if (!validatePayload(method, payload))
       throw annotate(new Error('Requête IPC invalide.'), context);
     const budget =

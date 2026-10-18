@@ -33,6 +33,7 @@ const {
 } = require('./intent.cjs');
 const { configDigest } = require('./config-repository.cjs');
 const { confirmationReason } = require('./confirmation.cjs');
+const { measure } = require('./performance.cjs');
 function parseEngineOutput(stdout) {
   // Engine diagnostics may precede the JSON; never interpret diagnostics as calls.
   try {
@@ -145,16 +146,18 @@ async function correctRequest(payload, config, { proposals, saveConfig }) {
 function createPlanner({ runtimeDirectory, configDirectory, runEngine, media, temporaryFiles }) {
   return async function prepare(method, payload, config, context) {
     const { budget } = context;
-    let sessions;
-    if (config.applications.some((app) => app.enabled && app.media)) {
-      try {
-        sessions = await budget.run(() => media.sessions({ budget }), 'sessions');
-      } catch (error) {
-        if (error.code === 'budget_expired') throw error;
-        sessions = [];
+    const { sessions, tools } = await measure(context, 'discovery', async () => {
+      let sessions;
+      if (config.applications.some((app) => app.enabled && app.media)) {
+        try {
+          sessions = await budget.run(() => media.sessions({ budget }), 'sessions');
+        } catch (error) {
+          if (error.code === 'budget_expired') throw error;
+          sessions = [];
+        }
       }
-    }
-    const tools = toolsFor(config, sessions);
+      return { sessions, tools: toolsFor(config, sessions) };
+    });
     ensure(
       tools.length > 0,
       'Ajoutez et activez au moins une application avant de faire une demande.',
@@ -165,22 +168,28 @@ function createPlanner({ runtimeDirectory, configDirectory, runEngine, media, te
     async function infer(args) {
       try {
         const timeout = budget.timeout();
-        const { stdout } = await budget.run(
+        const { stdout } = await measure(
+          context,
+          args.includes('--tools') ? 'routing' : 'transcription',
           () =>
-            runEngine(path.join(runtimeDirectory, 'needle.exe'), args, {
-              timeout,
-              maxBuffer: 1024 * 1024,
-              windowsHide: true,
-              encoding: 'utf8',
-              shell: false,
-              env: { ...process.env, NEEDLE_TELEMETRY: '0', DO_NOT_TRACK: '1' },
-            }),
-          'inférence',
+            budget.run(
+              () =>
+                runEngine(path.join(runtimeDirectory, 'needle.exe'), args, {
+                  timeout,
+                  maxBuffer: 1024 * 1024,
+                  windowsHide: true,
+                  encoding: 'utf8',
+                  shell: false,
+                  env: { ...process.env, NEEDLE_TELEMETRY: '0', DO_NOT_TRACK: '1' },
+                }),
+              'inférence',
+            ),
         );
         const response = parseEngineOutput(stdout);
         ensure(response.success !== false, response.error || 'Le moteur a refusé la demande.');
         return response;
       } catch (error) {
+        if (['catalog_capacity', 'request_capacity'].includes(error.code)) throw error;
         throw annotate(
           error,
           context,
@@ -383,7 +392,14 @@ function createPlanner({ runtimeDirectory, configDirectory, runEngine, media, te
       const useAudioTransport = speechArgs && !runEngine.unicode && /[^\x00-\x7f]/.test(prompt);
       if (useAudioTransport) needleArgs.push(...speechArgs);
       else needleArgs.push('--prompt', prompt);
-      const response = await infer(needleArgs);
+      let response;
+      try {
+        response = await infer(needleArgs);
+      } catch (error) {
+        if (['catalog_capacity', 'request_capacity'].includes(error.code))
+          return { ...turn, message: error.message, durationMs: budget.elapsed() };
+        throw error;
+      }
       if (useAudioTransport) {
         ensure(
           typeof response.audio_text === 'string',

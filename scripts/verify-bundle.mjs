@@ -12,7 +12,7 @@ const required = ['PAM.exe', 'pam-node.exe', 'docs/windows-media-deezer.md', 'do
   'runtime/needle.exe', 'runtime/models/needle3.cact', 'runtime/models/whistle.cact', 'runtime/npm/bin/npm-cli.js'];
 required.push('sidecar/action-registry.cjs', 'sidecar/action-registry.json');
 required.push('sidecar/languages.cjs', 'sidecar/languages.json');
-for (const module of ['audio', 'config-repository', 'confirmation', 'executor', 'intent', 'planner', 'validation']) required.push(`sidecar/assistant/${module}.cjs`);
+for (const module of ['audio', 'config-repository', 'confirmation', 'context-capacity', 'performance', 'executor', 'intent', 'planner', 'validation']) required.push(`sidecar/assistant/${module}.cjs`);
 for (const module of ['budget', 'config-store', 'config-schema', 'config-migrations', 'execution', 'proposals', 'temporary-files']) required.push(`sidecar/${module}.cjs`);
 for (const file of required) assert.ok((await stat(join(bundle, file))).isFile(), `${file} absent du paquet`);
 const manifest = JSON.parse(await readFile(join(bundle, 'runtime/manifest.json'), 'utf8'));

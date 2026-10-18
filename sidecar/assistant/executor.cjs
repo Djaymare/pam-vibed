@@ -5,6 +5,7 @@ const { executionStore } = require('../execution.cjs');
 const { failure } = require('../diagnostics.cjs');
 const { validateCalls } = require('./intent.cjs');
 const { ensure } = require('./validation.cjs');
+const { measure } = require('./performance.cjs');
 async function launch(application, args, { budget, beforeEffect } = {}) {
   ensure(
     !application.windowsApp,
@@ -76,12 +77,14 @@ function createExecutor({ configDirectory, media, launchApplication = launch }) 
         emitted = true;
       };
       try {
-        const result = await budget.run(
-          () =>
-            call.action && call.action !== 'open'
-              ? media.execute(application, call.action, call.arguments, { budget, beforeEffect })
-              : launchApplication(application, call.arguments, { budget, beforeEffect }),
-          'exécution',
+        const result = await measure(context, 'effect', () =>
+          budget.run(
+            () =>
+              call.action && call.action !== 'open'
+                ? media.execute(application, call.action, call.arguments, { budget, beforeEffect })
+                : launchApplication(application, call.arguments, { budget, beforeEffect }),
+            'exécution',
+          ),
         );
         if (!result.success) {
           const diagnostic = failure(new Error(result.message), context, 'action_failure');

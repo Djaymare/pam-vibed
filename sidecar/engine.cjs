@@ -16,7 +16,11 @@ function createEngine(runtimeDirectory, { workerFactory = data => new Worker(pat
       if (!request) return;
       clearTimeout(request.timer); pending.delete(reply.id);
       if (reply.ok) { loaded = true; request.resolve(reply.result); }
-      else request.reject(new Error(reply.error));
+      else {
+        const error = new Error(reply.error);
+        if (['catalog_capacity','request_capacity'].includes(reply.code)) error.code=reply.code;
+        request.reject(error);
+      }
     });
     function failed(error) {
       if (worker !== current) return;
@@ -59,6 +63,7 @@ function createEngine(runtimeDirectory, { workerFactory = data => new Worker(pat
   return {
     runEngine,
     warm: ({timeout=40_000} = {}) => send('warm', {}, timeout),
+    measureCapacity: ({system,tools,text='',timeout=40_000}) => send('capacity',{system,tools,text},timeout),
     status: () => ({ loaded, generation, pid: process.pid }),
     async close() {
       const current = worker; worker = undefined; loaded = false;
