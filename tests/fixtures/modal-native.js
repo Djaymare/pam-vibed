@@ -6,6 +6,8 @@ const deletionScenario = new URLSearchParams(location.search).has('deletion');
 const statusScenario = new URLSearchParams(location.search).has('status');
 const proposalScenario = new URLSearchParams(location.search).has('proposals');
 const firstUseScenario = new URLSearchParams(location.search).has('first-use');
+const journeyScenario = new URLSearchParams(location.search).has('journeys');
+if(journeyScenario) window.pamJourneyFixture={calls:[],mode:'success',hold:false,release:()=>{}};
 if (firstUseScenario) {
   Object.assign(config, JSON.parse(localStorage.getItem('pam-first-use-config') || 'null') || {applications:[]});
   window.pamFirstUseFixture = {config,calls:[],available:true,shortcut:localStorage.getItem('pam-first-use-shortcut') || 'ctrl_shift_space'};
@@ -47,10 +49,18 @@ export async function invoke(command, input) {
   try {
     return { version, id, requestId, method, ok: true, result: JSON.parse(JSON.stringify(await handle(method, JSON.parse(JSON.stringify(payload))))) };
   } catch (error) {
-    return { version, id, requestId, method, ok: false, error: { code: 'invalid_request', stage: 'validation', requestId, retryable: true, technical: { category: 'invalid_request' }, message: error.message } };
+    return { version, id, requestId, method, ok: false, error: { code: error.code||'invalid_request', stage: 'validation', requestId, retryable: true, technical: { category: error.code||'invalid_request' }, message: error.message } };
   }
 }
 async function handle(method, payload) {
+  if(journeyScenario) {
+    const f=window.pamJourneyFixture;f.calls.push({method,payload});
+    if(method==='process_text') {
+      if(f.hold) await new Promise(resolve=>{f.release=resolve;});
+      if(f.mode==='timeout')throw Object.assign(Error('Délai de fixture dépassé.'),{code:'request_timeout'});
+      return {...turn(crypto.randomUUID(),payload.text),proposal:{state:'pending',createdAt:Date.now(),expiresAt:Date.now()+600000,reason:null}};
+    }
+  }
   if (method === 'voice_shortcut') {
     const f=window.pamFirstUseFixture;
     if(!f)return {id:'ctrl_shift_space',label:'Ctrl + Maj + Espace',available:true,error:''};

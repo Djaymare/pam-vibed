@@ -5,11 +5,13 @@ import { fileURLToPath } from 'node:url';
 import { parse, compileScript } from '@vue/compiler-sfc';
 import ts from 'typescript';
 import * as vue from 'vue';
+import * as tauriCore from '@tauri-apps/api/core';
+import { mockIPC, clearMocks } from '@tauri-apps/api/mocks';
 export const deferred = () => { let resolve, reject; const promise = new Promise((a,b) => {resolve=a; reject=b;}); return {promise,resolve,reject}; };
 export const settle = async () => { for(let i=0;i<15;i++){await Promise.resolve(); await vue.nextTick();} };
 export const config = (name='Initial') => ({version:2, applications:[{id:'fixture', name, enabled:true, executable:'fixture.exe', arguments:[],aliases:[],description:'Fixture'}],commandAliases:[],language:'fr',autoExecute:true,confidenceThreshold:0.7});
-export const status = (name='Initial') => ({ready:true,config:config(name),proposals:[],checks:[],engine:null});
-export const turn = (id='turn') => ({id, transcript:'Fixture',status:'pending',proposal:{state:'pending',createdAt:Date.now(),expiresAt:Date.now()+600000,reason:null},calls:[],results:[],durationMs:0,confidence:null,reasoning:''});
+export const status = (name='Initial') => ({ready:true,config:config(name),proposals:[],checks:[],engine:null,manifest:null,configDirectory:"Disposable fixture"});
+export const turn = (id='turn') => ({id, transcript:'Fixture',language:'fr',status:'pending',proposal:{state:'pending',createdAt:Date.now(),expiresAt:Date.now()+600000,reason:null},calls:[],results:[],durationMs:0,confidence:null,reasoning:''});
 export function harness(t, options={}) {
   for (const name of ['document','Document','ShadowRoot']) {
     const previous=globalThis[name];globalThis[name]=name==='document'?{activeElement:null,visibilityState:'visible',hasFocus:()=>true}:class{};
@@ -33,6 +35,25 @@ export function harness(t, options={}) {
     if(method==='voice_shortcut')return {id:'ctrl_shift_space',label:'Ctrl + Maj + Espace',available:true,error:''};
     throw Error('Unexpected method '+method);
   };
+  // Optional full client path: production payload/frame validation + official
+  // Tauri invoke mock. The older direct request seam remains for focused tests.
+  const frames=[];
+  if(options.ipc) {
+    const previous=globalThis.window;
+    window.crypto=globalThis.crypto;globalThis.window=window;
+    mockIPC(async(command,args)=>{
+      if(command!=='assistant_request')throw Error('Unexpected IPC '+command);
+      const frame=args.request;frames.push(structuredClone(frame));
+      try {
+        const result=await request(frame.method,frame.payload);
+        return {version:frame.version,id:frame.id,requestId:frame.requestId,method:frame.method,ok:true,result};
+      } catch(error) {
+        if(!error.code)throw error;
+        return {version:frame.version,id:frame.id,requestId:frame.requestId,method:frame.method,ok:false,error:{...error,requestId:frame.requestId}};
+      }
+    });
+    t.after(()=>{clearMocks();if(previous===undefined)delete globalThis.window;else globalThis.window=previous;});
+  }
   const require=createRequire(import.meta.url), cache=new Map();
   function load(file) {
     file=resolve(file);
@@ -44,8 +65,8 @@ export function harness(t, options={}) {
     const out={};cache.set(file,out);
     function injected(name) {
       if(name==='vue')return vue;
-      if(name.endsWith('/ipc'))return {request,desktopAction:action=>request('desktop_action',{action})};
-      if(name==='@tauri-apps/api/core')return {isTauri:()=>true};
+      if(name.endsWith('/ipc')&&!options.ipc)return {request,desktopAction:action=>request('desktop_action',{action})};
+      if(name==='@tauri-apps/api/core')return {...tauriCore,isTauri:()=>true};
       if(name==='@tauri-apps/api/event')return {listen:async(event,fn)=>{
         if(options.listen)await options.listen(event,fn);
         events.set(event,fn); let active=true;
@@ -77,15 +98,16 @@ export function harness(t, options={}) {
     insert(n,parent,anchor){if(n.parent)n.parent.children.splice(n.parent.children.indexOf(n),1);n.parent=parent;const i=parent.children.indexOf(anchor);parent.children.splice(i<0?parent.children.length:i,0,n);},
     remove(n){n.parent.children.splice(n.parent.children.indexOf(n),1);n.parent=null;},
   });
-  let app, value, mounted=false;
+  const apps=new Set();
   function mount(setup) {
+    let value;
     const root=node('root');
-    app=renderer.createApp({setup(){value=setup(feature,vue);return typeof value==='function'?value:()=>null;}});
+    const app=renderer.createApp({setup(){value=setup(feature,vue);return typeof value==='function'?value:()=>null;}});
     app.config.errorHandler=error=>errors.push(error);
-    app.mount(root);mounted=true;
+    app.mount(root);apps.add(app);
     t.after(unmount);
     return {root,get value(){return value;}};
   }
-  function unmount(){if(mounted){mounted=false;app.unmount();}}
-  return {calls,timers,events,errors,request,feature,mount,unmount,window,document:globalThis.document,domEvents,dispatch:(name,target='window')=>{for(const fn of domEvents.get(target+':'+name)||[])fn();},get resources(){return {disposed,starts,finishes};}};
+  function unmount(){for(const app of apps){app.unmount();apps.delete(app);}}
+  return {calls,frames,timers,events,errors,request,feature,mount,unmount,window,document:globalThis.document,domEvents,dispatch:(name,target='window')=>{for(const fn of domEvents.get(target+':'+name)||[])fn();},get resources(){return {disposed,starts,finishes};}};
 }

@@ -2,6 +2,16 @@ import { createApp, defineComponent, h, ref } from 'vue';
 import App from '../../src/App.vue';
 import ModalDialog from '../../src/components/ModalDialog.vue';
 import '../../src/style.css';
+// Track only resources acquired by this disposable page. This hook is before
+// mount and each navigation gets a fresh registry. Never persist audio samples.
+window.pamTestResources={tracks:[],contexts:[],async dispose(){
+  for(const track of this.tracks)track.stop();
+  await Promise.all(this.contexts.map(c=>c.state==='closed'?undefined:c.close()));
+  return {liveTracks:this.tracks.filter(t=>t.readyState==='live').length,openContexts:this.contexts.filter(c=>c.state!=='closed').length};
+}};
+if(navigator.mediaDevices){const original=navigator.mediaDevices.getUserMedia.bind(navigator.mediaDevices);navigator.mediaDevices.getUserMedia=async options=>{const stream=await original(options);window.pamTestResources.tracks.push(...stream.getTracks());return stream;};}
+if(window.AudioContext){const Original=window.AudioContext;window.AudioContext=new Proxy(Original,{construct(target,args){const context=new target(...args);window.pamTestResources.contexts.push(context);return context;}});}
+addEventListener('pagehide',()=>{void window.pamTestResources.dispose();},{once:true});
 const Fixture = defineComponent({
   setup() {
     const shown = ref(false), busy = ref(false), veto = ref(false), trigger = ref(true);

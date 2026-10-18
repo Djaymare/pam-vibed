@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { spawn } from 'node:child_process';
-import { mkdtemp, rm, writeFile, readFile } from 'node:fs/promises';
+import { mkdtemp, rm, writeFile, readFile, mkdir, access } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { basename, dirname, join, resolve } from 'node:path';
 import { pathToFileURL, fileURLToPath } from 'node:url';
@@ -8,6 +8,7 @@ import { createServer as createNetServer } from 'node:net';
 import { firstUseChecks } from '../tests/first-use-checks.mjs';
 import { navigationChecks } from '../tests/navigation-checks.mjs';
 import { guidedInputChecks } from '../tests/guided-input-checks.mjs';
+import { componentJourneyChecks } from '../tests/component-journey-checks.mjs';
 
 // Real Windows WebView2 + Vue components, with only native services simulated.
 // Build src-tauri/examples/modal-test-host.rs first and set PAM_MODAL_TEST_HOST.
@@ -19,6 +20,8 @@ const dependencyRoot = resolve(process.env.PAM_TEST_DEPENDENCY_ROOT || root);
 const { createServer } = await import(pathToFileURL(join(dependencyRoot, 'node_modules/vite/dist/node/index.js')));
 const { default: vue } = await import(pathToFileURL(join(dependencyRoot, 'node_modules/@vitejs/plugin-vue/dist/index.mjs')));
 const fixture = join(root, 'tests/fixtures/modal-native.js');
+const reportDirectory=resolve(process.env.PAM_WEBVIEW_REPORT_DIR||join(root,'artifacts','webview-tests',String(Date.now())));
+await mkdir(reportDirectory,{recursive:true});
 const server = await createServer({ configFile: false, root, cacheDir: join(dependencyRoot, 'node_modules/.vite-modal-test'), plugins: [vue()],
   resolve: { alias: [ { find: /^@tauri-apps\/(api\/(core|event)|plugin-dialog)$/, replacement: fixture } ] },
   server: { host: '127.0.0.1', port: 0, fs: { allow: [root, dependencyRoot] }, watch: { ignored: ['**/artifacts/**', '**/src-tauri/target/**'] } },
@@ -28,19 +31,22 @@ await new Promise(done => portServer.listen(0, '127.0.0.1', done));
 const debugPort = portServer.address().port;
 await new Promise(done => portServer.close(done));
 const profile = await mkdtemp(join(tmpdir(), 'pam-modal-'));
-let child, socket;
+let child, socket, evaluatePage, cdpPage, spawnError;
 const delay = ms => new Promise(done => setTimeout(done, ms));
 const results = [];
+const report={kind:'Windows WebView2; simulated PAM services',profile,host,checks:results,exceptions:[],stderr:'',cleanup:{},outcome:'running'};
 try {
   await server.listen();
   const url = `http://127.0.0.1:${server.httpServer.address().port}/tests/fixtures/modal-page.html`;
-  child = spawn(host, [], { windowsHide: true, stdio: 'pipe', env: { ...process.env, PAM_MODAL_TEST_URL: `${url}?component`, PAM_MODAL_TEST_PROFILE: profile, WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS: `--remote-debugging-port=${debugPort}${process.env.PAM_NVDA_SPEECH_LOG ? ' --force-renderer-accessibility' : ''}${process.argv.includes('--first-use-only') && !process.argv.includes('--microphone-denied') ? ' --use-fake-ui-for-media-stream' : ''}` } });
-  child.on('error', error => console.error(error));
-  child.stderr.on('data', data => process.stderr.write(data));
+  child = spawn(host, [], { windowsHide: true, stdio: 'pipe', env: { ...process.env, PAM_MODAL_TEST_URL: `${url}?component`, PAM_MODAL_TEST_PROFILE: profile, WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS: `--remote-debugging-port=${debugPort}${process.env.PAM_NVDA_SPEECH_LOG ? ' --force-renderer-accessibility' : ''}${process.argv.includes('--first-use-only') && !process.argv.includes('--microphone-denied') ? ' --use-fake-ui-for-media-stream --use-fake-device-for-media-stream' : ''}` } });
+  report.pid=child.pid;
+  child.on('error', error => {spawnError=error;console.error(error);});
+  child.stderr.on('data', data => {report.stderr=(report.stderr+data).slice(-16000);process.stderr.write(data);});
   let target;
   for (let i = 0; i < 200; i++) {
     try { target = (await (await fetch(`http://127.0.0.1:${debugPort}/json/list`)).json()).find(t => t.type === 'page' && t.url.startsWith(url)); } catch {}
     if (target) break;
+    if(spawnError)throw spawnError;
     if (child.exitCode !== null) throw Error(`Host exited: ${child.exitCode}`);
     await delay(100);
   }
@@ -49,12 +55,18 @@ try {
   await new Promise((done, reject) => { socket.onopen = done; socket.onerror = reject; });
   let seq = 0;
   const pending = new Map();
-  socket.onmessage = event => { const r = JSON.parse(event.data); if (!r.id) { if (r.method === 'Runtime.exceptionThrown') console.error(JSON.stringify(r.params)); return; } const p = pending.get(r.id); if (!p) return; pending.delete(r.id); clearTimeout(p.timer); r.error ? p.reject(Error(JSON.stringify(r.error))) : p.resolve(r.result); };
+  socket.onmessage = event => { const r = JSON.parse(event.data); if (!r.id) { if (r.method === 'Runtime.exceptionThrown') {report.exceptions.push(r.params);console.error(JSON.stringify(r.params));} return; } const p = pending.get(r.id); if (!p) return; pending.delete(r.id); clearTimeout(p.timer); r.error ? p.reject(Error(JSON.stringify(r.error))) : p.resolve(r.result); };
   const cdp = (method, params = {}) => new Promise((done, reject) => { const id = ++seq; const timer = setTimeout(() => { pending.delete(id); reject(Error(`Timeout: ${method}`)); }, 10000); pending.set(id, { resolve: done, reject, timer }); socket.send(JSON.stringify({ id, method, params })); });
   const evaluate = async expression => { const r = await cdp('Runtime.evaluate', { expression, returnByValue: true, awaitPromise: true }); if (r.exceptionDetails) throw Error(JSON.stringify(r.exceptionDetails)); return r.result.value; };
+  evaluatePage=evaluate;cdpPage=cdp;
   await cdp('Runtime.enable');
   await cdp('Accessibility.enable');
   const wait = async expression => { for (let i = 0; i < 100; i++) { if (await evaluate(expression)) return; await delay(30); } throw Error(`Not ready: ${expression}; DOM=${await evaluate('document.body.innerHTML')}`); };
+  if(process.env.PAM_WEBVIEW_INJECT_FAILURE==='1'){
+    await wait('!!window.pamTestResources');
+    await evaluate('new AudioContext()');
+    throw Error('PAM-32 intentional runner failure');
+  }
   const active = selector => evaluate(`document.activeElement?.matches(${JSON.stringify(selector)})`);
   const key = async (name, modifiers = 0) => {
     const codes = { Tab: 9, Enter: 13, Escape: 27, ArrowDown: 40, a: 65 };
@@ -303,12 +315,35 @@ try {
     await navigationChecks({ cdp, url, evaluate, wait, active, key, go, enter, fill, check, delay });
   if (process.argv.includes('--guided-only')) await guidedInputChecks({ cdp, url, evaluate, wait, key, enter, fill, check });
   if (process.argv.includes('--first-use-only')) await firstUseChecks({ cdp, url, evaluate, wait, key, enter, fill, check, delay, denied: process.argv.includes('--microphone-denied') });
+  if(process.argv.length===2)await componentJourneyChecks({cdp,url,evaluate,wait,key,enter,fill,check,active});
+  assert.equal(report.exceptions.length,0,'No unhandled WebView2 exceptions');
+  report.runtime=await evaluate('navigator.userAgent');report.outcome='passed';
   console.log(JSON.stringify({ runtime: await evaluate('navigator.userAgent'), checks: results.length, results }, null, 2));
+} catch(error) {
+  report.outcome='failed';report.error=error.stack||String(error);
+  if(evaluatePage)try{await writeFile(join(reportDirectory,'failure-dom.html'),await evaluatePage('document.documentElement.outerHTML'));}catch{}
+  if(cdpPage)try{const shot=await cdpPage('Page.captureScreenshot');await writeFile(join(reportDirectory,'failure.png'),Buffer.from(shot.data,'base64'));}catch{}
+  throw error;
 } finally {
+  const cleanupErrors=[];
+  if(evaluatePage)try{report.cleanup.audioBefore=await evaluatePage('window.pamTestResources && ({tracks:window.pamTestResources.tracks.length,contexts:window.pamTestResources.contexts.length})');}catch{}
+  if(evaluatePage)try{report.cleanup.audio=await evaluatePage('window.pamTestResources?.dispose()');}catch(error){cleanupErrors.push('Audio cleanup: '+error.message);}
   socket?.close();
-  if (child && child.exitCode === null) { child.kill(); await Promise.race([new Promise(done => child.once('exit', done)), delay(3000)]); }
-  await server.close();
+  if(child?.pid&&child.exitCode===null&&child.signalCode===null){
+    const killer=spawn('taskkill',['/PID',String(child.pid),'/T','/F'],{windowsHide:true,stdio:'ignore'});
+    await new Promise(done=>{killer.once('exit',done);killer.once('error',done);});
+    for(let i=0;i<60&&child.exitCode===null&&child.signalCode===null;i++)await delay(50);
+  }
+  report.cleanup.hostExited=!child||!!spawnError||child.exitCode!==null||child.signalCode!==null;
+  if(!report.cleanup.hostExited)cleanupErrors.push('Disposable host still running');
+  try{await server.close();report.cleanup.serverClosed=true;}catch(error){cleanupErrors.push(error.message);}
   // WebView2 descendants may release their profile handles slightly later.
   assert.ok(dirname(resolve(profile)) === resolve(tmpdir()) && basename(profile).startsWith('pam-modal-'), 'Cleanup target must be this disposable profile.');
-  await rm(profile, { recursive: true, force: true, maxRetries: 20, retryDelay: 100 });
+  try{await rm(profile, { recursive: true, force: true, maxRetries: 20, retryDelay: 100 });try{await access(profile);cleanupErrors.push('Profile still exists');}catch(error){if(error.code!=='ENOENT')throw error;}report.cleanup.profileRemoved=true;}catch(error){cleanupErrors.push(error.message);}
+  if(report.cleanup.audio&&(report.cleanup.audio.liveTracks||report.cleanup.audio.openContexts))cleanupErrors.push('Audio resources remain active');
+  report.cleanup.errors=cleanupErrors;
+  if(cleanupErrors.length)report.outcome='failed';
+  await writeFile(join(reportDirectory,'report.json'),JSON.stringify(report,null,2)+'\n');
+  console.log('WebView2 diagnostics: '+join(reportDirectory,'report.json'));
+  assert.deepEqual(cleanupErrors,[],'Disposable runner cleanup');
 }

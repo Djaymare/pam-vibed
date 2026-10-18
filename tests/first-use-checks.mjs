@@ -2,7 +2,9 @@ import {writeFile} from 'node:fs/promises';
 export async function firstUseChecks({cdp,url,evaluate,wait,key,enter,fill,check,delay,denied}) {
   await cdp('Page.navigate',{url:`${url}?first-use`});
   await wait('!!window.pamFirstUseFixture && !!document.querySelector(".first-use") && !!document.querySelector(".shortcut-settings")');
-  check('PAM-26 empty profile shows the three plain-language steps',await evaluate('window.pamFirstUseFixture.config.applications.length===0 && document.querySelector(".first-use ol").children.length===3 && !/Whistle|Needle|GSMTC|JSON/.test(document.querySelector("main").innerText)'));
+  // The safety note now names Needle's score explicitly (PAM-29). Keep the
+  // plain-language assertion on the three actionable steps, not that note.
+  check('PAM-26 empty profile shows the three plain-language steps',await evaluate('window.pamFirstUseFixture.config.applications.length===0 && document.querySelector(".first-use ol").children.length===3 && !/Whistle|Needle|GSMTC|JSON/.test(document.querySelector(".first-use ol").innerText)'));
   await enter('.shortcut-settings select');
   await key('ArrowDown');await key('Tab');
   await enter('.shortcut-settings .secondary');
@@ -16,11 +18,11 @@ export async function firstUseChecks({cdp,url,evaluate,wait,key,enter,fill,check
   await enter('.modal-footer .primary');await wait('!document.querySelector("dialog[open]") && !!document.querySelector("#first-use-application")');
   await enter('.first-use li:nth-child(2) button');await wait('!document.querySelector(".first-use li:nth-child(3) button").disabled');
   if(process.env.PAM_MODAL_SCREENSHOT)await writeFile(process.env.PAM_MODAL_SCREENSHOT,Buffer.from((await cdp('Page.captureScreenshot')).data,'base64'));
-  // Auto-grant only the browser permission in this disposable profile. There is
-  // no fake-device flag: getUserMedia acquires the real Windows microphone.
+  // Auto-grant the synthetic browser device in this disposable profile. Real
+  // microphone permissions and hardware belong to test-microphone.mjs.
   if (!denied) {
     await enter('.microphone-panel button');await wait('window.pamFirstUseFixture.tracks.length>0');await delay(5500);
-    check('PAM-26 real microphone test runs locally and stops every track',await evaluate('window.pamFirstUseFixture.tracks.every(t=>t.readyState==="ended") && /[Mm]icrophone coupé/.test(document.querySelector("#microphone-message").textContent)'));
+    check('PAM-26 synthetic microphone test runs locally and stops every track',await evaluate('window.pamFirstUseFixture.tracks.every(t=>t.readyState==="ended") && /[Mm]icrophone coupé/.test(document.querySelector("#microphone-message").textContent)'));
   } else {
   await cdp('Browser.setPermission',{permission:{name:'microphone'},setting:'denied',origin:new URL(url).origin});
   await enter('.microphone-panel button');await wait('document.querySelector(".microphone-panel").textContent.includes("refusé")');
