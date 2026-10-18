@@ -1,27 +1,41 @@
 name: Prototype Windows x64
+# Build/test only. Signing and publication must use a separate, protected workflow.
 on:
   workflow_dispatch:
   push:
     branches: [main, master]
   pull_request:
+permissions:
+  contents: read
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event_name }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
 jobs:
   native-tests:
-    runs-on: windows-latest
+    runs-on: windows-2022
+    timeout-minutes: 45
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
         with:
+          persist-credentials: false
           fetch-depth: 0 # Historical negative controls read the audited revision.
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
           node-version: '24.21.0'
-      - uses: dtolnay/rust-toolchain@master
+      - uses: dtolnay/rust-toolchain@683b588c487a69d01f6c6ddf40f036ff682cc2c8 # master snapshot, 2026-10-18
         with:
           toolchain: '1.99.0'
           components: clippy, rustfmt
           targets: x86_64-pc-windows-msvc
-      - uses: Swatinem/rust-cache@v2
+      - uses: Swatinem/rust-cache@779680da715d629ac1d338a641029a2f4372abb5 # v2.8.2 (peeled commit)
+        if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master')
         with:
           workspaces: src-tauri
+          prefix-key: pam-ci-v1
+          key: ${{ github.ref_name }}
+          cache-targets: false
+          cache-bin: false
+          cache-on-failure: false
       - run: node scripts/prepare-native-tests.mjs
       - run: cargo fmt --manifest-path src-tauri/Cargo.toml --check
       - run: cargo clippy --manifest-path src-tauri/Cargo.toml --locked --target x86_64-pc-windows-msvc --all-targets -- -D warnings
@@ -29,22 +43,33 @@ jobs:
       - run: rustc --edition 2021 --target x86_64-pc-windows-msvc tests/fixtures/process-fixture.rs -o native-fixture.exe
       - run: node scripts/test-native-history.mjs rustc native-fixture.exe
   build:
-    runs-on: windows-latest
+    runs-on: windows-2022
+    timeout-minutes: 90
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
           node-version: '24.21.0'
-          cache: npm
-      - uses: dtolnay/rust-toolchain@master
+          cache: ${{ github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master') && 'npm' || '' }}
+          cache-dependency-path: package-lock.json
+      - uses: dtolnay/rust-toolchain@683b588c487a69d01f6c6ddf40f036ff682cc2c8 # master snapshot, 2026-10-18
         with:
           toolchain: '1.99.0'
           components: clippy, rustfmt
           targets: x86_64-pc-windows-msvc
-      - uses: Swatinem/rust-cache@v2
+      - uses: Swatinem/rust-cache@779680da715d629ac1d338a641029a2f4372abb5 # v2.8.2 (peeled commit)
+        if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master')
         with:
           workspaces: src-tauri
+          prefix-key: pam-ci-v1
+          key: ${{ github.ref_name }}
+          cache-targets: false
+          cache-bin: false
+          cache-on-failure: false
       - run: npm ci
+      - run: npm run check:workflows
       - run: npm run check:development
       - run: npm run prepare:runtime
       - run: cargo test --manifest-path src-tauri/Cargo.toml --locked --target x86_64-pc-windows-msvc --features engine-integration
@@ -55,15 +80,22 @@ jobs:
       - run: npm run package:windows
       - run: npm run package:portable
       - run: npm run verify:bundle
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
-          name: PAM-windows-x64
+          name: PAM-ci-windows-x64-${{ github.event_name }}-${{ github.run_id }}-${{ github.run_attempt }}
+          retention-days: 7
+          if-no-files-found: error
+          include-hidden-files: false
+          overwrite: false
           path: |
             src-tauri/target/x86_64-pc-windows-msvc/release/bundle/nsis/*setup.exe
             artifacts/PAM-windows-x64/
   linux:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+        with:
+          persist-credentials: false
       - run: docker build -f Dockerfile.development -t pam-development .
       - run: docker run --rm pam-development

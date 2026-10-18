@@ -13,6 +13,7 @@
     "format": "prettier --write src/App.vue src/composables src/views sidecar/assistant.cjs sidecar/assistant eslint.config.js .prettierrc.json",
     "format:check": "prettier --check src/App.vue src/composables src/views sidecar/assistant.cjs sidecar/assistant eslint.config.js .prettierrc.json",
     "check:development": "node scripts/check-development.mjs",
+    "check:workflows": "node scripts/check-workflows.mjs",
     "dev": "npm run check:development && vite",
     "dev:desktop": "npm run check:development && npm run prepare:runtime && vite",
     "prepare:runtime": "node scripts/prepare-runtime.mjs",
@@ -64,6 +65,7 @@
     "typescript": "~6.0.3",
     "typescript-eslint": "8.71.2",
     "vite": "^8.0.16",
-    "vue-tsc": "^3.3.5"
+    "vue-tsc": "^3.3.5",
+    "yaml": "2.9.1"
   }
 }

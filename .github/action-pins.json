@@ -1,0 +1,25 @@
+{
+  "verifiedOn": "2026-10-18",
+  "actions": {
+    "actions/checkout": {
+      "ref": "refs/tags/v4.3.1",
+      "commit": "34e114876b0b11c390a56381ad16ebd13914f8d5"
+    },
+    "actions/setup-node": {
+      "ref": "refs/tags/v4.4.0",
+      "commit": "49933ea5288caeca8642d1e84afbd3f7d6820020"
+    },
+    "actions/upload-artifact": {
+      "ref": "refs/tags/v4.6.2",
+      "commit": "ea165f8d65b6e75b540449e92b4886f43607fa02"
+    },
+    "Swatinem/rust-cache": {
+      "ref": "refs/tags/v2.8.2^{}",
+      "commit": "779680da715d629ac1d338a641029a2f4372abb5"
+    },
+    "dtolnay/rust-toolchain": {
+      "ref": "refs/heads/master",
+      "commit": "683b588c487a69d01f6c6ddf40f036ff682cc2c8"
+    }
+  }
+}
