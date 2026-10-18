@@ -67,9 +67,25 @@ Journaux locaux ignorés dans `artifacts/autonomy/` :
 | Inspection Computer Use du paquet de validation, sans saisie/action | Front Vue réellement rendu et moteurs chargés ; profil jetable ; processus arrêtés | `pam36-ui-inspection-accessibility.json`, `pam36-ui-inspection.json`, `pam36-ui-inspection-cleanup.log` |
 
 Le build initial du clone utilise un commit local de validation, distinct de
-la livraison. Les scripts ont ensuite été finalisés ; la compilation et les
-contrôles du commit d'intégration exact seront rejoués avant clôture Notion et
-consignés dans le reçu, puis cette preuve sera complétée.
+la livraison. Les scripts ont ensuite été finalisés et le clone a été placé
+sur le commit de code réellement intégré, sans changer la branche du checkout
+partagé. Les contrôles suivants ont tous réussi sur ce commit exact :
+
+| Contrôle final | Résultat | Journal |
+| --- | --- | --- |
+| `npm run build:portable` | 0 ; TypeScript/Vite et Cargo release `--locked` ; identité extraite du vrai PE conforme | `pam36-build-delivery.log` |
+| `npm run package:portable` | 0 ; staging neuf vérifié et pointeur publié | `pam36-package-delivery.log` |
+| Réassemblage réel avec sentinelle obsolète, npm manquant et binaire altéré | 0 pour le contrôleur ; rejets 1 attendus pour les deux défauts, ancien pointeur intact, fichiers restaurés et hashes conformes | `pam36-real-rejection.log` |
+| `npm run verify:bundle` depuis le clone au commit intégré | 0 ; **2 105 fichiers distribués**, plus le manifeste ; identité, cinq PE x64 et imports, GSMTC, Needle, confirmation/exécutable jetable, Whistle/silence et protocole sidecar avec PATH vide | `pam36-verify-delivery.log` |
+| Inspection native du paquet final, PATH vide et nouveau profil jetable | Document `https://tauri.localhost/`, Vue et premier usage rendus, « Moteurs en mémoire » ; aucune action utilisateur simulée | `pam36-ui-final.json`, `pam36-ui-final-accessibility.json` |
+| Arrêt de l'arbre du processus de test et suppression de son profil | Confirmés ; aucun processus PAM du paquet ne reste actif | `pam36-ui-final-cleanup.log` et sortie du contrôle |
+
+Build final : `13b2b602-5f36-4a1f-8932-10fbe24973e4`. Publication active :
+`artifacts/pam36/windows/artifacts/PAM-windows-x64/releases/e8c7120a-65d1-402c-9f5f-b1e8f1ae0d68`.
+Le reçu du run conserve les SHA complets du commit de code, du commit de preuve,
+du binaire, du manifeste et des journaux. La mise à jour de cette preuve seule
+est exclue des entrées du build ; aucun code distribué n'est modifié après
+la validation du paquet.
 
 ## Incidents résolus et limites
 
