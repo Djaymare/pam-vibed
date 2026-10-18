@@ -1,0 +1,43 @@
+name: Dependency and embedded runtime security
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '23 6 * * 1'
+  pull_request:
+    paths:
+      - 'package*.json'
+      - 'src-tauri/Cargo.*'
+      - 'security/**'
+      - 'scripts/*security*'
+      - 'scripts/runtime-integrity.mjs'
+      - 'scripts/prepare-runtime.mjs'
+      - 'tests/runtime-security.test.mjs'
+      - '.github/workflows/security.yml'
+permissions:
+  contents: read
+concurrency:
+  group: security-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  inventory-and-advisories:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24.21.0'
+      - uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: '1.99.0'
+      - run: npm ci --ignore-scripts
+      - run: node --test tests/runtime-security.test.mjs
+      - run: npm run prepare:runtime
+      - run: npm run security:sbom
+      - run: npm run security:gate
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: dependency-security-evidence
+          path: artifacts/security/
+          if-no-files-found: error

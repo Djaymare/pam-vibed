@@ -1,0 +1,112 @@
+{
+  "schemaVersion": 1,
+  "target": "x86_64-pc-windows-msvc",
+  "components": [
+    {
+      "id": "node",
+      "name": "Node.js",
+      "type": "application",
+      "version": "24.21.0",
+      "license": "MIT AND other third-party licenses (see NODE-LICENSE.txt)",
+      "url": "https://nodejs.org/dist/v24.21.0/node-v24.21.0-win-x64.zip",
+      "sha256": "158f7685b44de51f6c0df1d153526cbcd3e1bc739a8dfc607721cef75de9e541",
+      "cache": "node-v24.21.0-win-x64.zip",
+      "format": "zip",
+      "prefix": "node-v24.21.0-win-x64/",
+      "nodeSha256": "ba4e6d110e8c1592a1ecd390f6b05f3da124b13871a5be62b341a07a853c6c32",
+      "security": "https://nodejs.org/en/blog/vulnerability",
+      "updates": "https://nodejs.org/dist/index.json"
+    },
+    {
+      "id": "needle",
+      "name": "Cactus Needle CLI",
+      "type": "application",
+      "version": "3.1.0+c7c415a3d1b3d929014bc6e866d51ebb971f7089",
+      "license": "Apache-2.0",
+      "url": "https://huggingface.co/Cactus-Compute/needle3/resolve/c7c415a3d1b3d929014bc6e866d51ebb971f7089/windows-x86_64/needle.exe",
+      "sha256": "c70ca998f6c542c862c06c22352046e303ef5c769384069ee25cef9f4667e4cf",
+      "file": "needle.exe",
+      "repo": "needle3",
+      "revision": "c7c415a3d1b3d929014bc6e866d51ebb971f7089"
+    },
+    {
+      "id": "needle-model",
+      "name": "Needle 3 model",
+      "type": "machine-learning-model",
+      "version": "c7c415a3d1b3d929014bc6e866d51ebb971f7089",
+      "license": "Apache-2.0",
+      "url": "https://huggingface.co/Cactus-Compute/needle3/resolve/c7c415a3d1b3d929014bc6e866d51ebb971f7089/needle3.cact",
+      "sha256": "c9d915eca282ed42d1a09b143b592adb4cc6744ffe2d294adf5cfc5548170c38",
+      "file": "models/needle3.cact",
+      "repo": "needle3",
+      "revision": "c7c415a3d1b3d929014bc6e866d51ebb971f7089"
+    },
+    {
+      "id": "whistle-model",
+      "name": "Whistle model",
+      "type": "machine-learning-model",
+      "version": "b358ddadd89b7a713b5aa131f23032d3cca1b251",
+      "license": "Apache-2.0",
+      "url": "https://huggingface.co/Cactus-Compute/whistle/resolve/b358ddadd89b7a713b5aa131f23032d3cca1b251/whistle.cact",
+      "sha256": "b6e02f048568ac5d01a2042556c658061e699acbc0aa2a1439f52f3d461dffeb",
+      "file": "models/whistle.cact",
+      "repo": "whistle",
+      "revision": "b358ddadd89b7a713b5aa131f23032d3cca1b251"
+    },
+    {
+      "id": "cactus",
+      "name": "Cactus Needle native library",
+      "type": "library",
+      "version": "3.1.0+c7c415a3d1b3d929014bc6e866d51ebb971f7089",
+      "license": "Apache-2.0",
+      "url": "https://huggingface.co/Cactus-Compute/needle3/resolve/c7c415a3d1b3d929014bc6e866d51ebb971f7089/python/cactus_needle-3.1.0-py3-none-win_amd64.whl",
+      "sha256": "4f5fc86abfc50d551cdb237a34b501f36d82d4b6f5911ee7bec4e9532d44dd95",
+      "cache": "needle-wheel.zip",
+      "format": "zip",
+      "extracted": "needle-wheel",
+      "repo": "needle3",
+      "revision": "c7c415a3d1b3d929014bc6e866d51ebb971f7089",
+      "file": "libneedle3.dll",
+      "archiveFile": "needle/libneedle3.dll",
+      "fileSha256": "de2e2c39cd311fbd9971fad4736abc329ed970653674c203e149c4ef27fd1c62"
+    },
+    {
+      "id": "koffi",
+      "name": "koffi",
+      "type": "library",
+      "version": "3.3.2",
+      "license": "MIT",
+      "url": "https://registry.npmjs.org/koffi/-/koffi-3.3.2.tgz",
+      "sha256": "1c5189a71bab92a3b429e82456d10254ce1a1528a1c49f87f4e93ce944426cb0",
+      "cache": "koffi-3.3.2.tgz",
+      "format": "tgz",
+      "destination": "ffi/node_modules/koffi",
+      "ecosystem": "npm"
+    },
+    {
+      "id": "koffi-win32-x64",
+      "name": "@koromix/koffi-win32-x64",
+      "type": "library",
+      "version": "3.3.2",
+      "license": "MIT",
+      "url": "https://registry.npmjs.org/@koromix/koffi-win32-x64/-/koffi-win32-x64-3.3.2.tgz",
+      "sha256": "b6cf9c8c871008e5b51cb5e5633de6d1758e48dad9795b0eb9e9b44f0a778937",
+      "cache": "koffi-win32-x64-3.3.2.tgz",
+      "format": "tgz",
+      "destination": "ffi/node_modules/@koromix/koffi-win32-x64",
+      "ecosystem": "npm"
+    }
+  ],
+  "licenses": [
+    {
+      "file": "NEEDLE3-LICENSE.txt",
+      "url": "https://huggingface.co/Cactus-Compute/needle3/resolve/c7c415a3d1b3d929014bc6e866d51ebb971f7089/LICENSE",
+      "sha256": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30"
+    },
+    {
+      "file": "WHISTLE-LICENSE.txt",
+      "url": "https://huggingface.co/Cactus-Compute/whistle/resolve/b358ddadd89b7a713b5aa131f23032d3cca1b251/LICENSE",
+      "sha256": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30"
+    }
+  ]
+}
