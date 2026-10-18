@@ -54,6 +54,7 @@ jobs:
       - run: npm run test:confidence
       - run: npm run package:windows
       - run: npm run package:portable
+      - run: npm run verify:bundle
       - uses: actions/upload-artifact@v4
         with:
           name: PAM-windows-x64

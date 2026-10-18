@@ -152,7 +152,7 @@ npm run package:windows
 
 L’installeur se trouve dans `src-tauri/target/x86_64-pc-windows-msvc/release/bundle/nsis/`. Il contient tous les composants nécessaires, y compris l’installeur WebView2 hors ligne. Le paquet est plus volumineux pour garantir l’installation sans téléchargement de dépendances. La signature de code nécessite un certificat de distribution ; le prototype local est non signé.
 
-Après compilation, `npm run package:portable` crée `artifacts/PAM-windows-x64/`. **Distribuer le dossier entier**, pas uniquement `PAM.exe`. Cette variante utilise le WebView2 déjà présent sur Windows ; utiliser l’installeur NSIS pour une machine sans WebView2.
+`npm run build:portable` compile le portable sans NSIS. Ensuite `npm run package:portable` publie une version complète dans le magasin `artifacts/PAM-windows-x64/`. `current.json` désigne le dossier immuable actif ; **distribuer ce seul dossier entier**, pas uniquement `PAM.exe`. Exécuter `npm run verify:bundle` avant livraison. La [procédure portable](docs/portable.md) décrit les empreintes, le commit annoncé et les contrôles avec PATH vide. Cette variante utilise le WebView2 déjà présent sur Windows ; utiliser l’installeur NSIS pour une machine sans WebView2.
 
 Le workflow `.github/workflows/windows.yml` vérifie et compile le projet sur Windows, puis conserve l’installeur et le dossier portable comme artifacts. Il s’exécute manuellement ou lors d’un push/PR une fois le projet placé dans un dépôt GitHub.
 
