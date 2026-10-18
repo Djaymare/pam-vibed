@@ -1,9 +1,18 @@
 //! Stable IPC admission and host dispatch; shared by Tauri and native tests.
 use crate::{applications, bridge, contracts, diagnostics};
 use serde_json::{json, Value};
+// Run before decoding or dispatching any command, including desktop actions.
+pub(crate) fn authorize_window(label: &str) -> Result<(), diagnostics::Error> {
+    if label == "main" {
+        Ok(())
+    } else {
+        Err(diagnostics::Error::new("invalid_request", "", "validation"))
+    }
+}
 pub(crate) struct AssistantBridge {
     pub transport: bridge::Bridge,
 }
+#[cfg(feature = "process-tests")]
 impl AssistantBridge {
     pub fn request(&self, method: &str, payload: Value) -> Result<Value, String> {
         if method == "restart_engine" {
@@ -174,6 +183,29 @@ mod tests {
             assert!(dispatch(&transport, &applications::Catalogue::default(), wire).is_err());
         }
         assert!(transport.0.lock().unwrap().is_empty());
+    }
+    #[test]
+    fn window_permissions_deny_untrusted_labels_before_dispatch() {
+        let transport = FakeTransport::default();
+        let catalogue = applications::Catalogue::default();
+        for label in [
+            "",
+            "MAIN",
+            "main-child",
+            "settings",
+            "https://example.test",
+            "main\0",
+        ] {
+            let result = authorize_window(label)
+                .and_then(|()| dispatch(&transport, &catalogue, wire("restart_engine", json!({}))));
+            assert_eq!(result.unwrap_err().code, "invalid_request");
+        }
+        assert!(transport.0.lock().unwrap().is_empty());
+        authorize_window("main").unwrap();
+        let capability: Value =
+            serde_json::from_str(include_str!("../capabilities/default.json")).unwrap();
+        assert_eq!(capability["windows"], json!(["main"]));
+        assert!(capability.get("remote").is_none());
     }
     #[test]
     fn supervisor_status_reads_host_without_starting_or_queueing_sidecar() {

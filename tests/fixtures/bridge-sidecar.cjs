@@ -39,6 +39,10 @@ if(mode==='crash-temporary') {
     fs.appendFileSync(path.join(profile,'budgets'),request.remainingMs+'\n');
     if(mode==='eof')process.exit(0);
     fs.appendFileSync(path.join(profile,'executions'),(request.payload?.text??request.method)+'\n');
+    if(mode==='invalid-json') {process.stdout.write('{invalid JSON\n');return;}
+    if(mode==='oversized-response') {process.stdout.write('x'.repeat(2_000_001)+'\n');return;}
+    if(mode==='truncated-response') {process.stdout.write('{"version":1',()=>process.exit(0));return;}
+    if(mode==='dead-child')process.exit(70);
     const turn={id:'11111111-1111-4111-8111-111111111111',transcript:request.payload?.text??'',language:'fr',confidence:null,reasoning:String(process.pid),durationMs:0,calls:[],results:[],status:'unsupported'};
     const status={ready:false,checks:[],manifest:null,config:{version:2,applications:[],language:'fr',autoExecute:false,confidenceThreshold:0.7},configDirectory:profile,engine:null};
     const reply=()=>send({id:request.id,ok:true,result:request.method==='status'?status:turn});

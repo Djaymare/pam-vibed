@@ -31,9 +31,13 @@ fn supervisor_snapshot_is_nonblocking_during_start_recovery_and_stop() {
 struct Fixture {
     bridge: Arc<Bridge>,
     profile: PathBuf,
+    runtime: PathBuf,
 }
 impl Fixture {
     fn new(mode: &str, timeout: Duration, capacity: usize) -> Self {
+        Self::create(mode, timeout, capacity, false)
+    }
+    fn create(mode: &str, timeout: Duration, capacity: usize, real_runtime: bool) -> Self {
         let root = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
         let profile = std::env::temp_dir().join(format!(
             "pam-bridge-{}-{}",
@@ -42,11 +46,16 @@ impl Fixture {
         ));
         fs::create_dir(&profile).unwrap();
         fs::write(profile.join("mode"), mode).unwrap();
+        let runtime = if real_runtime {
+            root.join("runtime")
+        } else {
+            profile.join("runtime-not-installed")
+        };
         let bridge = Bridge::with_limits(
             Config {
                 node: root.join("binaries/pam-node-x86_64-pc-windows-msvc.exe"),
                 script: root.join("../tests/fixtures/bridge-sidecar.cjs"),
-                runtime: root.join("runtime"),
+                runtime: runtime.clone(),
                 profile: profile.clone(),
                 catalogue: Arc::new(Catalogue::default()),
             },
@@ -57,6 +66,7 @@ impl Fixture {
         Self {
             bridge: Arc::new(bridge),
             profile,
+            runtime,
         }
     }
     fn wait_for(&self, check: impl Fn() -> bool) {
@@ -144,7 +154,7 @@ fn controlled_bridge(
         Config {
             node: root.join("binaries/pam-node-x86_64-pc-windows-msvc.exe"),
             script: root.join("../tests/fixtures/bridge-sidecar.cjs"),
-            runtime: root.join("runtime"),
+            runtime: fixture.runtime.clone(),
             profile: fixture.profile.clone(),
             catalogue: Arc::new(Catalogue::default()),
         },
@@ -297,8 +307,9 @@ fn repeated_native_startup_crashes_leave_no_internal_pid() {
 }
 
 #[test]
+#[cfg(feature = "engine-integration")]
 fn automatic_recovery_runs_real_cleanup_without_replaying_emitted_effect() {
-    let fixture = Fixture::new("crash-temporary", Duration::from_secs(5), 4);
+    let fixture = Fixture::create("crash-temporary", Duration::from_secs(5), 4, true);
     let config = r#"{"version":2,"applications":[],"language":"fr","autoExecute":false,"confidenceThreshold":0.7}"#;
     fs::write(fixture.profile.join("applications.json"), config).unwrap();
     let clock = Arc::new(ManualClock(Mutex::new(Instant::now())));
@@ -536,7 +547,7 @@ fn injected_spawn_failure_is_correlated_without_start_or_replay() {
         Config {
             node: root.join("binaries/pam-node-x86_64-pc-windows-msvc.exe"),
             script: root.join("../tests/fixtures/bridge-sidecar.cjs"),
-            runtime: root.join("runtime"),
+            runtime: fixture.runtime.clone(),
             profile: fixture.profile.clone(),
             catalogue: Arc::new(Catalogue::default()),
         },
@@ -640,7 +651,7 @@ fn real_node_main_propagates_corrupt_profile_without_voice_content() {
         Config {
             node: root.join("binaries/pam-node-x86_64-pc-windows-msvc.exe"),
             script: root.join("../sidecar/main.cjs"),
-            runtime: root.join("runtime"),
+            runtime: profile.join("runtime-not-installed"),
             profile: profile.clone(),
             catalogue: Arc::new(Catalogue::default()),
         },
@@ -650,6 +661,7 @@ fn real_node_main_propagates_corrupt_profile_without_voice_content() {
     .unwrap();
     let fixture = Fixture {
         bridge: Arc::new(bridge),
+        runtime: profile.join("runtime-not-installed"),
         profile,
     };
     let error = fixture
@@ -1028,5 +1040,46 @@ fn malformed_or_incompatible_frames_fail_before_host_effect() {
         );
         assert_eq!(fixture.executions(), ["once"]);
         assert!(!fixture.profile.join("forbidden-effect").exists());
+    }
+}
+
+#[test]
+fn invalid_oversized_truncated_and_dead_child_retire_the_entire_stream() {
+    for (mode, expected) in [
+        ("invalid-json", "bridge_protocol"),
+        ("oversized-response", "bridge_protocol"),
+        ("truncated-response", "bridge_protocol"),
+        ("dead-child", "bridge_eof"),
+    ] {
+        let fixture = Fixture::new(mode, Duration::from_secs(3), 4);
+        let start = Instant::now();
+        assert_eq!(
+            fixture
+                .bridge
+                .request("process_text", json!({"text":"once"}))
+                .unwrap_err()
+                .code,
+            expected,
+            "{mode}"
+        );
+        assert!(start.elapsed() < Duration::from_secs(3));
+        let started: Value =
+            serde_json::from_slice(&fs::read(fixture.profile.join("started.json")).unwrap())
+                .unwrap();
+        fixture.wait_for(|| fixture.bridge.is_idle());
+        fixture.assert_dead(started["pid"].as_u64().unwrap());
+        fixture.mode("echo");
+        assert_eq!(
+            fixture
+                .bridge
+                .request("process_text", json!({"text":"recovered"}))
+                .unwrap()["transcript"],
+            "recovered"
+        );
+        assert_eq!(fixture.executions(), ["once", "recovered"]);
+        assert!(
+            !fixture.runtime.exists(),
+            "fault tests must not need model assets"
+        );
     }
 }

@@ -5,6 +5,29 @@ on:
     branches: [main, master]
   pull_request:
 jobs:
+  native-tests:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # Historical negative controls read the audited revision.
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24.21.0'
+      - uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: '1.99.0'
+          components: clippy, rustfmt
+          targets: x86_64-pc-windows-msvc
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri
+      - run: node scripts/prepare-native-tests.mjs
+      - run: cargo fmt --manifest-path src-tauri/Cargo.toml --check
+      - run: cargo clippy --manifest-path src-tauri/Cargo.toml --locked --target x86_64-pc-windows-msvc --all-targets -- -D warnings
+      - run: cargo test --manifest-path src-tauri/Cargo.toml --locked --target x86_64-pc-windows-msvc
+      - run: rustc --edition 2021 --target x86_64-pc-windows-msvc tests/fixtures/process-fixture.rs -o native-fixture.exe
+      - run: node scripts/test-native-history.mjs rustc native-fixture.exe
   build:
     runs-on: windows-latest
     steps:
@@ -24,6 +47,7 @@ jobs:
       - run: npm ci
       - run: npm run check:development
       - run: npm run prepare:runtime
+      - run: cargo test --manifest-path src-tauri/Cargo.toml --locked --target x86_64-pc-windows-msvc --features engine-integration
       - run: cargo check --manifest-path src-tauri/Cargo.toml --locked --target x86_64-pc-windows-msvc
       - run: npm test
       - run: npm run test:integration

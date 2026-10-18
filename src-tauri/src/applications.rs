@@ -2,6 +2,7 @@
 //! COM objects stay on the calling worker thread; only plain data leaves it.
 use serde::Serialize;
 use serde_json::Value;
+use std::sync::{Arc, Mutex};
 
 #[derive(Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -13,13 +14,32 @@ pub struct InstalledApplication {
     pub launch_argument: String,
 }
 
-#[derive(Default)]
-pub struct Catalogue(pub std::sync::Mutex<Option<Vec<InstalledApplication>>>);
+trait CatalogueSource: Send + Sync {
+    fn discover(&self) -> Result<Vec<InstalledApplication>, String>;
+}
+struct WindowsCatalogue;
+impl CatalogueSource for WindowsCatalogue {
+    fn discover(&self) -> Result<Vec<InstalledApplication>, String> {
+        discover()
+    }
+}
+pub struct Catalogue {
+    pub(crate) entries: Mutex<Option<Vec<InstalledApplication>>>,
+    source: Arc<dyn CatalogueSource>,
+}
+impl Default for Catalogue {
+    fn default() -> Self {
+        Self {
+            entries: Mutex::new(None),
+            source: Arc::new(WindowsCatalogue),
+        }
+    }
+}
 
 impl Catalogue {
     pub fn scan(&self) -> Result<Vec<InstalledApplication>, String> {
-        let applications = discover()?;
-        *self.0.lock().map_err(|_| "Catalogue indisponible.")? = Some(applications.clone());
+        let applications = self.source.discover()?;
+        *self.entries.lock().map_err(|_| "Catalogue indisponible.")? = Some(applications.clone());
         Ok(applications)
     }
 
@@ -35,9 +55,9 @@ impl Catalogue {
             .and_then(Value::as_str)
             .ok_or("Identifiant d’application Windows invalide.")?
             .to_owned();
-        let mut catalogue = self.0.lock().map_err(|_| "Catalogue indisponible.")?;
+        let mut catalogue = self.entries.lock().map_err(|_| "Catalogue indisponible.")?;
         if catalogue.is_none() {
-            *catalogue = Some(discover()?);
+            *catalogue = Some(self.source.discover()?);
         }
         let entry = catalogue.as_ref().unwrap().iter().find(|entry| entry.app_id == id)
             .ok_or("Application absente du catalogue Windows. Actualisez la liste ou choisissez un exécutable.")?;
@@ -147,3 +167,7 @@ pub fn discover() -> Result<Vec<InstalledApplication>, String> {
 #[cfg(windows)]
 #[path = "applications/native.rs"]
 mod native;
+
+#[cfg(all(test, windows))]
+#[path = "applications/tests.rs"]
+mod tests;

@@ -102,13 +102,14 @@ mod tests {
         let catalogue = Catalogue::default();
         let id = "PAM.MissingFixture!Application";
         let target = format!("shell:AppsFolder\\{id}");
-        *catalogue.0.lock().unwrap() = Some(vec![crate::applications::InstalledApplication {
-            app_id: id.into(),
-            name: "Absent fixture".into(),
-            kind: "store".into(),
-            icon: None,
-            launch_argument: target.clone(),
-        }]);
+        *catalogue.entries.lock().unwrap() =
+            Some(vec![crate::applications::InstalledApplication {
+                app_id: id.into(),
+                name: "Absent fixture".into(),
+                kind: "store".into(),
+                icon: None,
+                launch_argument: target.clone(),
+            }]);
         let payload = json!({"id":"11111111-1111-4111-8111-111111111111", "enabled":true,
             "executable":std::env::current_exe().unwrap(), "arguments":[target], "windowsApp":{"appId":id,"kind":"store","icon":null}});
         // A valid .exe and a previously cached catalogue entry must not spawn.

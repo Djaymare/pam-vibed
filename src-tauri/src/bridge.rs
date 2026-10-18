@@ -318,6 +318,7 @@ impl Bridge {
             watchdog: Mutex::new(Some(watchdog)),
         })
     }
+    #[cfg(any(all(test, windows), feature = "process-tests"))]
     pub fn request(&self, method: &str, payload: Value) -> Result<Value, Error> {
         self.request_until(method, payload, self.control.clock.now() + self.timeout)
     }
@@ -336,6 +337,7 @@ impl Bridge {
             let _ = journal.record(error, source, "failure");
         }
     }
+    #[cfg(any(all(test, windows), feature = "process-tests"))]
     fn request_until(
         &self,
         method: &str,

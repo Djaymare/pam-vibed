@@ -21,6 +21,8 @@ tauri-build = { version = "2", features = [] }
 [features]
 custom-protocol = ["tauri/custom-protocol"]
 process-tests = []
+# Requires prepared Whistle/Needle assets; excluded from the model-free suite.
+engine-integration = []
 
 [dependencies]
 tauri = { version = "2", features = ["tray-icon"] }

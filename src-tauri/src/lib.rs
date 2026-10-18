@@ -28,9 +28,7 @@ async fn assistant_request(
     window: tauri::WebviewWindow,
     request: Value,
 ) -> Result<Value, diagnostics::Error> {
-    if window.label() != "main" {
-        return Err(diagnostics::Error::new("invalid_request", "", "validation"));
-    }
+    host::authorize_window(window.label())?;
     let decoded = contracts::decode(request.clone())?;
     if decoded.call.method().name() == "voice_shortcut" {
         let app = window.app_handle();
