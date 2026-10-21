@@ -38,6 +38,21 @@ impl Fixture {
         Self::create(mode, timeout, capacity, false)
     }
     fn create(mode: &str, timeout: Duration, capacity: usize, real_runtime: bool) -> Self {
+        Self::create_with_factory(
+            mode,
+            timeout,
+            capacity,
+            real_runtime,
+            Arc::new(SystemProcess),
+        )
+    }
+    fn create_with_factory(
+        mode: &str,
+        timeout: Duration,
+        capacity: usize,
+        real_runtime: bool,
+        factory: Arc<dyn ProcessFactory>,
+    ) -> Self {
         let root = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
         let profile = std::env::temp_dir().join(format!(
             "pam-bridge-{}-{}",
@@ -51,7 +66,7 @@ impl Fixture {
         } else {
             profile.join("runtime-not-installed")
         };
-        let bridge = Bridge::with_limits(
+        let bridge = Bridge::with_services(
             Config {
                 node: root.join("binaries/pam-node-x86_64-pc-windows-msvc.exe"),
                 script: root.join("../tests/fixtures/bridge-sidecar.cjs"),
@@ -61,6 +76,8 @@ impl Fixture {
             },
             timeout,
             capacity,
+            Arc::new(SystemClock),
+            factory,
         )
         .unwrap();
         Self {
@@ -68,6 +85,17 @@ impl Fixture {
             profile,
             runtime,
         }
+    }
+    fn blocked_pipe(mode: &str, timeout: Duration) -> Self {
+        let fixture =
+            Self::create_with_factory(mode, timeout, 4, false, Arc::new(DelayedFixtureProcess));
+        // Bootstrap has a separate, bounded deadline. The fixture acknowledges
+        // status only after it (and its optional helper) stops reading stdin.
+        fixture
+            .bridge
+            .request_until("status", json!({}), Instant::now() + Duration::from_secs(5))
+            .unwrap();
+        fixture
     }
     fn wait_for(&self, check: impl Fn() -> bool) {
         let deadline = Instant::now() + Duration::from_secs(5);
@@ -130,6 +158,16 @@ impl Fixture {
             .lines()
             .map(str::to_owned)
             .collect()
+    }
+}
+
+struct DelayedFixtureProcess;
+impl ProcessFactory for DelayedFixtureProcess {
+    fn spawn(&self, command: &mut Command) -> std::io::Result<std::process::Child> {
+        // Deliberately exceed the pipe tests' 600/800 ms budgets. Startup is
+        // fixture preparation, while the measured operation must reach WRITING.
+        thread::sleep(Duration::from_secs(1));
+        command.spawn()
     }
 }
 
@@ -703,7 +741,7 @@ fn missing_host_target_has_a_safe_stable_error() {
 
 #[test]
 fn unread_audio_pipe_has_a_deadline_and_recovers() {
-    let fixture = Fixture::new("never-read", Duration::from_millis(600), 4);
+    let fixture = Fixture::blocked_pipe("pause-after-status", Duration::from_millis(600));
     let start = Instant::now();
     let error = fixture
         .bridge
@@ -716,7 +754,11 @@ fn unread_audio_pipe_has_a_deadline_and_recovers() {
     fixture.mode("echo");
     let result = fixture
         .bridge
-        .request("process_text", json!({"text":"recovered"}))
+        .request_until(
+            "process_text",
+            json!({"text":"recovered"}),
+            Instant::now() + Duration::from_secs(5),
+        )
         .unwrap();
     assert_eq!(result["transcript"], "recovered");
     assert_eq!(fixture.executions(), ["recovered"]);
@@ -746,12 +788,14 @@ fn shutdown_during_write_does_not_wait_for_pipe_lock() {
 
 #[test]
 fn deadline_kills_internal_children_that_inherit_the_pipe() {
-    let fixture = Fixture::new("never-read-child", Duration::from_millis(800), 4);
+    let fixture = Fixture::blocked_pipe("pause-after-status-child", Duration::from_millis(800));
+    let start = Instant::now();
     let error = fixture
         .bridge
         .request("process_audio", audio())
         .unwrap_err();
     assert_eq!(error.code, "bridge_write_timeout");
+    assert!(start.elapsed() < Duration::from_secs(2));
     fixture.wait_for(|| fixture.bridge.is_idle());
     let started: Value =
         serde_json::from_slice(&fs::read(fixture.profile.join("started.json")).unwrap()).unwrap();
@@ -777,7 +821,10 @@ fn deadline_kills_internal_children_that_inherit_the_pipe() {
         );
     }
     fixture.mode("echo");
-    assert!(fixture.bridge.request("status", json!({})).is_ok());
+    assert!(fixture
+        .bridge
+        .request_until("status", json!({}), Instant::now() + Duration::from_secs(5))
+        .is_ok());
 }
 
 #[test]

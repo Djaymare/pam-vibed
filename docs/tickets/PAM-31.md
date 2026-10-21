@@ -52,13 +52,50 @@ Contrôles sur cette reprise :
 | `cargo clippy --manifest-path src-tauri/Cargo.toml --locked --target x86_64-pc-windows-msvc --all-targets -- -D warnings` | Code 0 | `pam31-g40-clippy.log` |
 | Compilation de la fixture Rust et `node scripts/test-native-history.mjs <rustc> .runtime-cache/pam31-g40-process-fixture.exe` | Code 0 ; trois défauts reproduits avant correction et budget courant réussi | `pam31-g40-fixture.log`, `pam31-g40-history.log` |
 
-**Outcome de reprise : blocked, critère CI toujours ouvert.** Le correctif est
-préparé localement ; aucun push n’est autorisé implicitement par `AGENTS.md`.
-Une autorisation humaine explicite d’envoi vers cette branche est nécessaire
-avant le déclenchement et la vérification d’un run hébergé sur le SHA corrigé.
-La fiche ne peut pas être clôturée et aucun relais n’est transféré pendant cette
-attente. Aucun programme personnel commandé ni permission modifiée. Le reçu de
-reprise conserve le SHA final du correctif et les empreintes des journaux.
+### Première exécution CI autorisée
+
+L’utilisateur a ensuite autorisé explicitement le push du correctif
+`914f3dbfc7fa8f53bcf1990f8132fe2b07135304` vers
+`origin/codex/deezer-routing` et sa validation CI (message humain
+`01a15e7f-7878-7523-8271-40d9e85d4451` dans ce chat). Le push a réussi et
+GitHub a enregistré le workflow, puis démarré le
+[run 39602422352](https://github.com/Djaymare/pam-vibed/actions/runs/39602422352)
+sur ce SHA exact. La non-exécution initiale n’est donc plus le blocage courant.
+
+Les jobs Windows ont cependant réellement échoué : 55/57 tests par défaut,
+57/58 avec moteur. Les deux tests de pipe attendaient `bridge_write_timeout`
+mais obtenaient `bridge_start_timeout`, le démarrage consommant leurs 600 et
+800 ms avant toute écriture. Journaux complets conservés dans
+`pam31-g40-ci-native-attempt1.log` et `pam31-g40-ci-build-attempt1.log`.
+Clippy et la préparation avaient réussi ; aucun résultat ultérieur sauté
+n’est compté comme exécuté.
+
+La correction reste dans les tests et leur fixture Node. Un échange `status`
+borné à cinq secondes prépare le processus et son éventuel enfant ; la fixture
+cesse de lire stdin avant de répondre. Le test émet ensuite l’audio avec le
+même budget de 600/800 ms et exige toujours l’erreur d’écriture, un retour sous
+deux secondes, la mort des PID internes et une récupération sans rejeu. Une
+fabrique retarde chaque démarrage d’une seconde pour reproduire le problème
+de manière déterministe : sans préparation, le test ciblé échoue localement
+avec `bridge_start_timeout` (`pam31-g40-pipe-before.log`), puis passe avec la
+préparation. Les requêtes de récupération ont une borne distincte de cinq
+secondes. Aucun délai ni chemin de production n’est modifié, aucun test ignoré
+ni assertion d’écriture assouplie. La procédure détaille cette séparation.
+
+Validations locales de la correction de fixture : `cargo test` Windows sans
+feature (57 réussis), avec toutes les features (58 réussis), Clippy tous
+targets/toutes features avec `-D warnings`, rustfmt et `npm test` (436 réussis).
+Zéro échec ou test ignoré dans ces suites finales. Journaux
+`pam31-g40-pipe-suite-{test,all,clippy,fmt}.log`, résultats de commandes dans
+`pam31-g40-pipe-suite-results.json`, journal Node `pam31-g40-pipe-npm.log`.
+Les deux tests ciblés ont aussi été exécutés séparément. Contrôle final des
+PID : aucun processus de fixture restant.
+
+**Outcome de reprise : blocked, critère CI toujours ouvert.** Les correctifs de
+fixture restent locaux en attendant leur autorisation de push et une nouvelle
+exécution CI réussie. La fiche ne peut pas être clôturée et aucun relais n’est
+transféré pendant cette attente. Aucun programme personnel commandé ni
+permission modifiée. Le reçu conserve les SHA et empreintes des journaux.
 
 ## Résultat initial du 18 octobre et critère restant
 

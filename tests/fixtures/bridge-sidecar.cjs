@@ -1,6 +1,7 @@
 // Disposable IPC fixture; synthetic temporary bytes and simulated effects only.
 const fs=require('node:fs'),path=require('node:path'),readline=require('node:readline');
 const profile=process.argv[3],mode=fs.readFileSync(path.join(profile,'mode'),'utf8').trim();
+const fixtureStatus=()=>({ready:false,checks:[],manifest:null,config:{version:2,applications:[],language:'fr',autoExecute:false,confidenceThreshold:0.7},configDirectory:profile,engine:null});
 if(mode==='recovered-temporary') { require('../../sidecar/main.cjs'); return; }
 fs.writeFileSync(path.join(profile,'started.json'),JSON.stringify({pid:process.pid,mode}));
 setInterval(()=>{},1000);
@@ -18,6 +19,23 @@ if(mode==='crash-temporary') {
     fs.appendFileSync(path.join(profile,'failed-pids'),JSON.stringify({pid:process.pid,helper:helper.pid})+'\n');
     process.exit(70);
   });
+} else if(mode==='pause-after-status'||mode==='pause-after-status-child') {
+  const acknowledgeThenPause=()=>{
+    const input=readline.createInterface({input:process.stdin});
+    input.once('line',line=>{
+      const request=JSON.parse(line);
+      if(request.method!=='status')throw Error('blocked pipe fixture requires bootstrap status');
+      input.close();process.stdin.pause();
+      process.stdout.write(JSON.stringify({version:1,requestId:request.requestId,id:request.id,ok:true,result:fixtureStatus()})+'\n');
+    });
+  };
+  if(mode==='pause-after-status-child') {
+    const helper=require('node:child_process').spawn(process.execPath,['-e','setInterval(()=>{},1000)'],{shell:false,windowsHide:true,stdio:['inherit','inherit','ignore']});
+    helper.once('spawn',()=>{
+      fs.writeFileSync(path.join(profile,'started.json'),JSON.stringify({pid:process.pid,mode,helper:helper.pid}));
+      acknowledgeThenPause();
+    });
+  } else acknowledgeThenPause();
 } else if(mode==='never-read-child') {
   const helper=require('node:child_process').spawn(process.execPath,['-e','setInterval(()=>{},1000)'],{shell:false,windowsHide:true,stdio:['inherit','inherit','ignore']});
   helper.once('spawn',()=>fs.writeFileSync(path.join(profile,'started.json'),JSON.stringify({pid:process.pid,mode,helper:helper.pid})));
@@ -44,7 +62,7 @@ if(mode==='crash-temporary') {
     if(mode==='truncated-response') {process.stdout.write('{"version":1',()=>process.exit(0));return;}
     if(mode==='dead-child')process.exit(70);
     const turn={id:'11111111-1111-4111-8111-111111111111',transcript:request.payload?.text??'',language:'fr',confidence:null,reasoning:String(process.pid),durationMs:0,calls:[],results:[],status:'unsupported'};
-    const status={ready:false,checks:[],manifest:null,config:{version:2,applications:[],language:'fr',autoExecute:false,confidenceThreshold:0.7},configDirectory:profile,engine:null};
+    const status=fixtureStatus();
     const reply=()=>send({id:request.id,ok:true,result:request.method==='status'?status:turn});
     if(mode==='stale-response') { send({id:request.id-1,ok:true,result:turn});send({requestId:'22222222-2222-4222-8222-222222222222',id:request.id,ok:true,result:turn});reply();return; }
     if(mode==='wrong-version') { send({version:2,id:request.id,ok:true,result:turn});return; }

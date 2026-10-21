@@ -31,6 +31,17 @@ des fixtures. Les scans Shell lisent le catalogue sans lancer ses applications.
 Une horloge simulée ne remplace pas l’ordonnanceur Windows : les délais des pipes
 et de nettoyage sont aussi vérifiés en temps réel.
 
+Les deux tests de délai d’écriture préparent d’abord leur fixture par un
+échange `status` borné à cinq secondes. La fixture cesse de lire stdin avant
+d’accuser réception ; son éventuel enfant hérite alors déjà des pipes.
+Une fabrique retarde volontairement chaque lancement d’une seconde, au-delà
+des budgets d’écriture de 600 et 800 ms. Ces budgets commencent ensuite avec
+la demande audio ; le résultat doit rester `bridge_write_timeout`, en moins
+de deux secondes, avec nettoyage des PID et reprise sans rejeu. Les échanges
+de préparation et de récupération ont leur propre borne de cinq secondes.
+Le budget de bout en bout de production reste couvert séparément par les tests
+d’admission, de file et de démarrage ; aucun délai de production n’est modifié.
+
 ## Contrôles historiques
 
 Avec l’historique Git complet, après compilation de la suite ci-dessus :
