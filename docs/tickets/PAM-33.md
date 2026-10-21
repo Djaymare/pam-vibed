@@ -161,3 +161,62 @@ PAM-33 reste donc ouvert tant que les runs et leur artefact ne sont pas vérifi�
 Outcome : blocked pour clôture, validation distante et autorisation ciblée en attente.
 Pas de successeur ni de transfert avant résolution. Vérification par le worker
 implémenteur, sans revue indépendante revendiquée.
+
+## Exécution distante autorisée du 21 octobre 2026
+
+L'utilisateur a approuvé le plan et son nettoyage dans le message
+`01a15fda-6cf2-7df1-aca3-10da282b2134`, tour
+`01a15fda-6c81-7ca0-81f0-78348991e1c0`. Les cinq pushes préparés ont été
+vérifiés, sans push d'intégration. Les PR brouillon sans reviewers sont
+[3 valide](https://github.com/Djaymare/pam-vibed/pull/3),
+[4 format](https://github.com/Djaymare/pam-vibed/pull/4),
+[5 Rust](https://github.com/Djaymare/pam-vibed/pull/5),
+[6 UI](https://github.com/Djaymare/pam-vibed/pull/6) et
+[7 paquet incomplet](https://github.com/Djaymare/pam-vibed/pull/7).
+
+Le [run valide 39658827906](https://github.com/Djaymare/pam-vibed/actions/runs/39658827906)
+échoue deux fois dans quick sur le test existant `late preparation cannot emit
+an external effect after the global timer fires` : 229 ms puis 324 ms au lieu
+de la borne murale de 140 ms. Le [run format 39658862774](https://github.com/Djaymare/pam-vibed/actions/runs/39658862774)
+échoue aussi dans quick avant rustfmt, avec le même défaut, dont 295 ms lors
+de la première tentative. Les logs et diagnostics des deux tentatives sont
+conservés ; les jobs dépendants sont skipped et aucun paquet n'est publié.
+Une seule relance des jobs échoués, sur chaque SHA inchangé, a été effectuée.
+Ces échecs ne sont pas transformés en succès.
+
+Le [run UI 39658873392](https://github.com/Djaymare/pam-vibed/actions/runs/39658873392)
+présente bien l'assertion Vue volontairement fausse (une demande au lieu de
+deux), en plus du défaut de durée. quick échoue, native-tests/Linux/build sont
+skipped, seuls les diagnostics sont uploadés.
+
+Le [run Rust 39658866997](https://github.com/Djaymare/pam-vibed/actions/runs/39658866997)
+passe quick et Linux. Le job native-tests échoue sur l'unique test volontaire
+`pam33_ci_failure::deliberately_red` : 57 réussis et un échec, après rustfmt et
+Clippy réussis. build est skipped. Les trois artefacts sont exclusivement des
+diagnostics, dont l'artefact natif 12373396632. La sonde de paquet incomplet
+[39658878156](https://github.com/Djaymare/pam-vibed/actions/runs/39658878156)
+a passé quick, Linux et native-tests ; son job build est encore en cours à ce
+checkpoint. Aucune réussite de ce run ou du scénario incomplet n'est anticipée.
+
+### Correction locale de la régression de chronométrage
+
+Le test utilise désormais une horloge et les timers injectables du budget de
+production, avec une préparation explicitement bloquée. Il déclenche le timer
+au temps logique de 60 ms et exige le résultat partial et deux not_started
+avant de débloquer la préparation. Il exige ensuite zéro effet tardif et aucun
+timer restant. Aucun budget, lancement, contrôle ou délai de production ne
+change ; aucune augmentation de la borne ne masque le défaut de test.
+
+Preuves : huit tests budget réussis ; 452 tests Node Windows réussis ; Linux
+450 réussis et deux skips Windows ; vingt répétitions réussies avec deux
+processus de stress CPU jetables. Le contrôle négatif qui retire les deux
+gardes avant effet dans une copie isolée fait échouer cette nouvelle régression.
+Traces : pam33-deterministic-budget.log, pam33-node-after-clock-fix.log,
+pam33-clock-linux.log, pam33-clock-controls.json, pam33-clock-negative.log et
+pam33-clock-stress.log sous artifacts/autonomy.
+
+Cette correction reste locale à ce checkpoint. Les cinq pushes exacts du plan
+initial sont consommés ; un nouveau plan concret devra être autorisé avant
+tout push supplémentaire. La CI neuve réussie et l'artefact requis manquent
+toujours. Le ticket reste ouvert et aucun successeur n'est créé. Les résultats
+finaux et le nettoyage des cinq PR/runs seront réconciliés avant la suite.

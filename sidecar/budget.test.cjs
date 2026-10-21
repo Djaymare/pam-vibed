@@ -80,20 +80,37 @@ test('eight media actions share helper budgets and do not emit after slow discov
 });
 function toolsForPause(app){return require('./assistant.cjs').actionToolName(app,'media_pause');}
 
-test('late preparation cannot emit an external effect after the global timer fires', async t => {
-  const f=await fixture(t);let effects=0;
-  const handle=createAssistant({configDirectory:f.directory,runtimeDirectory:f.directory,budgetMs:60,
+test('late preparation cannot emit an external effect after the global timer fires', {timeout:10_000}, async t => {
+  const f=await fixture(t);let effects=0,elapsed=0,serial=0;
+  const timers=new Map();
+  const clock={now:()=>elapsed,setTimer:callback=>{const id=++serial;timers.set(id,callback);return id;},clearTimer:id=>timers.delete(id)};
+  let enterPreparation,releasePreparation,finishLatePreparation;
+  const entered=new Promise(resolve=>{enterPreparation=resolve;});
+  const preparation=new Promise(resolve=>{releasePreparation=resolve;});
+  const lateFinished=new Promise(resolve=>{finishLatePreparation=resolve;});
+  t.after(()=>releasePreparation());
+  const handle=createAssistant({configDirectory:f.directory,runtimeDirectory:f.directory,budgetMs:60,...clock,
     runEngine:async()=>({stdout:JSON.stringify({confidence:1,function_calls:[f.call,f.call]})}),
     launchApplication:async (_app,_args,options)=>{
-      await new Promise(resolve=>setTimeout(resolve,150));await options.beforeEffect();effects++;
-      return {success:true,message:'Effect'};
+      enterPreparation();
+      try {
+        await preparation;await options.beforeEffect();effects++;
+        return {success:true,message:'Effect'};
+      } finally {finishLatePreparation();}
     }});
   const pending=await handle('process_text',{text:'Ouvre Fixture deux fois'});
   assert.equal(pending.status,'pending');assert.equal(effects,0);
-  const started=performance.now();const turn=await handle('confirm',{id:pending.id});
-  assert.ok(performance.now()-started<140);assert.equal(turn.status,'partial');
+  const confirming=handle('confirm',{id:pending.id});
+  await entered;assert.equal(effects,0);assert.ok(timers.size>0);
+  // Expire the real production budget's registered timer while preparation stays
+  // blocked. Filesystem/runner scheduling cannot consume this logical clock.
+  elapsed=60;
+  for(const timer of [...timers.values()])timer();
+  const turn=await confirming;
+  assert.equal(turn.status,'partial');assert.equal(effects,0);
   assert.deepEqual(turn.results.map(r=>r.outcome),['not_started','not_started']);
-  await new Promise(resolve=>setTimeout(resolve,170));assert.equal(effects,0);
+  releasePreparation();await lateFinished;assert.equal(effects,0);
+  assert.equal(timers.size,0);
 });
 
 test('restarting after a crash in an emitted action recovers the journal without replay', async t => {
