@@ -50,7 +50,7 @@ de PAM-37 sont conservés. Aucun circuit de signature/publication n'est ajouté.
 | --- | --- |
 | Une PR ne publie aucun artefact de paquet après échec ; format/Rust visibles avant packaging | Implémenté par needs et upload success ; mutations locales vertes. Exécution GitHub non réalisée, critère encore ouvert. |
 | Format erroné, test Rust/UI rouge ou paquet incomplet interdit la livraison | Runner, mutations de politique et tests de packaging locaux. Scénarios GitHub à exécuter, critère encore ouvert. |
-| Tests réels distingués des simulations, sans applications personnelles | Suites séparées et commandes explicites ; WebView2 utilise IPC simulé et micro synthétique, Needle utilise profils/sessions de test. Validations réelles finales consignées ci-dessous à leur exécution. |
+| Tests réels distingués des simulations, sans applications personnelles | Satisfait : trois tests Node avec moteurs réels, Rust engine-integration, suites Needle et smoke de paquet exécutés ; WebView2 utilise IPC simulé et micro synthétique, Needle utilise profils/sessions de test. Aucun programme personnel commandé. |
 | Exécution neuve réussie avec artefact lié au commit et résultats | Provenance et garde de commit codées ; CI distante pas encore exécutée, critère ouvert. |
 
 ## Contrôles locaux déjà exécutés
@@ -85,17 +85,79 @@ localement : audit complet mais needsReview true, donc code 1 du security:gate
 séparé ; un succès du workflow Windows ne signifie pas un scan de sécurité vert.
 La revue sécurité reste nécessaire avant toute future signature/publication.
 
-## Validation finale restant à exécuter
+## Validation locale finale sur le commit de code
 
-Intégrations réelles, build frais NSIS/portable et vérification du paquet sur
-le commit local de code, puis scénarios négatifs locaux et plan distant exact.
-Les résultats seront ajoutés après exécution, sans transformer une étape
-manquante en succès. Les SHA finaux appartiennent au reçu, pas à ce document.
+Code testé : `1a217ac6ce39b7c7fd16ace81e893a49c7fa00bf`. Le checkout est propre
+au démarrage des phases quick, intégration et packaging ; leurs rapports
+enregistrent ce SHA et workingTreeClean true. Les compléments ultérieurs de ce
+document ne modifient aucun des fichiers de code/ressources testés.
+
+| Commande ou scénario | Résultat réel | Trace |
+| --- | --- | --- |
+| npm run ci:quick | 0 : 452 tests Node, zéro échec/ignoré ; 99 composants, format, lint, politique et TypeScript/Vite | pam33-quick-committed.log, artifacts/ci/quick/report.json |
+| Image Docker du commit : format/lint, composants, npm test et build | 0 : 450 tests réussis, deux skips Windows, 99 composants et build ; bindings Linux réels | pam33-docker-committed-build.log, pam33-linux-committed-quick.log |
+| npm run ci:integration | 0 : préparation runtime ; 58 tests Rust avec feature moteur ; trois tests Node réels ; smoke runtime ; 32 cas et quatre formulations de confiance, 48 cas Deezer et 65 cas média | pam33-integration.log, artifacts/ci/integration/report.json |
+| npm run ci:package | 0 : NSIS neuf, portable neuf de 2112 fichiers, verify:bundle puis preuve de commit/manifeste/installeur | pam33-package.log, artifacts/ci/package/report.json, artifacts/ci/delivery.json |
+| Faute de format Rust isolée | Échec attendu code 1 de cargo fmt --check, diff exact sur use host::AssistantBridge | pam33-negative-format.log |
+| Test Rust rouge isolé, correctement formaté et Clippy vert | Échec attendu code 101 : pam33_ci_failure::deliberately_red, 1 attendu égal à 2 ; production partagée inchangée | pam33-negative-rust-format.log, pam33-negative-rust-clippy.log, pam33-negative-rust.log |
+| Test Vue/IPC rouge isolé | Échec attendu code 1 de component-journeys.test.mjs, nombre de demandes 1 au lieu de 2 ; vrais composables et IPC simulé | pam33-negative-ui.log |
+| Copie du vrai portable avec uniquement sidecar/contracts.cjs absent | Échec attendu code 1 de verify:bundle ; une seule commande exécutée, marqueur de livraison suivante absent ; portable source revérifié et intact | pam33-negative-bundle/report.json, pam33-negative-bundle-result.json |
+
+Le contrôle de paquet incomplet utilise des liens physiques en lecture seule
+vers les fichiers du paquet, omet exactement une ressource et supprime ensuite
+uniquement son store temporaire borné. Aucun fichier du portable original n'est
+modifié. Une première assertion du harnais attendait le nom du fichier dans
+l'erreur ; le vérificateur émet une erreur générique d'inventaire. Le harnais
+vérifie désormais l'écart exact de fichiers et cette erreur réelle ; trace
+initiale conservée dans pam33-negative-bundle-initial.log.
+
+BuildId : `9f39cc4e-6d5f-49f9-8f1a-4ddc9037046a`. Portable :
+`artifacts/PAM-windows-x64/releases/4fd88a2c-88d5-44a2-825a-386c9cb1eb7e`.
+Empreinte du manifeste :
+`407a3e99d8caa957bfbb08920d7b720f44e3182e10080d64541040bf9e377828`.
+NSIS `PAM_0.1.0_x64-setup.exe` :
+`837eca79b4ae29bda5d12ed18891e6dabd361c64313416367391b98309fb4dac`.
+L'installeur est construit, pas installé. verify:bundle exécute le binaire,
+le sidecar, Needle, un exécutable jetable et du silence Whistle depuis le
+portable final avec PATH vide. Les profils/ressources/processus sont nettoyés.
+Les deux PID WebView2 sont confirmés absents ; Docker, initialement arrêté et
+démarré pour ces contrôles, est arrêté après disparition des conteneurs de test.
+
+## Plan distant préparé, non exécuté
+
+Le plan exact est `artifacts/autonomy/pam33-probes/plan.json` : cinq pushes
+sur branches de test nouvelles, cinq PR brouillon sans reviewers, collecte
+des jobs/logs/artefacts, annulation des seuls runs de sonde devenus inutiles
+après preuve de leur échec, puis fermeture sans fusion et suppression des cinq
+branches. Aucun push de l'intégration ni changement de permissions.
+
+| Branche | SHA préparé | Résultat à observer |
+| --- | --- | --- |
+| codex/pam33-valid-g42 | `1a217ac6ce39b7c7fd16ace81e893a49c7fa00bf` | Quatre jobs verts et artefact NSIS/portable/preuves lié au SHA GitHub testé |
+| codex/pam33-format-g42 | `d038b6040407b46f68917ea4359a002b5757deeb` | Format Rust rouge, build ignoré, diagnostics seuls |
+| codex/pam33-rust-g42 | `25e8896990eccc40b1ca9e74b39c7f8befd654ff` | Test Rust rouge, build ignoré, diagnostics seuls |
+| codex/pam33-ui-g42 | `f2669d8b4141fc1e75461feee902624d7fa5cee0` | Test Vue rouge dans quick, jobs dépendants ignorés, diagnostics seuls |
+| codex/pam33-bundle-g42 | `6bea29443bc665a518da9e8f603b61da7639eaa0` | Retrait d'une ressource après assemblage, verify:bundle rouge, aucun artefact de paquet |
+
+Les quatre commits fautifs sont des objets Git détachés, jamais ancêtres du
+HEAD d'intégration. Ils conservent permissions, délais et dépendances du vrai
+workflow. Le défaut de paquet ajoute seulement une commande de test avant
+verify:bundle ; il ne neutralise pas les contrôles. Les branches sont absentes
+du remote lors de la préparation. Cible des PR : codex/deezer-routing, dont le
+HEAD distant observé est `8c57384f0bc4f80be4290d8c179ba0c612798a9f`.
+Le plan inclut les trois commits de preuve PAM-31/37 encore locaux présents
+dans l'ascendance du code ; le diff sortant et la liste des commits sont joints.
+
+Le test utilisera des PR du même dépôt ; aucun mécanisme propre aux forks
+n'est revendiqué. Le workflow sécurité séparé pourra être rouge à cause des
+avis/changements amont déjà observés : son résultat devra rester explicite.
+Une réussite du workflow Windows entier et son artefact restent à constater.
+Le plan ne fusionne, ne signe, ne publie et ne modifie aucun réglage du dépôt.
 
 Une validation GitHub sur branches de travail est explicitement requise par
 le contrat. Aucun push n'est autorisé par le lancement général de la chaîne.
 Les autorisations PAM-31 et PAM-37 portent sur leurs opérations déjà terminées.
 PAM-33 reste donc ouvert tant que les runs et leur artefact ne sont pas vérifiés.
-Outcome de ce checkpoint : blocked pour clôture, validation distante en attente.
+Outcome : blocked pour clôture, validation distante et autorisation ciblée en attente.
 Pas de successeur ni de transfert avant résolution. Vérification par le worker
 implémenteur, sans revue indépendante revendiquée.
