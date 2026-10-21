@@ -78,6 +78,17 @@ export function validateQualityWorkflow(w) {
           'package artifact must identify its commit',
         );
         check(paths.includes('artifacts/ci/'), 'package must include validation evidence');
+        check(
+          paths.includes('artifacts/PAM-windows-x64.zip') &&
+            paths.every((p) =>
+              [
+                'artifacts/PAM-windows-x64.zip',
+                'artifacts/ci/',
+                'src-tauri/target/x86_64-pc-windows-msvc/release/bundle/nsis/*setup.exe',
+              ].includes(p),
+            ),
+          'package must upload only the verified archive, NSIS and evidence',
+        );
       } else {
         diagnostics++;
         check(

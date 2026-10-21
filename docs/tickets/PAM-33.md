@@ -385,3 +385,47 @@ pam33-confidence-original-request.log,
 pam33-confidence-old-request-control.log et pam33-original-request-quick.log.
 Cette modification de fixture doit encore être validée sur GitHub ; aucun
 succès distant n'est anticipé. Les critères 1, 2 et 4 restent ouverts.
+
+## Conservation exacte du portable dans l'artefact
+
+Pendant les runs complémentaires autorisés sur 1882df8, la vérification de
+l'inventaire local détecte quatre chemins cachés : runtime/npm/.npmrc, deux
+.release-please-manifest.json de node-gyp et gyp, et .travis.yml de
+qrcode-terminal. Le [README de l'action épinglée](https://github.com/actions/upload-artifact/blob/ea165f8d65b6e75b540449e92b4886f43607fa02/README.md#uploading-hidden-files)
+confirme leur exclusion avec include-hidden-files false. Un répertoire
+portable envoyé directement ne préserverait donc pas son manifeste exact.
+L'inspection effective de l'archive hébergée reste à faire après le build.
+
+La correction locale ajoute une archive ZIP interne. Windows bsdtar est lancé
+sans shell avec une liste NUL de chemins explicites ; seul le pointeur
+courant, le manifeste et les fichiers de sa publication active sont inclus.
+Le ZIP est relu intégralement et chaque entrée/hachage comparé à l'inventaire
+avant remplacement atomique. Son nom, SHA-256 et nombre d'entrées sont ajoutés
+à delivery.json. L'upload autorise seulement ce ZIP, l'installeur et les
+rapports ; include-hidden-files false, permissions, SHA des actions et règles
+de succès restent conservés. Les contrôles d'archive s'ajoutent après
+verify:bundle et ses preuves, sans déplacer les contrôles précédents.
+
+Trois régressions Windows couvrent fichier caché conservé, fichier non listé
+exclu, simulation du filtre caché refusée sans remplacement de l'archive
+précédente, ressource altérée et traversée refusées. Elles sont aussi exigées
+dans native-tests après rustfmt. La politique refuse à nouveau un upload du
+répertoire brut. Les 50 tests archivage/politique/runner passent ; quick passe
+avec 464 tests Node Windows, 99 composants, format/lint/TypeScript/build et
+actionlint. Linux passe 459 tests, cinq skips Windows visibles et le build.
+
+Essai avec le portable local complet du commit 1a217ac, sans prétendre à un
+nouveau build : 2112 fichiers, 2114 entrées ZIP avec pointeur et manifeste,
+quatre fichiers cachés conservés et tous les hachages vérifiés. Le chemin
+complet archivePortable est aussi exécuté dans une copie isolée par liens
+physiques ; la métadonnée delivery correspond au ZIP. Le reçu et le pointeur
+originaux restent byte-identiques ; la copie est nettoyée après contrôle des
+chemins absolus. Aucun exécutable du paquet n'est lancé pour ces essais.
+
+Traces : pam33-archive-unit.log, pam33-archive-controls.log,
+pam33-archive-real-result.json, pam33-archive-portable-control.json,
+pam33-archive-quick.log, pam33-archive-linux-tests.log et
+pam33-archive-actionlint.log sous artifacts/autonomy. Le nouveau chemin
+d'upload n'est pas encore testé sur GitHub à ce checkpoint ; les runs en
+cours testent leurs SHA approuvés antérieurs. La clôture reste interdite tant
+que le paquet effectivement téléchargé n'est pas intégralement vérifié.

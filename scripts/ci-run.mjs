@@ -27,6 +27,7 @@ export function checksFor(phase, npmCli = process.env.npm_execpath) {
     native: [
       node('scripts/prepare-native-tests.mjs'),
       cargo('fmt', '--manifest-path', 'src-tauri/Cargo.toml', '--check'),
+      node('--test', 'tests/ci-archive.test.mjs'),
       cargo(
         'clippy',
         '--manifest-path',
@@ -80,6 +81,7 @@ export function checksFor(phase, npmCli = process.env.npm_execpath) {
       script('package:portable'),
       script('verify:bundle'),
       node('scripts/ci-artifact.mjs'),
+      node('scripts/ci-archive.mjs'),
     ],
   };
   if (!phases[phase]) throw Error(`Unknown CI phase: ${phase}`);

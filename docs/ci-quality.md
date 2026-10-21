@@ -74,12 +74,22 @@ création des fichiers reste visible dans les logs GitHub ; l'upload absent
 échoue aussi et n'est jamais compté comme une preuve réussie.
 
 L'upload de paquet suit toutes les vérifications. Son nom inclut le SHA
-GitHub, l'événement, le run et sa tentative. Il contient NSIS, portable et
+GitHub, l'événement, le run et sa tentative. Il contient NSIS, l'archive du portable et
 rapports d'intégration/packaging. `artifacts/ci/delivery.json` lie le commit
 testé, le buildId, l'empreinte du manifeste portable et de l'installeur, ainsi
 que le rapport d'intégration. Un checkout différent du SHA GitHub ou un rapport
 d'intégration non réussi, sale ou d'un autre commit est refusé. Rétention sept
 jours, fichiers cachés exclus et écrasement interdit.
+
+Le portable est d'abord archivé dans `PAM-windows-x64.zip`, avec Windows
+bsdtar lancé sans shell. L'archive inclut seulement le pointeur courant et
+les fichiers de sa publication identifiés par le manifeste ; les anciennes
+publications et tout fichier non listé restent exclus. Chaque entrée et son
+SHA-256 sont relus avant remplacement atomique de l'archive. Son empreinte et
+son nombre d'entrées sont ajoutés à `delivery.json`. Les quatre fichiers
+cachés du runtime npm, dont `.npmrc`, sont ainsi préservés à l'intérieur du
+ZIP, alors que l'upload du workspace conserve `include-hidden-files: false`.
+Les régressions Windows de cette étape passent aussi dans native-tests.
 
 ## Checks requis côté dépôt
 

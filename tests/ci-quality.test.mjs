@@ -24,6 +24,7 @@ test('production jobs gate packaging on quick, Windows and Linux checks', () => 
     'clippy',
     '--all-targets -- -D warnings',
     '--locked',
+    'tests/ci-archive.test.mjs',
     'test:webview',
     'test:webview:cleanup',
   ])
@@ -39,13 +40,23 @@ test('production jobs gate packaging on quick, Windows and Linux checks', () => 
     assert.ok(runs('integration').includes(command));
   assert.match(
     runs('package'),
-    /package:windows[\s\S]*package:portable[\s\S]*verify:bundle[\s\S]*ci-artifact/,
+    /package:windows[\s\S]*package:portable[\s\S]*verify:bundle[\s\S]*ci-artifact[\s\S]*ci-archive/,
   );
   for (const phase of ['quick', 'native', 'integration', 'package'])
     assert.ok(checksFor(phase, 'npm').every((c) => c.timeoutMs > 0 && c.timeoutMs <= 30 * 60_000));
 });
 
 const mutations = [
+  [
+    'raw portable directory loses hidden manifest files',
+    (w) => {
+      const upload = w.jobs.build.steps.find((s) => s.with?.name?.startsWith('PAM-ci-'));
+      upload.with.path = upload.with.path.replace(
+        'artifacts/PAM-windows-x64.zip',
+        'artifacts/PAM-windows-x64/',
+      );
+    },
+  ],
   [
     'Linux pipeline without pipefail',
     (w) => {

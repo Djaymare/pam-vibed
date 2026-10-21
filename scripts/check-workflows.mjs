@@ -160,7 +160,7 @@ export function validateWorkflows(workflows, pins, versions) {
           const paths = (input.path ?? '').trim().split(/\r?\n/);
           const allowed = new Set([
             'artifacts/security/',
-            'artifacts/PAM-windows-x64/',
+            'artifacts/PAM-windows-x64.zip',
             'artifacts/ci/',
             'artifacts/webview-tests/',
             'artifacts/webview-cleanup/',
