@@ -1,10 +1,13 @@
+# Disposable PAM-37 remote validation variant; never merge this branch.
 name: Prototype Windows x64
-# Build/test only. Signing and publication must use a separate, protected workflow.
 on:
-  workflow_dispatch:
+  workflow_dispatch: null
   push:
-    branches: [main, master, codex/deezer-routing]
-  pull_request:
+    branches:
+      - main
+      - master
+      - codex/deezer-routing
+  pull_request: null
 permissions:
   contents: read
 concurrency:
@@ -13,53 +16,39 @@ concurrency:
 jobs:
   native-tests:
     runs-on: windows-2022
-    timeout-minutes: 45
+    timeout-minutes: 1
     steps:
-      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
         with:
           persist-credentials: false
-          fetch-depth: 0 # Historical negative controls read the audited revision.
-      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
-        with:
-          node-version: '24.21.0'
-      - uses: dtolnay/rust-toolchain@683b588c487a69d01f6c6ddf40f036ff682cc2c8 # master snapshot, 2026-10-18
-        with:
-          toolchain: '1.99.0'
-          components: clippy, rustfmt
-          targets: x86_64-pc-windows-msvc
-      - uses: Swatinem/rust-cache@779680da715d629ac1d338a641029a2f4372abb5 # v2.8.2 (peeled commit)
-        if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master')
-        with:
-          workspaces: src-tauri
-          prefix-key: pam-ci-v1
-          key: ${{ github.ref_name }}
-          cache-targets: false
-          cache-bin: false
-          cache-on-failure: false
-      - run: node scripts/prepare-native-tests.mjs
-      - run: cargo fmt --manifest-path src-tauri/Cargo.toml --check
-      - run: cargo clippy --manifest-path src-tauri/Cargo.toml --locked --target x86_64-pc-windows-msvc --all-targets -- -D warnings
-      - run: cargo test --manifest-path src-tauri/Cargo.toml --locked --target x86_64-pc-windows-msvc
-      - run: rustc --edition 2021 --target x86_64-pc-windows-msvc tests/fixtures/process-fixture.rs -o native-fixture.exe
-      - run: node scripts/test-native-history.mjs rustc native-fixture.exe
+          fetch-depth: 0
+      - name: Verify disposable checkout and wait for the GitHub job timeout
+        shell: pwsh
+        run: |-
+          $ErrorActionPreference = 'Stop'
+          $headers = @(git config --local --get-regexp 'http[.].*[.]extraheader')
+          if ($headers.Count -ne 0) { throw 'Checkout retained credentials' }
+          Write-Output 'PAM-37 controlled timeout probe: no signing, publication or application command'
+          Start-Sleep -Seconds 180
+          throw 'GitHub failed to enforce the one minute timeout'
   build:
     runs-on: windows-2022
     timeout-minutes: 90
     steps:
-      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
         with:
           persist-credentials: false
-      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
         with:
-          node-version: '24.21.0'
+          node-version: 24.21.0
           cache: ${{ github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master') && 'npm' || '' }}
           cache-dependency-path: package-lock.json
-      - uses: dtolnay/rust-toolchain@683b588c487a69d01f6c6ddf40f036ff682cc2c8 # master snapshot, 2026-10-18
+      - uses: dtolnay/rust-toolchain@683b588c487a69d01f6c6ddf40f036ff682cc2c8
         with:
-          toolchain: '1.99.0'
+          toolchain: 1.99.0
           components: clippy, rustfmt
           targets: x86_64-pc-windows-msvc
-      - uses: Swatinem/rust-cache@779680da715d629ac1d338a641029a2f4372abb5 # v2.8.2 (peeled commit)
+      - uses: Swatinem/rust-cache@779680da715d629ac1d338a641029a2f4372abb5
         if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master')
         with:
           workspaces: src-tauri
@@ -80,7 +69,7 @@ jobs:
       - run: npm run package:windows
       - run: npm run package:portable
       - run: npm run verify:bundle
-      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
           name: PAM-ci-windows-x64-${{ github.event_name }}-${{ github.run_id }}-${{ github.run_attempt }}
           retention-days: 7
@@ -90,12 +79,14 @@ jobs:
           path: |
             src-tauri/target/x86_64-pc-windows-msvc/release/bundle/nsis/*setup.exe
             artifacts/PAM-windows-x64/
+    if: ${{ github.event_name == 'workflow_dispatch' }}
   linux:
     runs-on: ubuntu-24.04
     timeout-minutes: 60
     steps:
-      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
         with:
           persist-credentials: false
       - run: docker build -f Dockerfile.development -t pam-development .
       - run: docker run --rm pam-development
+    if: ${{ github.event_name == 'workflow_dispatch' }}
