@@ -76,7 +76,10 @@ Pour chaque mise à jour :
 
 Sur un dépôt de test autorisé, sans aucun secret de livraison :
 
-1. Ouvrir une PR depuis un fork avec la révision finale. Conserver URL de PR,
+1. Ouvrir une PR de test avec la révision finale. Utiliser un fork pour exercer
+   aussi ses mécanismes particuliers d'approbation et de rétention des secrets ;
+   une PR du même dépôt doit signaler que ces mécanismes ne sont pas testés.
+   Conserver URL de PR,
    SHA, URL/ID de chaque run et logs d'initialisation des jobs montrant les
    permissions effectives du GITHUB_TOKEN. Vérifier le checkout sans credentials
    persistés et l'absence de signature/publication/d'accès à des secrets.
@@ -90,6 +93,16 @@ Sur un dépôt de test autorisé, sans aucun secret de livraison :
 4. Vérifier les caches absents sur PR, les noms/rétentions/chemins des artefacts
    et les limites des jobs de la révision finale. Conserver les logs ; une
    inspection YAML ou une simulation locale ne prouve pas ces faits distants.
+
+Pour la validation du 21 octobre 2026, les deux PR temporaires autorisées du
+même dépôt ont établi les permissions en lecture seule, l'annulation du run
+obsolète sans affecter la PR témoin et l'expiration de la sonde à une minute.
+GitHub a conclu `cancelled` et ajouté une annotation explicite de dépassement
+du temps maximal ; ce résultat ne doit pas être inféré du seul statut.
+La variante d'expiration n'a jamais été intégrée. Son workflow sécurité a
+échoué sur des tests qui supposent la structure complète du job remplacé ;
+ce n'est pas une CI verte. Preuves, limites et nettoyage :
+[`docs/tickets/PAM-37.md`](tickets/PAM-37.md).
 
 Références : [sécurité des actions](https://docs.github.com/en/actions/reference/security/secure-use),
 [syntaxe des workflows](https://docs.github.com/en/actions/reference/workflows-and-actions/workflow-syntax),
