@@ -35,9 +35,12 @@ Les deux tests de délai d’écriture préparent d’abord leur fixture par un
 échange `status` borné à cinq secondes. La fixture cesse de lire stdin avant
 d’accuser réception ; son éventuel enfant hérite alors déjà des pipes.
 Une fabrique retarde volontairement chaque lancement d’une seconde, au-delà
-des budgets d’écriture de 600 et 800 ms. Ces budgets commencent ensuite avec
-la demande audio ; le résultat doit rester `bridge_write_timeout`, en moins
-de deux secondes, avec nettoyage des PID et reprise sans rejeu. Les échanges
+des budgets d’écriture de 600 et 800 ms. Après cet échange, l’horloge injectée
+est figée pendant l’admission et la sérialisation de la trame synthétique de
+4 Mo, puis reprend en temps réel lorsque l’acteur atteint `WRITING`.
+L’attente de ce stade reste bornée à cinq secondes réelles. Le résultat doit
+rester `bridge_write_timeout`, en moins de deux secondes réelles depuis la
+reprise de l’horloge, avec nettoyage des PID et reprise sans rejeu. Les échanges
 de préparation et de récupération ont leur propre borne de cinq secondes.
 Le budget de bout en bout de production reste couvert séparément par les tests
 d’admission, de file et de démarrage ; aucun délai de production n’est modifié.

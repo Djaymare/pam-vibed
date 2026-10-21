@@ -91,11 +91,51 @@ Zéro échec ou test ignoré dans ces suites finales. Journaux
 Les deux tests ciblés ont aussi été exécutés séparément. Contrôle final des
 PID : aucun processus de fixture restant.
 
-**Outcome de reprise : blocked, critère CI toujours ouvert.** Les correctifs de
-fixture restent locaux en attendant leur autorisation de push et une nouvelle
-exécution CI réussie. La fiche ne peut pas être clôturée et aucun relais n’est
-transféré pendant cette attente. Aucun programme personnel commandé ni
-permission modifiée. Le reçu conserve les SHA et empreintes des journaux.
+### Deuxième exécution CI et horloge d’écriture
+
+Le push de `2527b1ffc25fcb1474f712312ff210fc6b4cb4fa` a été autorisé par le
+message humain `01a15e8b-c7d1-74f2-864d-bfe952097e8c`, puis vérifié. Le
+[run 39604170117](https://github.com/Djaymare/pam-vibed/actions/runs/39604170117)
+exécute ce SHA. Les 58 tests avec moteur, les 436 tests Node et l’intégration
+Windows réelle ont réussi. Le job natif a échoué avec 56/57 tests : la file et
+la sérialisation de l’audio synthétique consommaient encore les 600 ms sur un
+runner chargé, avant `WRITING` (`bridge_queue_timeout`). Son journal est
+`pam31-g40-ci-native-attempt2.log`.
+
+L’horloge injectable de ces deux tests est maintenant figée après le bootstrap,
+pendant l’admission et la sérialisation des 4 Mo de données synthétiques.
+Le test attend le stade `WRITING`, avec une borne de cinq secondes réelles,
+puis reprend une horloge qui avance réellement. Les 600/800 ms commencent à
+ce stade ; les assertions d’erreur, de retour sous deux secondes réelles, de
+mort des PID et de récupération restent intactes. Les requêtes de préparation
+et de récupération restent bornées à cinq secondes et le budget de production
+depuis l’admission reste testé séparément. Aucun code de production modifié.
+
+La suite locale normale repasse intégralement : 57 tests par défaut, 58 avec
+toutes features, Clippy tous targets/toutes features, rustfmt ; journaux
+`pam31-g40-clock-suite-{test,all,clippy,fmt}.log` et résultats dans
+`pam31-g40-clock-suite-results.json`. Les deux tests ciblés passent séparément.
+Le dernier `npm test` compte 436 réussites sur les mêmes sources Node.
+Une sonde supplémentaire avec affinité limitée à deux CPU et 64 threads de
+tests, pendant une autre compilation, a passé les deux tests de pipe mais
+échoué sur sept autres attentes de réponse : 50/57. Elle ne vaut pas une suite
+globale réussie ; ses journaux `pam31-g40-clock-two-cpu.*log` sont conservés.
+Les bornes natives restent dépendantes de l’ordonnancement, sans garantie temps
+réel sous saturation volontaire.
+
+Le job build a aussi révélé un échec indépendant dans `test:confidence` : le
+contrôle d’inférence initial attendait un appel et en a reçu zéro
+(`scripts/smoke-confidence.mjs:51`). Journal `pam31-g40-ci-build-attempt2.log`.
+Les sources de ce contrôle et du moteur ne sont pas modifiées par PAM-31.
+Ce résultat n’est pas compté comme une réussite de la CI globale ; la barrière
+complète appartient à PAM-33. La validation PAM-31 exige toujours le job natif
+Windows et ses contrôles historiques effectivement réussis.
+
+**Outcome de reprise : blocked, critère CI natif toujours ouvert.** Le dernier
+correctif de fixture reste local en attendant son autorisation de push et la
+preuve CI native. La fiche reste ouverte, aucun relais n’est transféré pendant
+cette attente. Aucun programme personnel commandé ni permission modifiée.
+Le reçu conserve les SHA et les empreintes des journaux.
 
 ## Résultat initial du 18 octobre et critère restant
 

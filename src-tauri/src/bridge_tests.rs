@@ -38,20 +38,22 @@ impl Fixture {
         Self::create(mode, timeout, capacity, false)
     }
     fn create(mode: &str, timeout: Duration, capacity: usize, real_runtime: bool) -> Self {
-        Self::create_with_factory(
+        Self::create_with_services(
             mode,
             timeout,
             capacity,
             real_runtime,
             Arc::new(SystemProcess),
+            Arc::new(SystemClock),
         )
     }
-    fn create_with_factory(
+    fn create_with_services(
         mode: &str,
         timeout: Duration,
         capacity: usize,
         real_runtime: bool,
         factory: Arc<dyn ProcessFactory>,
+        clock: Arc<dyn Clock>,
     ) -> Self {
         let root = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
         let profile = std::env::temp_dir().join(format!(
@@ -76,7 +78,7 @@ impl Fixture {
             },
             timeout,
             capacity,
-            Arc::new(SystemClock),
+            clock,
             factory,
         )
         .unwrap();
@@ -86,16 +88,27 @@ impl Fixture {
             runtime,
         }
     }
-    fn blocked_pipe(mode: &str, timeout: Duration) -> Self {
-        let fixture =
-            Self::create_with_factory(mode, timeout, 4, false, Arc::new(DelayedFixtureProcess));
+    fn blocked_pipe(mode: &str, timeout: Duration) -> (Self, Arc<PreparedClock>) {
+        let clock = Arc::new(PreparedClock::new());
+        let fixture = Self::create_with_services(
+            mode,
+            timeout,
+            4,
+            false,
+            Arc::new(DelayedFixtureProcess),
+            clock.clone(),
+        );
         // Bootstrap has a separate, bounded deadline. The fixture acknowledges
         // status only after it (and its optional helper) stops reading stdin.
         fixture
             .bridge
             .request_until("status", json!({}), Instant::now() + Duration::from_secs(5))
             .unwrap();
-        fixture
+        // The synthetic 4 MB frame's admission/serialization is preparation
+        // for this stage-specific test. wait_for bounds its real duration;
+        // the clock resumes at WRITING and then advances in real time.
+        clock.pause();
+        (fixture, clock)
     }
     fn wait_for(&self, check: impl Fn() -> bool) {
         let deadline = Instant::now() + Duration::from_secs(5);
@@ -132,7 +145,7 @@ impl Fixture {
                 .unwrap()
                 .lifecycle
                 .retry_at
-                .is_none_or(|at| Instant::now() >= at)
+                .is_none_or(|at| self.bridge.control.clock.now() >= at)
         });
     }
     fn assert_dead(&self, pid: u64) {
@@ -168,6 +181,31 @@ impl ProcessFactory for DelayedFixtureProcess {
         // fixture preparation, while the measured operation must reach WRITING.
         thread::sleep(Duration::from_secs(1));
         command.spawn()
+    }
+}
+
+struct PreparedClock(Mutex<(Instant, Option<Instant>)>);
+impl PreparedClock {
+    fn new() -> Self {
+        let now = Instant::now();
+        Self(Mutex::new((now, Some(now))))
+    }
+    fn pause(&self) {
+        let mut state = self.0.lock().unwrap();
+        if let Some(started) = state.1.take() {
+            state.0 += started.elapsed();
+        }
+    }
+    fn resume(&self) {
+        let mut state = self.0.lock().unwrap();
+        assert!(state.1.is_none());
+        state.1 = Some(Instant::now());
+    }
+}
+impl Clock for PreparedClock {
+    fn now(&self) -> Instant {
+        let state = self.0.lock().unwrap();
+        state.0 + state.1.map_or(Duration::ZERO, |started| started.elapsed())
     }
 }
 
@@ -741,12 +779,13 @@ fn missing_host_target_has_a_safe_stable_error() {
 
 #[test]
 fn unread_audio_pipe_has_a_deadline_and_recovers() {
-    let fixture = Fixture::blocked_pipe("pause-after-status", Duration::from_millis(600));
+    let (fixture, clock) = Fixture::blocked_pipe("pause-after-status", Duration::from_millis(600));
+    let bridge = fixture.bridge.clone();
+    let request = thread::spawn(move || bridge.request("process_audio", audio()));
+    fixture.at_stage(WRITING);
     let start = Instant::now();
-    let error = fixture
-        .bridge
-        .request("process_audio", audio())
-        .unwrap_err();
+    clock.resume();
+    let error = request.join().unwrap().unwrap_err();
     assert_eq!(error.code, "bridge_write_timeout", "{error}");
     assert!(start.elapsed() < Duration::from_secs(2));
     fixture.ready();
@@ -757,7 +796,7 @@ fn unread_audio_pipe_has_a_deadline_and_recovers() {
         .request_until(
             "process_text",
             json!({"text":"recovered"}),
-            Instant::now() + Duration::from_secs(5),
+            fixture.bridge.control.clock.now() + Duration::from_secs(5),
         )
         .unwrap();
     assert_eq!(result["transcript"], "recovered");
@@ -788,12 +827,14 @@ fn shutdown_during_write_does_not_wait_for_pipe_lock() {
 
 #[test]
 fn deadline_kills_internal_children_that_inherit_the_pipe() {
-    let fixture = Fixture::blocked_pipe("pause-after-status-child", Duration::from_millis(800));
+    let (fixture, clock) =
+        Fixture::blocked_pipe("pause-after-status-child", Duration::from_millis(800));
+    let bridge = fixture.bridge.clone();
+    let request = thread::spawn(move || bridge.request("process_audio", audio()));
+    fixture.at_stage(WRITING);
     let start = Instant::now();
-    let error = fixture
-        .bridge
-        .request("process_audio", audio())
-        .unwrap_err();
+    clock.resume();
+    let error = request.join().unwrap().unwrap_err();
     assert_eq!(error.code, "bridge_write_timeout");
     assert!(start.elapsed() < Duration::from_secs(2));
     fixture.wait_for(|| fixture.bridge.is_idle());
@@ -823,7 +864,11 @@ fn deadline_kills_internal_children_that_inherit_the_pipe() {
     fixture.mode("echo");
     assert!(fixture
         .bridge
-        .request_until("status", json!({}), Instant::now() + Duration::from_secs(5))
+        .request_until(
+            "status",
+            json!({}),
+            fixture.bridge.control.clock.now() + Duration::from_secs(5),
+        )
         .is_ok());
 }
 
