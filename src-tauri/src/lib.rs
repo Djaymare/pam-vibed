@@ -1,5 +1,5 @@
 #![deny(unsafe_op_in_unsafe_fn, clippy::undocumented_unsafe_blocks)]
-use host::AssistantBridge;
+use host :: AssistantBridge ;
 use serde_json::{json, Value};
 use std::sync::Arc;
 use tauri::{Emitter, Manager};
