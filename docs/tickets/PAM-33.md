@@ -317,3 +317,71 @@ Le prochain plan nécessite trois branches exactes : valide, faute de format
 Rust et paquet incomplet. Les preuves négatives Rust/UI initiales sont
 conservées ; aucune politique CI ni porte de packaging ne change depuis ces
 preuves. Un nouveau run complet reste indispensable pour le code corrigé.
+
+## Complément autorisé : trois sondes et nettoyage
+
+Le message humain 01a160a7-5252-77e0-9290-063ddb202bf2, tour
+01a160a7-51e3-7510-bde8-5e8c38b814bb, approuve le plan concret
+pam33-retry-probes-final/plan.json (empreinte avant accord
+b8df741619e5dc537849b2901c8e2f0a608c92d449eae00d18f7431d613e6154).
+Les trois pushes exacts sont vérifiés : valide 6f2512e, format d621f469,
+paquet incomplet 4580f05f. PR brouillon [8](https://github.com/Djaymare/pam-vibed/pull/8),
+[9](https://github.com/Djaymare/pam-vibed/pull/9),
+[10](https://github.com/Djaymare/pam-vibed/pull/10), sans reviewers.
+
+Le [run format 39689327514](https://github.com/Djaymare/pam-vibed/actions/runs/39689327514)
+passe quick et Linux. cargo fmt --check refuse la faute volontaire
+`use host :: AssistantBridge ;` ; les étapes suivantes du job natif ne sont
+pas exécutées et build est skipped. Trois artefacts de diagnostics existent,
+aucun artefact de paquet. La PR 9 est fermée sans fusion et sa branche supprimée.
+
+Les [runs valide 39689323412](https://github.com/Djaymare/pam-vibed/actions/runs/39689323412)
+et [paquet incomplet 39689332884](https://github.com/Djaymare/pam-vibed/actions/runs/39689332884)
+passent quick, Linux et native-tests (57 tests Rust, parcours WebView2 et
+nettoyage). Leurs builds passent 58 tests Rust moteur, trois tests Node réels
+dont le protocole et le smoke runtime, puis échouent dans la référence de
+confiance. Leurs quatre artefacts respectifs sont des diagnostics ; le
+packaging et son upload sont skipped. Le refus de paquet incomplet n'a
+toujours pas été atteint. Le commit de fusion valide
+99e15383d6c3bc5fd221b08405b41d09c66d2e18 a exactement l'arbre Git du SHA
+approuvé 6f2512e3dc6f9ca2aca973d366fb7e4fe58eb59b.
+
+Les réponses brutes invalident l'hypothèse suppressed_calls : function_calls
+et suppressed_calls sont vides. Le modèle interprète l'ancienne paraphrase
+comme un rejeu de l'historique ; ses scores de refus sont 0,5154 et 0,5042.
+Ces réponses sont des échecs réels et ne sont pas déclarées correctes.
+Aucune relance n'est consommée pour ce défaut reproduit sur deux runners.
+Les trois scans sécurité échouent indépendamment dans security:gate :
+complete true, needsReview true, errors vide ; ils ne sont pas neutralisés.
+
+Nettoyage revérifié : six runs terminés, trois PR closed/merged false et
+trois branches absentes. Aucun push d'intégration, fusion ou publication.
+Traces sous artifacts/autonomy : pam33-r2-dispatched-runs.json,
+pam33-r2-runs-latest.json, pam33-r2-*-jobs-latest.json,
+pam33-r2-format-native.log, pam33-r2-valid-native.log,
+pam33-r2-{valid,bundle}-build-attempt1.log,
+pam33-r2-*-artifacts-final.json et pam33-r2-*-cleanup.json.
+Les scripts de vérification/téléchargement ZIP préparés ne sont pas une
+preuve d'artefact valide : aucun paquet distant n'a été produit.
+
+### Référence de confiance corrigée sur la demande originale
+
+La paraphrase de référence ne correspondait pas au déclencheur de l'outil.
+La comparaison utilise maintenant la même demande originale
+`Play sur le navigateur` des deux côtés, avec une assertion supplémentaire
+qui exige sa correspondance au déclencheur. Les outils historiques restent
+historiques, et les outils et normalisations actuels restent inchangés.
+Le test exige toujours un unique appel correct sans argument inventé, le
+score brut, une progression stricte et le franchissement du même seuil.
+Aucun cas positif/négatif ni contrôle de formulation n'est retiré.
+
+Le contrôle négatif réinjectant l'ancienne paraphrase échoue sur cette
+assertion ; la copie et son profil sont nettoyés. Le smoke réel courant passe
+32 cas et quatre contrôles, avec la référence 0,2946 et le cas courant 0,7202.
+La mesure historique 0,2346 reste une ancienne mesure sur un autre texte,
+pas la référence de cette comparaison. Quick passe avec 460 tests Node,
+99 composants, format/lint et TypeScript/Vite. Traces :
+pam33-confidence-original-request.log,
+pam33-confidence-old-request-control.log et pam33-original-request-quick.log.
+Cette modification de fixture doit encore être validée sur GitHub ; aucun
+succès distant n'est anticipé. Les critères 1, 2 et 4 restent ouverts.

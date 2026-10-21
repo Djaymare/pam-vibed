@@ -53,6 +53,13 @@ La mesure de référence exige un seul appel de l'action attendue, émis dans
 brut reste inchangé et un refus sans proposition fait échouer le contrôle.
 La réponse brute de cette fixture est journalisée avant l'assertion. Le seuil,
 la comparaison d'amélioration et les cas de production restent obligatoires.
+La comparaison CI utilise la même demande originale `Play sur le navigateur`
+avec les anciens outils, puis les outils actuels ; elle exige que la demande
+corresponde au déclencheur historique. La paraphrase précédente pouvait être
+interprétée comme un rejeu d'historique et n'était pas une référence stable.
+Mesure locale du 22 octobre 2026 : 29,46 % avec les anciens outils, 72,02 %
+avec le parcours courant, 32 cas et quatre contrôles réussis. Le tableau du
+11 octobre conserve ses mesures historiques sur l'ancienne formulation.
 
 Les tests unitaires vérifient également les propositions erronées à 99–100 % de confiance, les collisions, les capacités absentes, la résolution des noms publics, les confirmations et la parité texte/vocal.
 

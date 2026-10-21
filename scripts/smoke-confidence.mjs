@@ -47,9 +47,13 @@ try {
   const toolsPath=join(profile,'baseline-tools.json'),systemPath=join(profile,'baseline-system.txt');
   await writeFile(toolsPath,JSON.stringify([{name,description,triggers,parameters}]));
   await writeFile(systemPath,"locale: fr\nplatform: Windows\nOnly use registered tools. Input values must come from the user's request. A Deezer content or search link only displays a page, never starts a song or adds it next in the queue. Skip next plays the next item already in the queue, never inserts a requested song. Reject requests to play a specific song or queue it next when no tool offers that behavior.\n");
+  // Compare both toolsets on the same original request. The former paraphrase
+  // did not match this tool's trigger and could be read as a request to replay history.
+  const baselinePrompt=positive[0][0];
+  assert.ok(triggers.some(pattern=>new RegExp(pattern,'i').test(baselinePrompt)),'The baseline must exercise the registered media request');
   const baseline=JSON.parse((await engine.runEngine(join(runtime,'needle.exe'),['--model',join(runtime,'models/needle3.cact'),
-    '--tools',toolsPath,'--system',systemPath,'--max','256','--fail-input-overflow','--prompt','Reprendre la lecture navigateur opera gx'],{timeout:40000})).stdout);
-  console.log(JSON.stringify({phase:'legacy-baseline',response:baseline}));
+    '--tools',toolsPath,'--system',systemPath,'--max','256','--fail-input-overflow','--prompt',baselinePrompt],{timeout:40000})).stdout);
+  console.log(JSON.stringify({phase:'legacy-baseline',prompt:baselinePrompt,response:baseline}));
   report.baseline=checkConfidenceBaseline(baseline,name);
   const handle=makeAssistant({configDirectory:profile,runtimeDirectory:runtime,runEngine:engine.runEngine,engine,
     media:{sessions:async()=>[browser,deezer].map(app=>({sourceAppId:app.media.sourceAppId,
