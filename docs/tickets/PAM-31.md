@@ -2,6 +2,12 @@
 
 Ticket : https://app.notion.com/p/3f7b3e0422a481df9815d42ba2a67702
 
+**Résultat final de la reprise du 21 octobre : delivered pour PAM-31.** Les
+deux jobs Windows du run `39606909360` réussissent sur
+`8c57384f0bc4f80be4290d8c179ba0c612798a9f`. Le workflow global est annulé
+après arrêt du job Linux restant ; aucune réussite Linux ou globale n’est
+revendiquée. Les critères de ce ticket portent sur les tests Rust Windows.
+
 Run `c6124deb-00ca-405c-94f8-dd71183eebb3`, worker
 `01a14c53-438e-7932-9e7d-c43226dff068`, génération 33. Branche
 `codex/deezer-routing`, base `09daa01a67cf7cb466166d4d3a315a103b839c29`.
@@ -131,11 +137,51 @@ Ce résultat n’est pas compté comme une réussite de la CI globale ; la barri
 complète appartient à PAM-33. La validation PAM-31 exige toujours le job natif
 Windows et ses contrôles historiques effectivement réussis.
 
-**Outcome de reprise : blocked, critère CI natif toujours ouvert.** Le dernier
-correctif de fixture reste local en attendant son autorisation de push et la
-preuve CI native. La fiche reste ouverte, aucun relais n’est transféré pendant
-cette attente. Aucun programme personnel commandé ni permission modifiée.
-Le reçu conserve les SHA et les empreintes des journaux.
+### Troisième exécution CI — job natif réussi
+
+Le message humain `01a15e9c-c7e6-7871-88a4-6dcee88b676c` autorise le push de
+`8c57384f0bc4f80be4290d8c179ba0c612798a9f`, qui a été effectué et vérifié.
+Le [run 39606909360](https://github.com/Djaymare/pam-vibed/actions/runs/39606909360)
+exécute ce SHA exact sur Windows Server 2022 x64, Rust/MSVC 1.99.0 et Node
+24.21.0. Son job `native-tests` (`119245360540`) est **success** : rustfmt,
+Clippy, 57 tests Rust sans modèles (zéro échec/ignoré), compilation de fixture
+et les trois contrôles historiques réussis. Son journal complet est conservé
+dans `artifacts/autonomy/pam31-g40-ci-native-success.log`.
+
+Les deux tests de pipe corrigés y passent effectivement. La sonde historique
+observe huit effets sur l’ancien budget, deux effets et les issues partielles
+sur le budget courant ; les prédicats corrigés des anciens jobs et pipes
+échouent comme attendu. Le critère d’exécution CI native est ainsi satisfait.
+Les étapes Rust avec moteur, Node, intégration et confiance du job build ont
+également réussi dans cette troisième exécution. Le contrôle de confiance
+qui avait échoué dans la seconde n’est pas modifié ; son premier échec est
+conservé, sans prétendre qu’il n’a pas existé.
+
+Le job Windows `build` (`119245360059`) est également **success** : 58 tests
+avec moteur, 436 tests Node, intégration réelle, confiance, compilation NSIS,
+portable et `verify:bundle` réussis. Journal `pam31-g40-ci-build-success.log`.
+L’artefact CI `12348518243` est relié au SHA exact, empreinte SHA-256
+`74a21cb96389fd6e9478222429f45522cb3c88f16fb68a0f2576aeba6fae2a87` ;
+ses métadonnées sont dans `pam31-g40-ci-artifacts.json`. Aucun téléchargement
+ni nouvelle diffusion de ce paquet n’est effectué par cette vérification.
+
+Le job Linux restant a été arrêté après réussite des contrôles Windows requis
+par PAM-31. État final confirmé : native-tests success, build success, linux
+cancelled ; workflow global cancelled. Les journaux Linux montrent deux
+échecs (« reprise après exit » et « reprise après timeout », WAV/keywords),
+puis une attente sans résumé final de npm test jusqu’à l’annulation. Ni build
+Linux ni compilation croisée ne sont comptés réussis. Journal complet
+`pam31-g40-ci-linux-cancelled.log`, états `pam31-g40-ci-final-jobs.json` et
+`pam31-g40-ci-final-state.json`. Ce problème de la barrière Linux reste à
+réconcilier dans PAM-33 ; les sources de ces tests ne sont pas modifiées ici.
+
+La relecture finale confirme les critères et les prérequis Notion inchangés,
+les livraisons intégrées et les fichiers de contrôle identiques. Seule cette
+preuve évolue après le SHA testé en CI ; les sources et fixtures sont identiques.
+Tous les processus locaux de fixture et les jobs hébergés connus sont terminés.
+Aucun programme personnel commandé ni permission modifiée. Le reçu conserve
+les SHA finaux et les empreintes des journaux, sans faire passer les anciens
+échecs ni la sonde de saturation pour des validations réussies.
 
 ## Résultat initial du 18 octobre et critère restant
 
@@ -188,7 +234,7 @@ documentent les commandes pour PAM-33 et les limites de ces tests.
 
 | Critère Notion | Résultat établi |
 | --- | --- |
-| Défauts 01/03/04 reproduits avant et corrigés après ; tests Windows exécutés en CI | Partie avant/après prouvée ci-dessous. Configuration CI ajoutée. **Non satisfait intégralement : run CI hébergé absent.** |
+| Défauts 01/03/04 reproduits avant et corrigés après ; tests Windows exécutés en CI | **Satisfait à la reprise** : job Windows native-tests success sur 8c57384, 57 tests verts puis contrôles historiques PAM-01/03/04 réussis ; job Windows build success, dont 58 tests avec moteur. Preuves et limites du workflow global décrites ci-dessus. |
 | Régressions PAM-01/03/04 échouant avec le comportement initial et passant avec les corrections | Le script suivi lit les sources exactes du commit audité `2aff3f94cf8c3cc0e6266f59f2739b0a977ae122`. Ancien bridge compilé sans modification : prédicat de survie PAM-01 faux, prédicat de délai PAM-04 faux, chaque processus de sonde retourne 1. Ancien assistant Node : huit effets émis, assertion « deux » échoue avec code 1. Même sonde de budget actuelle : deux effets, performed/unknown/six not_started, code 0. Régressions Rust de pipe et résultats partiels vertes ; six scénarios natifs actuels : utilisateur survivant/internes morts. |
 | Aucun test n’utilise ni ne ferme une application personnelle | Profils temporaires, audio synthétique, effets simulés et exécutables compilés de fixture. Scans Shell en lecture ; seuls raccourcis UUID et PID de fixtures sont créés/commandés/nettoyés. Contrôle final de l’absence de processus de ces bancs. |
 | Suite unitaire sans modèles, intégrations réelles identifiées | 55 tests par défaut réussis, puis même suite dans une copie de sources sans node_modules ni modèles, runtime vide : 55 réussis. Suite avec feature moteur : 56 réussis. Bancs réels distincts, aucune confusion avec les doubles. |
