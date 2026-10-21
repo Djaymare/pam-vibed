@@ -6,9 +6,9 @@ dépendances. Tous leurs événements, PR de fork comprise, utilisent uniquement
 Checkout ne conserve pas le jeton dans la configuration Git. Ces workflows ne
 signent et ne publient rien ; leurs paquets CI ne sont pas des livraisons signées.
 
-Les quatre jobs ont des limites explicites : tests natifs 45 minutes, build
-Windows 90 minutes, Linux 60 minutes, inventaire 30 minutes. Sans matrice, le
-plafond configuré cumulé est 195 minutes pour un run du workflow Windows et
+Les cinq jobs ont des limites explicites : contrôles rapides 20 minutes,
+tests natifs 45 minutes, build Windows 90 minutes, Linux 60 minutes, inventaire
+30 minutes. Sans matrice, le plafond configuré cumulé est 215 minutes pour un run du workflow Windows et
 30 minutes pour un run sécurité. Ce sont des budgets d'exécution, pas une
 garantie de durée réelle ni une limite de coût globale du dépôt. Le runner et
 les services GitHub peuvent ajouter du temps de file ou de nettoyage.
@@ -29,7 +29,9 @@ en accord avec `.node-version` et `rust-toolchain.toml`.
   Il ne conserve ni target compilé, ni binaires Cargo, ni cache après échec.
 - Aucun cache de modèle, profil, runtime PAM ou paquet de livraison n'est ajouté.
 - Les chemins d'upload sont limités aux sorties NSIS/portable et aux preuves de
-  sécurité. Le nom contient événement, run et tentative ; rétention sept jours,
+  sécurité/validation/WebView2. Les diagnostics sont conservés après échec,
+  sans paquet. Le paquet attend la [barrière complète](ci-quality.md).
+  Le nom contient événement, run et tentative ; rétention sept jours,
   fichiers cachés exclus, écrasement refusé, absence de sortie signalée.
 - Tout artefact de PR reste une sortie non fiable. Aucun workflow privilégié
   ne le télécharge ni ne l'exécute pour publier.

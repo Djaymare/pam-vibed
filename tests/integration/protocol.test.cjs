@@ -6,10 +6,12 @@ const fs = require('node:fs/promises');
 const path = require('node:path');
 const os = require('node:os');
 
-test('le sidecar garde un seul processus, corrige les demandes et s’arrête à la fermeture du pipe', { skip: process.platform !== 'win32', timeout: 20_000 }, async t => {
+assert.equal(process.platform, 'win32', 'Real sidecar requires Windows');
+
+test('le sidecar garde un seul processus, corrige les demandes et s’arrête à la fermeture du pipe', { timeout: 120_000 }, async t => {
   const directory = await fs.mkdtemp(path.join(os.tmpdir(), 'pam-protocol-'));
-  const root = path.resolve(__dirname, '..');
-  const child = spawn(process.execPath, [path.join(__dirname, 'main.cjs'), path.join(root, 'src-tauri/runtime'), directory], {
+  const root = path.resolve(__dirname, '../..');
+  const child = spawn(process.execPath, [path.join(root, 'sidecar/main.cjs'), path.join(root, 'src-tauri/runtime'), directory], {
     windowsHide: true, env: { ...process.env, PATH: '', NODE_PATH: '', NODE_OPTIONS: '' }, stdio: ['pipe', 'pipe', 'pipe'],
   });
   const closed = new Promise(resolve => child.once('close', resolve));

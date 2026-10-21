@@ -134,9 +134,10 @@ snapshot bit à bit de la distribution.
 ## CI et vérification des lockfiles
 
 `.github/workflows/windows.yml` utilise Node 24.21.0 et Rust 1.99.0 avec les mêmes
-composants/cible. Le job Windows exécute `npm ci`, le contrôle des bindings et
-`cargo check --locked` avant les validations et le packaging existants. Le job
-Linux construit et exécute exactement `Dockerfile.development`. Les caches des
+composants/cible. Les contrôles rapides, Rust/WebView2 et Linux précèdent le
+job d'intégration/packaging Windows via des dépendances obligatoires. Le job
+Linux construit et exécute exactement `Dockerfile.development`, dont
+`cargo xwin check --locked`. Voir [ci-quality.md](ci-quality.md). Les caches des
 jobs restent séparés par OS. Aucune exécution de la CI distante n'est nécessaire
 pour effectuer les validations locales ci-dessus.
 

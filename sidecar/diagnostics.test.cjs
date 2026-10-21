@@ -10,7 +10,9 @@ const SECRET = 'SENTINEL-voice-audio-transcription-argument';
 async function fixture(t, options = {}) {
   const directory = await fs.mkdtemp(path.join(os.tmpdir(), 'pam-diagnostics-'));
   t.after(() => fs.rm(directory, {recursive:true,force:true}));
-  const config = {...DEFAULT_CONFIG,applications:[{id:ID,name:'Test',description:'Test fixture',executable:process.execPath,arguments:[],aliases:[],enabled:true}]};
+  // The profile describes Windows targets even when the model-free suite runs on Linux.
+  const executable = process.platform === 'win32' ? process.execPath : 'C:\\PAM-fixture\\node.exe';
+  const config = {...DEFAULT_CONFIG,applications:[{id:ID,name:'Test',description:'Test fixture',executable,arguments:[],aliases:[],enabled:true}]};
   await fs.writeFile(path.join(directory,'applications.json'),JSON.stringify(config));
   const events = [], context = {requestId:ID,onDiagnostic:error=>events.push(error)};
   const handle=createAssistant({runtimeDirectory:directory,configDirectory:directory,...options});

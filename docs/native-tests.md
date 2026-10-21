@@ -97,6 +97,12 @@ modèles avec formatage, Clippy, tests Rust et contrôles historiques. Le job
 `build` exécute séparément les tests `engine-integration` après préparation.
 Le checkout complet du premier job fournit le commit historique.
 
+La barrière PAM-33 ajoute les parcours WebView2 au job sans modèles. Les trois
+tests Node de DLL/sidecar/contexte natif sont dans `tests/integration/`, avec la commande
+`npm run test:integration:node` obligatoire dans `ci:integration` ; `npm test`
+reste sans modèles. Voir [ci-quality.md](ci-quality.md) pour les dépendances
+avant packaging, les diagnostics et les checks à rendre requis côté dépôt.
+
 L’ajout du workflow ne prouve pas son exécution hébergée. Conserver l’URL et
 le SHA du run réussi sur le commit à livrer pour satisfaire ce critère de
 PAM-31. Les commandes ci-dessus et la matrice des fixtures servent de base à

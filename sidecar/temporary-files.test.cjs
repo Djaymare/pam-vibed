@@ -12,7 +12,7 @@ const { createAssistant, DEFAULT_CONFIG } = require('./assistant.cjs');
 async function fixture(t) {
   const directory = await fs.mkdtemp(path.join(os.tmpdir(), 'pam-cleanup-'));
   const config = { ...DEFAULT_CONFIG, applications: [{ id: randomUUID(), name: 'Test', description: 'Fixture',
-    executable: process.execPath, arguments: [], aliases: ['Essai'], enabled: true }],
+    executable: process.platform === 'win32' ? process.execPath : 'C:\\PAM-fixture\\node.exe', arguments: [], aliases: ['Essai'], enabled: true }],
     commandAliases: [{ id: randomUUID(), phrase: 'ouvre mon test', applicationId: '', action: 'open' }] };
   config.commandAliases[0].applicationId = config.applications[0].id;
   await fs.writeFile(path.join(directory, 'applications.json'), JSON.stringify(config));
@@ -30,7 +30,13 @@ function child(t, directory, mode) {
   const exited = once(process, 'exit');
   const timer = setTimeout(() => process.kill(), 10_000);
   t.after(async () => { clearTimeout(timer); if (process.exitCode === null && process.signalCode === null) process.kill(); await exited; });
-  return { process, exited };
+  // A fixture that exits before readiness must fail the test, not leave it waiting forever.
+  const ready = Promise.race([
+    once(process, 'message'),
+    exited.then(([code]) => { throw Error(`Audio fixture exited before readiness: ${code}`); }),
+  ]);
+  ready.catch(() => {}); // Exit/timeout modes deliberately do not wait for readiness.
+  return { process, exited, ready };
 }
 async function assertAudio(directory) {
   const names = await turns(directory); assert.equal(names.length, 1);
@@ -41,7 +47,7 @@ for (const mode of ['exit', 'timeout', 'kill']) {
   test(`reprise après ${mode} : WAV/keywords présents avant, supprimés après, profil intact`, async t => {
     const f = await fixture(t);
     const c = child(t, f.directory, mode);
-    if (mode === 'kill') { await once(c.process, 'message'); await assertAudio(f.directory); c.process.kill(); }
+    if (mode === 'kill') { await c.ready; await assertAudio(f.directory); c.process.kill(); }
     const [code] = await c.exited;
     if (mode !== 'kill') assert.equal(code, 70);
     await assertAudio(f.directory);
@@ -56,7 +62,7 @@ for (const mode of ['exit', 'timeout', 'kill']) {
 test('un autre processus actif et une demande locale survivent à plusieurs collectes', async t => {
   const f = await fixture(t);
   const c = child(t, f.directory, 'active');
-  await once(c.process, 'message'); await assertAudio(f.directory);
+  await c.ready; await assertAudio(f.directory);
   const name = (await turns(f.directory))[0]; await old(path.join(f.directory, name));
   const local = await f.store.createTurn(); await fs.writeFile(path.join(local.directory, 'clip.wav'), 'fixture');
   for (let i = 0; i < 2; i++) { const report = await f.store.collect(); assert.equal(report.failed, 0); assert.equal(report.retained, 2); }

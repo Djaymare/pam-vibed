@@ -2,6 +2,7 @@ import { readFile, readdir } from 'node:fs/promises';
 import { resolve, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { parseDocument } from 'yaml';
+import { validateQualityWorkflow } from './ci-policy.mjs';
 
 export const concurrencyGroup =
   '${{ github.workflow }}-${{ github.event_name }}-${{ github.event.pull_request.number || github.ref }}';
@@ -160,6 +161,9 @@ export function validateWorkflows(workflows, pins, versions) {
           const allowed = new Set([
             'artifacts/security/',
             'artifacts/PAM-windows-x64/',
+            'artifacts/ci/',
+            'artifacts/webview-tests/',
+            'artifacts/webview-cleanup/',
             'src-tauri/target/x86_64-pc-windows-msvc/release/bundle/nsis/*setup.exe',
           ]);
           check(
@@ -182,6 +186,8 @@ export async function checkWorkflows(root) {
     await readFile(join(root, 'rust-toolchain.toml'), 'utf8'),
   )?.[1];
   const errors = validateWorkflows(workflows, pins, { node, rust });
+  const windows = workflows.find((w) => w.name === 'windows.yml');
+  if (windows) errors.push(...validateQualityWorkflow(windows.workflow));
   if (errors.length) throw new Error(errors.join('\n'));
   return workflows;
 }

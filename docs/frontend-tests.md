@@ -29,6 +29,10 @@ Les commandes échouent réellement en cas de contrôle manquant ou échoué.
 `npm test` inclut aussi les tests de composants ; `test:components` sélectionne
 les suites pertinentes pour une boucle front rapide, sans modèle ni effet externe.
 
+La CI exécute ces niveaux via `npm run ci:quick` et `npm run ci:native`.
+Le packaging attend aussi Linux et les intégrations réelles ; commandes,
+diagnostics et checks requis : [ci-quality.md](ci-quality.md).
+
 ## Ce que chaque niveau vérifie
 
 | Niveau | Scénarios et assertions | Limites |

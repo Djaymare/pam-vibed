@@ -10,8 +10,8 @@
   "packageManager": "npm@11.19.0",
   "scripts": {
     "lint": "eslint src/App.vue src/composables src/views sidecar/assistant.cjs sidecar/assistant --max-warnings 0",
-    "format": "prettier --write src/App.vue src/composables src/views sidecar/assistant.cjs sidecar/assistant eslint.config.js .prettierrc.json",
-    "format:check": "prettier --check src/App.vue src/composables src/views sidecar/assistant.cjs sidecar/assistant eslint.config.js .prettierrc.json",
+    "format": "prettier --write src/App.vue src/composables src/views sidecar/assistant.cjs sidecar/assistant eslint.config.js .prettierrc.json scripts/ci-*.mjs scripts/check-workflows.mjs tests/ci-quality.test.mjs tests/workflow-security.test.mjs .github/workflows/*.yml",
+    "format:check": "prettier --check src/App.vue src/composables src/views sidecar/assistant.cjs sidecar/assistant eslint.config.js .prettierrc.json scripts/ci-*.mjs scripts/check-workflows.mjs tests/ci-quality.test.mjs tests/workflow-security.test.mjs .github/workflows/*.yml",
     "check:development": "node scripts/check-development.mjs",
     "check:workflows": "node scripts/check-workflows.mjs",
     "dev": "npm run check:development && vite",
@@ -23,7 +23,7 @@
     "build": "npm run check:development && vue-tsc --noEmit && vite build",
     "preview": "vite preview",
     "tauri": "npm run check:development && tauri",
-    "test": "node --test sidecar/*.test.cjs tests/*.test.mjs",
+    "test": "node --test --test-concurrency=2 --test-timeout=120000 sidecar/*.test.cjs tests/*.test.mjs",
     "test:modals": "node scripts/test-modals.mjs",
     "test:contrast": "node scripts/test-contrast.mjs",
     "test:modals:build": "node scripts/build-modal-test-host.mjs",
@@ -48,7 +48,12 @@
     "package:docker": "npm run check:development && node scripts/build-windows.mjs --docker && node scripts/package-portable.mjs",
     "test:components": "node --test tests/component-journeys.test.mjs tests/async-state.test.mjs tests/deletion.test.mjs tests/drafts.test.mjs tests/proposal-presentation.test.mjs tests/field-accessibility.test.mjs tests/microphone-state.test.mjs tests/recorder-lifecycle.test.mjs tests/status.test.mjs tests/first-use.test.mjs tests/guided-inputs.test.mjs",
     "test:webview": "node scripts/test-modals.mjs",
-    "test:webview:cleanup": "node scripts/test-webview-cleanup.mjs"
+    "test:webview:cleanup": "node scripts/test-webview-cleanup.mjs",
+    "test:integration:node": "node --test --test-concurrency=1 --test-timeout=120000 tests/integration/*.test.cjs",
+    "ci:quick": "node scripts/ci-run.mjs quick",
+    "ci:native": "node scripts/ci-run.mjs native",
+    "ci:integration": "node scripts/ci-run.mjs integration",
+    "ci:package": "node scripts/ci-run.mjs package"
   },
   "dependencies": {
     "@tauri-apps/api": "^2",

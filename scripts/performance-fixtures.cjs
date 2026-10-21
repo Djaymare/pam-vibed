@@ -15,7 +15,7 @@ function profile(count, kind = 'plain') {
               .repeat(2)
               .slice(0, 240)
           : 'Notes de test.',
-      executable: process.execPath,
+      executable: process.platform === 'win32' ? process.execPath : 'C:\\PAM-fixture\\node.exe',
       arguments: [],
       enabled: true,
       ...(kind === 'rich' ? { media: { sourceAppId: `fixture-${i + 1}.exe`, deezer: false } } : {}),
