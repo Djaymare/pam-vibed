@@ -83,7 +83,7 @@ vérifiée avant extraction/exécution avec SHA-256
 `6e7241b51e6817ea6a047693d8e6fed13b31819c9a0dd6c5a726e1592d22f6e9`.
 Il valide le YAML et les expressions ; il n'exécute pas le service GitHub.
 
-## Blocage restant et reprise
+## Blocage et reprise — tentative initiale du 18 octobre 2026
 
 Le contrat exige un run de PR de test sans secret et la vérification des
 permissions effectives, de l'annulation et de l'expiration. **Aucun remote Git
@@ -110,3 +110,75 @@ exécutés. Aucun profil, audio ou programme personnel n'est utilisé.
 `tests/workflow-security.test.mjs`, `package.json`, `package-lock.json`,
 `docs/ci-security.md` et ce document. Aucun fichier du dispositif autonome n'est
 modifié.
+
+## Reprise du 21 octobre 2026 — génération 41
+
+Worker `01a15f6a-941b-77f3-91a6-56ebcd99ab66`, après transfert nominatif
+`deb0b6a1-85df-49e7-89bd-e39c407ed98d`. Base de reprise :
+`e4c0002673daa684c34d78fe32634b5b2c5912ae`, branche `codex/deezer-routing`.
+L'autorisation humaine d'origine a été relue dans son chat source ; la fiche
+PAM-37 et le prérequis PAM-34 ont été relus intégralement dans Notion. PAM-34
+reste « Terminé », avec son commit intégré. Les huit fichiers de contrôle
+correspondent aux empreintes du run ; index et checkout étaient propres.
+
+Le remote `origin` est maintenant `https://github.com/Djaymare/pam-vibed.git`.
+Sa branche par défaut pointe sur `8c57384f0bc4f80be4290d8c179ba0c612798a9f`.
+La reprise du run a été autorisée par un message humain du 21 octobre ; le
+contrat transmis précise que les permissions de push précédentes ne couvrent
+que trois commits de PAM-31. Elles ne constituent pas une autorisation de
+nouveaux pushes PAM-37. Aucun push ni nouvelle PR de ce ticket n'a été effectué.
+
+Le run hébergé PAM-31
+[39606909360](https://github.com/Djaymare/pam-vibed/actions/runs/39606909360),
+événement `push`, a été relu : conclusion globale `cancelled`, jobs Windows
+natifs/build réussis dans les preuves PAM-31 ; Linux annulé après échecs connus.
+Il ne constitue pas un run de PR PAM-37 ni une preuve d'annulation automatique
+ou d'expiration. Aucun succès global de CI n'est annoncé.
+
+Contrôles réellement rejoués sur la base de reprise :
+
+| Commande | Résultat | Journal sous `artifacts/autonomy/` |
+| --- | --- | --- |
+| `npm run check:workflows` | 0 ; deux workflows, quatre jobs bornés sans autorité de livraison | `pam37-g41-policy.log` |
+| `node --test tests/workflow-security.test.mjs` | 0 ; 27 réussis, aucun échec/ignoré | `pam37-g41-targeted.log` |
+| `npm test` | 0 ; 436 réussis, aucun échec/ignoré | `pam37-g41-npm-test.log` |
+| actionlint 1.7.12 sur les deux workflows et la variante de timeout | 0 | `pam37-g41-actionlint.log` |
+| Propriété, empreintes, SHA-256 du contrat et ancêtre PAM-34 | Réussis ; contrat `088c493426f0a485615807321f0d9e6908176f5455d3e85ad3bc8041392b4807` | État du run et acquisition génération 41 |
+
+Les workflows de production restent inchangés. Quatre objets commits de test
+ont été préparés localement avec un index temporaire distinct, sans changer de
+branche ni toucher à l'index d'intégration. Ils ne sont pas des livraisons
+intégrées et ne doivent jamais être fusionnés :
+
+| Étape | Commit préparé | Diff depuis la base |
+| --- | --- | --- |
+| Première PR de test | `789c59630efdece8176a4020b75dc4c3c558eb79` | Un marqueur texte |
+| Deuxième push sur cette PR | `339dba7db764f6373c96e7a5b2dcd1b464d69d53` | Le marqueur mis à jour |
+| PR témoin indépendante | `6a00ffd0ade6e2b8800ff462f185193bb1156778` | Un marqueur texte |
+| Variante temporaire d'expiration | `cd1b72190cf2b34620c2ac781456ab1cd6c39b27` | Marqueur et variante du workflow Windows |
+
+Le plan exact est `artifacts/autonomy/pam37-g41-probe-plan.json` ; le YAML de
+test est `artifacts/autonomy/pam37-g41-timeout-variant.yml`. Les branches
+proposées sont `codex/pam37-validation-g41` et `codex/pam37-control-g41`,
+initialement absentes du remote. Deux PR brouillon permettraient d'observer
+les permissions des vrais jobs, l'annulation du premier run par une mise à
+jour de sa PR et l'absence d'annulation de la PR indépendante. La variante
+conserve permissions, concurrence et checkout épinglé ; elle borne le job
+natif à une minute et attend trois minutes sans lancer d'application. Les
+jobs coûteux build/Linux sont exclus de cette seule variante pour les PR.
+Les runs de production seraient annulés après collecte des preuves utiles.
+Fermeture des PR et suppression des deux branches font partie du nettoyage
+proposé ; aucune fusion, signature, publication ou modification de permissions.
+
+Ce scénario utilise des PR du même dépôt. Il ne démontre pas les mécanismes
+propres aux forks (approbation initiale et rétention des secrets). Aucun secret
+de livraison n'est référencé ou transmis par ces workflows ; les limites du
+scénario devront rester explicites dans la preuve distante. L'expiration
+contrôlée ne sera pas présentée comme un build complet de production.
+
+**Outcome de cette reprise : blocked, autorisation ciblée en attente.** Les
+preuves distantes restent non exécutées et les critères 1, 3 et 4 restent
+ouverts. La demande d'autorisation porte uniquement sur les quatre pushes
+préparés, les deux PR de test, leurs runs et leur nettoyage. Les résultats
+locaux et ce plan ne remplacent pas la validation GitHub requise. La clôture
+Notion et la création d'un successeur attendent cette validation.
