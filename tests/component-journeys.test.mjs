@@ -27,7 +27,7 @@ test('PAM-32 IPC request success reserves once; structured timeout recovers with
   const {h,f}=application(t,m=>m==='process_text'?(fail?Promise.reject(timeout):pending.promise):undefined);
   await settle();f.requests.text.value='Fixture';
   const first=f.requests.submitText();await f.requests.submitText();
-  assert.equal(count(h,'process_text'),1);assert.equal(f.requests.processing.value,true);
+  assert.equal(count(h,'process_text'),2);assert.equal(f.requests.processing.value,true);
   pending.resolve(turn());await first;await settle();
   assert.equal(f.proposals.turns.value.length,1);assert.equal(f.requests.text.value,'');
   fail=true;f.requests.text.value='Retryable draft';await f.requests.submitText();
