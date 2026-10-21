@@ -2,14 +2,18 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { mkdtemp, mkdir, writeFile, readFile, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
-import { join } from 'node:path';
+import { join, resolve, dirname } from 'node:path';
 import { execFileSync } from 'node:child_process';
 import { archiveFiles } from '../scripts/ci-archive.mjs';
 import { digest, zipEntries } from '../scripts/runtime-integrity.mjs';
 
 async function fixture(t) {
   const root = await mkdtemp(join(tmpdir(), 'pam-ci-archive-'));
-  t.after(() => rm(root, { recursive: true, force: true }));
+  t.after(async () => {
+    assert.equal(dirname(resolve(root)), resolve(tmpdir()));
+    assert.ok(root.startsWith(join(tmpdir(), 'pam-ci-archive-')));
+    await rm(root, { recursive: true, force: true });
+  });
   const directory = join(root, 'portable');
   await mkdir(join(directory, 'runtime/npm'), { recursive: true });
   const files = {

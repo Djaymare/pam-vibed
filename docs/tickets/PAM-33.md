@@ -429,3 +429,54 @@ pam33-archive-actionlint.log sous artifacts/autonomy. Le nouveau chemin
 d'upload n'est pas encore testé sur GitHub à ce checkpoint ; les runs en
 cours testent leurs SHA approuvés antérieurs. La clôture reste interdite tant
 que le paquet effectivement téléchargé n'est pas intégralement vérifié.
+
+## Runs sur la demande originale : succès CI, intégrité refusée après téléchargement
+
+Le message humain 01a160b9-8c48-7f72-b24e-d47cff7e847d, dans le tour
+01a160a7-51e3-7510-bde8-5e8c38b814bb, approuve deux pushes exacts et leur
+nettoyage : 1882df87ea63c6331dfea83d47cc982582d2660a et
+5ed37f7d792e47735846e2394ed1392244f1fb4d. PR brouillon
+[11](https://github.com/Djaymare/pam-vibed/pull/11) et
+[12](https://github.com/Djaymare/pam-vibed/pull/12).
+
+Le [run valide 39691594927](https://github.com/Djaymare/pam-vibed/actions/runs/39691594927)
+passe ses quatre jobs. Les 58 tests Rust moteur, trois tests Node réels,
+runtime, 36 contrôles confiance (référence 0,312 vers 0,7193), 48 Deezer et
+65 média passent ; NSIS, portable et verify:bundle passent sur le runner.
+Le commit de fusion 5c6b7d92f368c2392152c9df004576a0e1ada58a possède
+exactement l'arbre du SHA approuvé 1882df8.
+
+L'artefact 12390066098 est téléchargé et son SHA-256 vérifié :
+7ef5a8d9f90b22e875ed91c6ed4075da56ae83df727b01172c67080bef35894d,
+390703309 octets. BuildId aef29415-5790-4f72-8f72-80b6fc02d28a ; manifeste
+edc91125f5d22626567fea20c66e8a1459e4bb7b058fd03086698f9196875ff7 ;
+rapport d'intégration
+7ddc00ce45cf4287d591a8c3ce3995a796ad937219b088c1e5921a68ecba426c ;
+NSIS f4aec9a0b29fbe442a1002890e079975c306ee469b997770028c6aeb58b4282b.
+Ces identités et hachages correspondent, les rapports integration/package
+sont passed, et les 2108 fichiers présents ont tous leur bon hachage.
+
+L'inspection complète confirme cependant les quatre fichiers cachés absents :
+le portable téléchargé contient 2108 des 2112 fichiers de son manifeste.
+La validation est donc refusée, même avec un run vert. Aucun exécutable de
+cette archive n'est lancé. La correction locale d'archive interne et sa
+vérification intégrale doivent encore produire un artefact hébergé valide.
+Traces : pam33-r3-artifact-verification.log (échec attendu),
+pam33-r3-artifact-inspection.json, pam33-r3-valid-artifacts-final.json,
+pam33-r3-valid-build.log et pam33-r3-valid-merge-commit.json.
+
+Le [run paquet incomplet 39691598300](https://github.com/Djaymare/pam-vibed/actions/runs/39691598300)
+passe quick/Linux/native-tests, toutes les intégrations réelles et la
+construction NSIS/portable. Le défaut contrôlé supprime contracts.cjs, puis
+verify:bundle refuse l'inventaire. L'étape ci-artifact et l'upload du paquet
+sont skipped ; seuls quatre diagnostics sont publiés. La sonde a donc enfin
+atteint et prouvé le scénario d'échec attendu. Trace :
+pam33-r3-bundle-build.log et pam33-r3-bundle-artifacts-final.json.
+
+Les deux scans sécurité indépendants restent en échec. Les quatre runs sont
+terminés, les deux PR fermées avec merged false et leurs deux branches
+supprimées, sans relance ni annulation manuelle. La branche distante
+d'intégration reste à 8c57384f0bc4f80be4290d8c179ba0c612798a9f.
+Traces : pam33-r3-runs-latest.json et pam33-r3-*-cleanup.json.
+Le ticket demeure ouvert : un run neuf sur la correction d'archivage et le
+contrôle de son ZIP téléchargé sont encore requis. Aucun successeur créé.
