@@ -220,3 +220,57 @@ initial sont consommés ; un nouveau plan concret devra être autorisé avant
 tout push supplémentaire. La CI neuve réussie et l'artefact requis manquent
 toujours. Le ticket reste ouvert et aucun successeur n'est créé. Les résultats
 finaux et le nettoyage des cinq PR/runs seront réconciliés avant la suite.
+
+## Réconciliation après reprise de quota
+
+Le premier essai de la sonde paquet incomplet a passé quick, Linux et
+native-tests, dont les 162 contrôles WebView2. Son build passe les 58 tests
+Rust avec moteurs et deux tests Node réels, puis le test du protocole dépasse
+120 secondes. Le packaging et son upload sont skipped ; seuls quatre
+artefacts de diagnostics existent, dont build 12373232340 et natif 12373955584.
+Cette tentative ne prouve donc pas le refus du paquet incomplet.
+
+Les dix runs initiaux sont terminés ; les cinq PR 3 à 7 sont closed avec
+merged false et les cinq branches temporaires sont absentes. La branche
+distante d'intégration reste à 8c57384f0bc4f80be4290d8c179ba0c612798a9f.
+Preuves : pam33-runs-final.json, pam33-pr-closures.json et
+pam33-cleanup-results.json. Aucun run n'a été annulé manuellement.
+
+La reprise du 22 octobre vérifie à nouveau le même chat, relais, contrat,
+prérequis Notion Terminé, commits intégrés et empreintes de contrôle. La clé
+de quota précédente est consommée logiquement et son automation supprimée ;
+la prochaine échéance observée est armée dans ce même chat. Aucun reset
+n'est consommé et aucun successeur n'est créé.
+
+Le test protocole original passe localement en 1,4 seconde. Sa fixture
+laissait toutefois une requête pendante après la mort du processus et ne
+drainait pas stderr. Le transport de test lit désormais les deux pipes,
+ignore les frames de progression jusqu'à la réponse finale corrélée et
+rejette sur mort, erreur de pipe, JSON invalide ou délai de requête de 45 s.
+La borne globale de 120 s reste inchangée. Une trace des méthodes et une fin
+de stderr limitée à 8 Kio accompagnent les erreurs, sans enregistrer les
+payloads. Aucun comportement ni budget du sidecar de production ne change.
+
+Quatre tests sans modèle couvrent bruit stderr de 2 Mio, progression/réponse
+fragmentée, mort native avec code 70, absence de réponse, JSON invalide et
+spawn impossible. Retirer le drain ou le rejet à la fermeture dans des copies
+isolées fait échouer les régressions. Le protocole réel passe dix fois sous
+deux processus de charge CPU jetables, puis les trois intégrations Node et
+quick passent (456 tests Node, 99 composants, format/lint/TypeScript/build).
+Traces : pam33-protocol-fixture-check.log, pam33-protocol-controls/results.json,
+pam33-resume-integration-node.log et pam33-resume-quick.log.
+
+La même source copiée dans Docker passe aussi 454 tests Node et deux skips
+spécifiques Windows, puis le build TypeScript/Vite. La commande ci:quick
+refuse correctement une image sans métadonnées Git ; les commandes de tests
+et build sont donc exécutées directement dans cette image sans .git.
+Traces : pam33-protocol-linux-build.log, pam33-protocol-linux-quick.log
+(refus attendu, pas une réussite) et pam33-protocol-linux-tests.log.
+
+Ces défauts de fixture sont établis, mais la cause du timeout hébergé n'est
+pas prouvée par le seul succès local. Une unique relance du build échoué
+du run 39658878156 est en cours sur son SHA original inchangé ; PR et branche
+restent fermée/absente. Aucun push supplémentaire n'a été effectué. Le plan
+de deux pushes préparé avant cette reprise est signalé brouillon dépassé ;
+la suite dépend des preuves du scénario paquet incomplet et d'un nouveau
+plan explicitement approuvé. Les critères distants ouverts restent ouverts.

@@ -1,7 +1,7 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const { spawn } = require('node:child_process');
-const { createInterface } = require('node:readline');
+const { createSidecarClient } = require('../fixtures/sidecar-client.cjs');
 const fs = require('node:fs/promises');
 const path = require('node:path');
 const os = require('node:os');
@@ -15,20 +15,13 @@ test('le sidecar garde un seul processus, corrige les demandes et s’arrête à
     windowsHide: true, env: { ...process.env, PATH: '', NODE_PATH: '', NODE_OPTIONS: '' }, stdio: ['pipe', 'pipe', 'pipe'],
   });
   const closed = new Promise(resolve => child.once('close', resolve));
+  const client = createSidecarClient(child, { signal: t.signal });
   t.after(async () => {
     if (child.exitCode === null) child.kill(); await closed;
+    t.diagnostic(client.describe());
     assert.equal(path.dirname(directory), os.tmpdir()); await fs.rm(directory, { recursive: true, force: true });
   });
-  const pending = new Map(); let serial = 0;
-  const reader = createInterface({ input: child.stdout });
-  reader.on('line', line => {
-    const reply = JSON.parse(line); const waiter = pending.get(reply.id);
-    if (reply.type === 'diagnostic') return;
-    if (waiter) { pending.delete(reply.id); waiter(reply); }
-  });
-  const request = (method, payload = {}, transport = {}) => new Promise(resolve => {
-    const id = ++serial; pending.set(id, resolve); child.stdin.write(JSON.stringify({ version:1,requestId:require('node:crypto').randomUUID(),id, method, payload, ...transport }) + '\n');
-  });
+  const request = client.request;
   const first = await request('status');
   assert.equal(first.ok, true); assert.equal(first.result.engine.loaded, true); assert.equal(first.result.engine.pid, child.pid);
   const saved = await request('save_application', { name: 'Deezer', description: 'Écouter de la musique.', aliases: [], executable: process.execPath, arguments: [], enabled: true });

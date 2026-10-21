@@ -38,6 +38,10 @@ Le plafond configuré cumulé du workflow est 215 minutes, sans matrice ;
 la DLL et le sidecar ou mesurent le contexte natif résident dans `tests/integration/` et sont obligatoires
 via `npm run test:integration:node` sous Windows. Cette commande refuse un
 autre OS. Les tests Rust sans modèle restent séparés de la feature moteur.
+La fixture protocole draine stdout/stderr, corrèle la réponse finale et
+signale le dernier échange lors d'une mort, d'un délai ou d'un pipe fautif.
+Les erreurs conservent au plus 8 Kio de stderr et les noms des méthodes,
+sans payload ; les bornes restent 45 s par requête et 120 s pour le test.
 Les skips spécifiques Windows de la suite Linux sont visibles ; les parcours
 natifs et modèles sont exécutés dans les jobs Windows.
 
