@@ -17,6 +17,16 @@ test('les workflows réels sont lisibles, bornés et sans autorité de livraison
   assert.equal(build.jobs['native-tests'].steps[0].with['fetch-depth'], 0);
 });
 
+test('la CI Windows reçoit les pushes de la branche d’intégration PAM', async () => {
+  const queue = JSON.parse(await readFile(new URL('../docs/autonomy/pam-queue.json', import.meta.url)));
+  const windows = workflows.find((w) => w.name === 'windows.yml').workflow;
+  assert.ok(
+    windows.on.push.branches.includes(queue.project.integrationBranch),
+    `La branche d’intégration ${queue.project.integrationBranch} doit déclencher les tests natifs`,
+  );
+  assert.ok(Object.hasOwn(windows.on, 'workflow_dispatch'));
+});
+
 const mutations = [
   [
     'permissions racine en écriture',

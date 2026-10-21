@@ -10,12 +10,62 @@ PAM-14, PAM-15 relus dans Notion et commits intégrés vérifiés. Travail effec
 le 18 octobre 2026 sous Windows x64, Rust/MSVC 1.99.0, Node 24.21.0 et npm 11.19.0.
 Vérification par le worker implémenteur.
 
-## Résultat et critère restant
+## Reprise du 21 octobre 2026 — CI en attente
+
+Worker `01a15e67-1054-7241-9898-f0092688875d`, génération 40, même run.
+Base de reprise : `ce47dca8d9d2465b42e7bb3a260136d603e9397f` sur
+`codex/deezer-routing`. La demande humaine de reprise dans le chat précédent,
+le lancement d’origine, le relais nominatif, les empreintes de contrôle et
+les trois prérequis « Terminé » ont été relus et vérifiés. Leur livraison et
+le commit initial PAM-31 `8138715a14f37a30763c3bb06d2d58e41e109eb6` sont
+ancêtres du HEAD d’intégration. Le checkout était propre à l’acquisition.
+
+Le remote `origin`, `https://github.com/Djaymare/pam-vibed.git`, contient
+exactement la base de reprise ; sa branche par défaut est celle d’intégration.
+Le fichier distant `windows.yml` est présent et identique à la base locale.
+L’API authentifiée confirme Actions activé, mais renvoie zéro workflow ; la
+lecture du workflow par son nom et son déclenchement manuel retournent 404.
+Aucun run n’a été créé par cet essai. Preuves locales horodatées :
+`pam31-g40-remote-workflows.json`, `pam31-g40-actions-permissions.json`,
+`pam31-g40-remote-workflow-content.json`, `pam31-g40-dispatch-result.json`,
+sous `artifacts/autonomy/`. Ce constat ne prouve pas la cause interne du
+non-enregistrement par GitHub.
+
+Un défaut de configuration est établi : les pushes n’étaient acceptés que
+sur `main` et `master`, alors que le projet utilise `codex/deezer-routing`.
+Cette branche exacte est ajoutée au filtre Windows afin qu’un prochain push
+autorisé déclenche les jobs natifs, build et Linux. Les permissions en lecture,
+les actions épinglées, les limites de durée et les restrictions des caches
+restent vérifiées par la suite existante. Le déclenchement manuel reste présent.
+La nouvelle régression lit la branche du manifeste et échoue avant correction
+avec l’assertion « doit déclencher les tests natifs », puis passe après correction.
+
+Contrôles sur cette reprise :
+
+| Contrôle | Résultat | Journal local |
+| --- | --- | --- |
+| Régression ciblée avant correction | Code 1 attendu, une assertion échouée | `pam31-g40-regression-before.log` |
+| `npm test` | Code 0, 436 réussis, zéro échec/ignoré | `pam31-g40-npm-test.log` |
+| `npm run check:workflows` | Code 0, deux workflows et quatre jobs conformes | `pam31-g40-workflows.log` |
+| `cargo test --manifest-path src-tauri/Cargo.toml --locked --target x86_64-pc-windows-msvc` | Code 0, 57 réussis, zéro échec/ignoré | `pam31-g40-cargo-test.log` |
+| `cargo fmt --manifest-path src-tauri/Cargo.toml --check` | Code 0 | `pam31-g40-fmt.log` |
+| `cargo clippy --manifest-path src-tauri/Cargo.toml --locked --target x86_64-pc-windows-msvc --all-targets -- -D warnings` | Code 0 | `pam31-g40-clippy.log` |
+| Compilation de la fixture Rust et `node scripts/test-native-history.mjs <rustc> .runtime-cache/pam31-g40-process-fixture.exe` | Code 0 ; trois défauts reproduits avant correction et budget courant réussi | `pam31-g40-fixture.log`, `pam31-g40-history.log` |
+
+**Outcome de reprise : blocked, critère CI toujours ouvert.** Le correctif est
+préparé localement ; aucun push n’est autorisé implicitement par `AGENTS.md`.
+Une autorisation humaine explicite d’envoi vers cette branche est nécessaire
+avant le déclenchement et la vérification d’un run hébergé sur le SHA corrigé.
+La fiche ne peut pas être clôturée et aucun relais n’est transféré pendant cette
+attente. Aucun programme personnel commandé ni permission modifiée. Le reçu de
+reprise conserve le SHA final du correctif et les empreintes des journaux.
+
+## Résultat initial du 18 octobre et critère restant
 
 La couverture et ses validations locales sont implémentées. **Outcome : blocked**,
 car le premier critère exige également une exécution en CI Windows. Le workflow
 a été ajouté mais aucun run hébergé de cette livraison n’a été exécuté/vérifié.
-`git remote -v` est vide ; `.git/config` n’a aucune section remote. Le protocole
+À cette date, `git remote -v` était vide et `.git/config` n’avait aucune section remote. Le protocole
 n’autorise pas implicitement de push. La fiche reste donc ouverte, en pause.
 Cette absence de preuve externe n’est pas comptée comme une réussite CI.
 
