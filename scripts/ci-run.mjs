@@ -78,6 +78,7 @@ export function checksFor(phase, npmCli = process.env.npm_execpath) {
     package: [
       script('package:windows'),
       script('package:portable'),
+      node('tests/fixtures/ci-incomplete-package.mjs'),
       script('verify:bundle'),
       node('scripts/ci-artifact.mjs'),
     ],
