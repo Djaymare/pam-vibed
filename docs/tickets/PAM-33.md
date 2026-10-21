@@ -274,3 +274,46 @@ restent fermée/absente. Aucun push supplémentaire n'a été effectué. Le plan
 de deux pushes préparé avant cette reprise est signalé brouillon dépassé ;
 la suite dépend des preuves du scénario paquet incomplet et d'un nouveau
 plan explicitement approuvé. Les critères distants ouverts restent ouverts.
+
+### Résultat de l'unique relance inchangée
+
+La tentative 2 du run 39658878156 passe les 58 tests Rust moteur, les trois
+tests Node réels et le smoke runtime. Le protocole original passe en 1,64 s.
+Elle échoue ensuite à smoke-confidence.mjs:51 : la référence ancienne renvoie
+zéro function_calls alors que la fixture en exigeait un. Le packaging n'est
+toujours pas atteint et son upload reste skipped. L'artefact 12385652174 est
+exclusivement un diagnostic, SHA-256
+fb5b520ea48a8fe201ba20df7c34b9c1e0e0b0a8f8716d4935e82a1703003ef7.
+Traces : pam33-hosted-bundle-build-attempt2.log,
+pam33-bundle-post-retry-artifacts.json et pam33-runs-post-retry.json.
+Les PR restent fermées et leurs branches absentes ; aucune autre relance
+de ce run n'est faite.
+
+Le test de référence traite maintenant un appel retenu dans suppressed_calls
+comme le planner de production le fait déjà. La [documentation officielle
+Needle](https://github.com/cactus-compute/needle/blob/main/llms.txt) décrit
+ces appels retenus par le moteur, distincts d'un refus sans proposition.
+La vérification exige toujours exactement un appel de l'action attendue,
+sans argument inventé, avec un score brut fini entre zéro et un. Le refus,
+la mauvaise action et les appels multiples échouent. Le score n'est pas
+modifié ; ni seuil de 65 %, ni comparaison stricte d'amélioration, ni les
+32 cas et quatre contrôles de formulations personnelles ne changent.
+La réponse brute de référence est écrite avant l'assertion pour diagnostiquer
+le prochain run. La présence de suppressed_calls dans l'échec hébergé reste
+une hypothèse à confirmer, car l'ancienne fixture ne journalisait pas cette
+réponse. Aucun succès hébergé n'est déduit de cette correction.
+
+Quatre régressions sans modèle couvrent réponse émise/retenue, conservation
+du score et de la réponse, refus/actions/arguments invalides et scores
+absents ou hors bornes. Le smoke réel passe localement : 32 cas et quatre
+contrôles, Play 0,2346 vers 0,7202. Traces : pam33-confidence-held-calls.log
+et pam33-confidence-quick.log. La correction se limite à la validation de
+test ; le planner, les confirmations et le moteur restent inchangés.
+
+Sur cette correction, quick passe avec 460 tests Node Windows et 99 composants,
+format/lint et TypeScript/Vite. L'image Docker passe 458 tests Node avec deux
+skips Windows et le build. Traces Linux : pam33-confidence-linux-tests.log.
+Le prochain plan nécessite trois branches exactes : valide, faute de format
+Rust et paquet incomplet. Les preuves négatives Rust/UI initiales sont
+conservées ; aucune politique CI ni porte de packaging ne change depuis ces
+preuves. Un nouveau run complet reste indispensable pour le code corrigé.

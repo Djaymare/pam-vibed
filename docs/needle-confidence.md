@@ -48,6 +48,12 @@ node scripts/smoke-confidence.mjs artifacts/PAM-windows-needle-confidence
 
 `test:confidence` exécute Needle sur 32 cas fixes : 16 commandes positives et 16 refus attendus, comprenant négations françaises/anglaises, citations, applications inconnues/désactivées et commandes composées. Les sessions et les exécutions sont simulées ; aucun lecteur personnel n’est contrôlé. Le profil temporaire est supprimé. Le rapport est écrit dans `artifacts/needle-confidence-results.json`, ignoré par Git.
 
+La mesure de référence exige un seul appel de l'action attendue, émis dans
+`function_calls` ou retenu par le moteur dans `suppressed_calls`. Le score
+brut reste inchangé et un refus sans proposition fait échouer le contrôle.
+La réponse brute de cette fixture est journalisée avant l'assertion. Le seuil,
+la comparaison d'amélioration et les cas de production restent obligatoires.
+
 Les tests unitaires vérifient également les propositions erronées à 99–100 % de confiance, les collisions, les capacités absentes, la résolution des noms publics, les confirmations et la parité texte/vocal.
 
 Références officielles : [conception des outils Needle](https://www.cactuscompute.com/blog/designing-tools-for-needle), [signification et limites du score](https://www.cactuscompute.com/blog/needle-confidence).

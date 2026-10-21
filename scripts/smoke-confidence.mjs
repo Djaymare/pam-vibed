@@ -4,6 +4,7 @@ import {mkdtemp, mkdir, writeFile, rm} from 'node:fs/promises';
 import {join, dirname, resolve} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {createRequire} from 'node:module';
+import {checkConfidenceBaseline} from './confidence-baseline.mjs';
 const require = createRequire(import.meta.url);
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const {createAssistant, toolsFor, DEFAULT_CONFIG} = require('../sidecar/assistant.cjs');
@@ -48,8 +49,8 @@ try {
   await writeFile(systemPath,"locale: fr\nplatform: Windows\nOnly use registered tools. Input values must come from the user's request. A Deezer content or search link only displays a page, never starts a song or adds it next in the queue. Skip next plays the next item already in the queue, never inserts a requested song. Reject requests to play a specific song or queue it next when no tool offers that behavior.\n");
   const baseline=JSON.parse((await engine.runEngine(join(runtime,'needle.exe'),['--model',join(runtime,'models/needle3.cact'),
     '--tools',toolsPath,'--system',systemPath,'--max','256','--fail-input-overflow','--prompt','Reprendre la lecture navigateur opera gx'],{timeout:40000})).stdout);
-  assert.equal(baseline.function_calls.length,1);assert.equal(baseline.function_calls[0].name,name);
-  report.baseline={confidence:baseline.confidence,correct:true};
+  console.log(JSON.stringify({phase:'legacy-baseline',response:baseline}));
+  report.baseline=checkConfidenceBaseline(baseline,name);
   const handle=makeAssistant({configDirectory:profile,runtimeDirectory:runtime,runEngine:engine.runEngine,engine,
     media:{sessions:async()=>[browser,deezer].map(app=>({sourceAppId:app.media.sourceAppId,
       capabilities:{play:true,pause:true,next:true,previous:true,stop:true,toggle:true}})),
