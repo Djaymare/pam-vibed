@@ -16,6 +16,7 @@ const { createAssistant } = require('../sidecar/assistant.cjs');
 const { toolsFor } = require('../sidecar/assistant/intent.cjs');
 const { needleTools } = require('../sidecar/needle-tools.cjs');
 const { validateConfig } = require('../sidecar/config-schema.cjs');
+const { requireToolLimit } = require('../sidecar/assistant/context-capacity.cjs');
 const { profile, sessions, SYSTEM } = require('./performance-fixtures.cjs');
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const runtime = join(root, 'src-tauri/runtime');
@@ -116,6 +117,10 @@ if (process.argv[2] === '--child') {
         ],
       ]) {
         try {
+          // Use the production admission bound. Directly probing rejected
+          // 56/224-tool catalogues can terminate the native worker (exit 70),
+          // preventing the supported before/after scenarios from completing.
+          requireToolLimit(chosen);
           capacity.push({
             cycle,
             selection,

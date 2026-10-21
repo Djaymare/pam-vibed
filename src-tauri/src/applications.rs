@@ -14,13 +14,29 @@ pub struct InstalledApplication {
     pub launch_argument: String,
 }
 
+#[derive(Clone, Copy)]
+enum IconScope<'a> {
+    All,
+    Target(&'a str),
+    None,
+}
+impl IconScope<'_> {
+    fn includes(self, app_id: &str) -> bool {
+        match self {
+            Self::All => true,
+            Self::Target(id) => id == app_id,
+            Self::None => false,
+        }
+    }
+}
+
 trait CatalogueSource: Send + Sync {
-    fn discover(&self) -> Result<Vec<InstalledApplication>, String>;
+    fn discover(&self, icons: IconScope<'_>) -> Result<Vec<InstalledApplication>, String>;
 }
 struct WindowsCatalogue;
 impl CatalogueSource for WindowsCatalogue {
-    fn discover(&self) -> Result<Vec<InstalledApplication>, String> {
-        discover()
+    fn discover(&self, icons: IconScope<'_>) -> Result<Vec<InstalledApplication>, String> {
+        discover_with_icons(icons)
     }
 }
 pub struct Catalogue {
@@ -38,7 +54,11 @@ impl Default for Catalogue {
 
 impl Catalogue {
     pub fn scan(&self) -> Result<Vec<InstalledApplication>, String> {
-        let applications = self.source.discover()?;
+        self.scan_with_icons(IconScope::All)
+    }
+
+    fn scan_with_icons(&self, icons: IconScope<'_>) -> Result<Vec<InstalledApplication>, String> {
+        let applications = self.source.discover(icons)?;
         *self.entries.lock().map_err(|_| "Catalogue indisponible.")? = Some(applications.clone());
         Ok(applications)
     }
@@ -57,7 +77,7 @@ impl Catalogue {
             .to_owned();
         let mut catalogue = self.entries.lock().map_err(|_| "Catalogue indisponible.")?;
         if catalogue.is_none() {
-            *catalogue = Some(self.source.discover()?);
+            *catalogue = Some(self.source.discover(IconScope::All)?);
         }
         let entry = catalogue.as_ref().unwrap().iter().find(|entry| entry.app_id == id)
             .ok_or("Application absente du catalogue Windows. Actualisez la liste ou choisissez un exécutable.")?;
@@ -71,7 +91,13 @@ impl Catalogue {
         // Effect/registration paths must not trust a stale picker snapshot.
         // prepare() alone supports read-only batch checks on one scan.
         if !payload["windowsApp"].is_null() {
-            self.scan()?;
+            let id = payload["windowsApp"]["appId"]
+                .as_str()
+                .ok_or("Identifiant d’application Windows invalide.")?;
+            // Availability and launch authority always come from a fresh scan.
+            // Only the selected entry needs pixels for registration; no cached
+            // icon or WebView-supplied image becomes an authority.
+            self.scan_with_icons(IconScope::Target(id))?;
         }
         self.prepare(payload)
     }
@@ -107,7 +133,9 @@ impl Catalogue {
         if !applications.iter().any(|app| !app["windowsApp"].is_null()) {
             return;
         }
-        let catalogue = self.scan();
+        // Status needs fresh IDs/launch arguments, never every application's
+        // bitmap. Keep the same enumeration and fail-closed availability checks.
+        let catalogue = self.scan_with_icons(IconScope::None);
         for app in applications
             .iter()
             .filter(|app| !app["windowsApp"].is_null())
@@ -133,7 +161,7 @@ impl Catalogue {
 }
 
 #[cfg(not(windows))]
-pub fn discover() -> Result<Vec<InstalledApplication>, String> {
+fn discover_with_icons(_icons: IconScope<'_>) -> Result<Vec<InstalledApplication>, String> {
     Err("La découverte des applications est disponible sous Windows.".into())
 }
 #[cfg(not(windows))]
@@ -159,8 +187,8 @@ fn explorer() -> Result<String, String> {
 }
 
 #[cfg(windows)]
-pub fn discover() -> Result<Vec<InstalledApplication>, String> {
-    native::discover()
+fn discover_with_icons(icons: IconScope<'_>) -> Result<Vec<InstalledApplication>, String> {
+    native::discover(icons)
         .map_err(|error| format!("Impossible de lire les applications Windows : {error}"))
 }
 

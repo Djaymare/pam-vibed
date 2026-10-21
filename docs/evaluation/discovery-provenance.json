@@ -1,0 +1,33 @@
+{
+  "schemaVersion": 1,
+  "baseCommit": "9044d466db205b52c1b4db2c2a850a832c19a147",
+  "rust": "1.99.0",
+  "fixtures": {
+    "baseline": {
+      "revision": "9044d466db205b52c1b4db2c2a850a832c19a147",
+      "commit": "9044d466db205b52c1b4db2c2a850a832c19a147",
+      "sourceHashes": {
+        "src-tauri/src/applications.rs": "eae1fc0b59544fa36b29ddce03895bf4b4d6b5c391623c05dd156b1f1f887a0b",
+        "src-tauri/src/applications/native.rs": "3cfe76658d434cbe39dda8f942feaee66121a3669a5d947a0b6e1725ccd6662e",
+        "src-tauri/src/applications/tests.rs": "8c1232c4a11a9f0fd84806dfa8d2339723f8cebd43029c2993ec583b86ac8ff1",
+        "src-tauri/src/windows_resources.rs": "4f4572b1049121f85d322fbce71948d7e0049fcfd26124fe4e1b6d6315138d90",
+        "src-tauri/examples/discovery.rs": "2f1c22c3547b5561273d2e9ac23c20da253aee0f0490491acb2f0706e57f6dda",
+        "src-tauri/examples/discovery-performance.rs": "ac67b3b54a3e0a246bd682023e4add7b22c62176504aee0b435602756c93ffe8"
+      },
+      "cargoLockSha256": "0dab852b95634e0fbff5db4becde62679095232a2915962bb143be25d3996537"
+    },
+    "candidate": {
+      "revision": "workspace",
+      "commit": null,
+      "sourceHashes": {
+        "src-tauri/src/applications.rs": "981213dad20e4b08cec0b76604b2fe449496836117fd74ccee14264c6f496082",
+        "src-tauri/src/applications/native.rs": "c674e220fd5b4311defe5df398cd3c8a838afb2d5ceb18b81604c9769c95ba08",
+        "src-tauri/src/applications/tests.rs": "2b6e3625d827148b3a3dfa37d7021df443739f844987a9efa4a20e8884206388",
+        "src-tauri/src/windows_resources.rs": "4f4572b1049121f85d322fbce71948d7e0049fcfd26124fe4e1b6d6315138d90",
+        "src-tauri/examples/discovery.rs": "2f1c22c3547b5561273d2e9ac23c20da253aee0f0490491acb2f0706e57f6dda",
+        "src-tauri/examples/discovery-performance.rs": "ac67b3b54a3e0a246bd682023e4add7b22c62176504aee0b435602756c93ffe8"
+      },
+      "cargoLockSha256": "0dab852b95634e0fbff5db4becde62679095232a2915962bb143be25d3996537"
+    }
+  }
+}

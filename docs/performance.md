@@ -108,3 +108,7 @@ preuve de cette évaluation. Aucun objectif chiffré n’est promis par ce ticke
 Les optimisations audio/découverte éventuelles relèvent de PAM-39, à décider
 sur un besoin mesuré. Les résultats de cette campagne sont dans
 `docs/performance-results.md` et `docs/evaluation/performance.json`.
+
+La comparaison PAM-39 de la découverte Windows, ses fixtures verrouillées et
+ses limites sont décrites dans `docs/discovery-performance.md`. Ses résultats
+avant/après sont distincts de la campagne de référence ci-dessus.

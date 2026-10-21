@@ -1,6 +1,6 @@
 //! Read-only Windows catalogue. All Shell interfaces remain in one STA.
 
-use super::InstalledApplication;
+use super::{IconScope, InstalledApplication};
 use crate::windows_resources::Apartment;
 use base64::{engine::general_purpose::STANDARD, Engine};
 use std::{
@@ -226,7 +226,7 @@ fn shortcuts(directory: &Path, depth: usize, files: &mut Vec<PathBuf>) {
     }
 }
 
-pub fn discover() -> Result<Vec<InstalledApplication>> {
+pub(super) fn discover(icons: IconScope<'_>) -> Result<Vec<InstalledApplication>> {
     let _apartment = Apartment::sta()?;
     // SAFETY: constant folder GUID, valid flags, no borrowed token; the current
     // STA guard outlives the returned owned interface.
@@ -273,12 +273,13 @@ pub fn discover() -> Result<Vec<InstalledApplication>> {
         if !target.is_empty() {
             seen_targets.insert(target.to_lowercase());
         }
+        let image = icons.includes(&id).then(|| icon(&item)).flatten();
         applications.push(InstalledApplication {
             launch_argument: format!("shell:AppsFolder\\{id}"),
             app_id: id,
             name,
             kind: if store { "store" } else { "desktop" }.into(),
-            icon: icon(&item),
+            icon: image,
         });
     }
     // AppsFolder can lag behind a fresh Start Menu shortcut. Read only
@@ -316,11 +317,13 @@ pub fn discover() -> Result<Vec<InstalledApplication>> {
             continue;
         }
         seen_targets.insert(target.to_lowercase());
+        let app_id = format!("shortcut:{launch_argument}");
+        let image = icons.includes(&app_id).then(|| icon(&item)).flatten();
         applications.push(InstalledApplication {
-            app_id: format!("shortcut:{launch_argument}"),
+            app_id,
             name,
             kind: "desktop".into(),
-            icon: icon(&item),
+            icon: image,
             launch_argument,
         });
     }

@@ -6,8 +6,23 @@ use std::collections::VecDeque;
 type Snapshot = Result<Vec<InstalledApplication>, String>;
 struct Source(Mutex<VecDeque<Snapshot>>);
 impl CatalogueSource for Source {
-    fn discover(&self) -> Snapshot {
-        self.0.lock().unwrap().pop_front().expect("unexpected scan")
+    fn discover(&self, icons: IconScope<'_>) -> Snapshot {
+        self.0
+            .lock()
+            .unwrap()
+            .pop_front()
+            .expect("unexpected scan")
+            .map(|entries| {
+                entries
+                    .into_iter()
+                    .map(|mut entry| {
+                        if !icons.includes(&entry.app_id) {
+                            entry.icon = None;
+                        }
+                        entry
+                    })
+                    .collect()
+            })
     }
 }
 fn catalogue(snapshots: Vec<Snapshot>) -> Catalogue {
@@ -100,4 +115,77 @@ fn inaccessible_refresh_marks_status_unavailable_even_with_a_cached_entry() {
         status["applicationAvailability"]["registered"]["reason"],
         "injected access denied"
     );
+}
+
+#[test]
+fn loaded_catalogue_only_requests_pixels_for_picker_or_exact_selected_id() {
+    let image = "data:image/png;base64,iVBORw0KGgo=".to_owned();
+    let entries: Vec<_> = (0..512)
+        .map(|i| {
+            let mut e = entry(&format!("fixture-{i}"));
+            e.icon = Some(image.clone());
+            e
+        })
+        .collect();
+    let catalogue = catalogue(vec![Ok(entries.clone()), Ok(entries.clone()), Ok(entries)]);
+    assert_eq!(
+        catalogue
+            .scan()
+            .unwrap()
+            .iter()
+            .filter(|e| e.icon.is_some())
+            .count(),
+        512
+    );
+    let registered: Vec<_> = (0..32).map(|i| json!({"id":format!("registered-{i}"),"windowsApp":{"appId":format!("fixture-{i}")},"arguments":[format!("shell:AppsFolder\\fixture-{i}")]})).collect();
+    let mut status = json!({"config":{"applications":registered},"applicationAvailability":{}});
+    for i in 0..32 {
+        status["applicationAvailability"][format!("registered-{i}")] = json!({"available":true});
+    }
+    catalogue.annotate_status(&mut status);
+    assert!(catalogue
+        .entries
+        .lock()
+        .unwrap()
+        .as_ref()
+        .unwrap()
+        .iter()
+        .all(|e| e.icon.is_none()));
+    for i in 0..32 {
+        assert_eq!(
+            status["applicationAvailability"][format!("registered-{i}")]["available"],
+            true
+        );
+    }
+    let mut draft = payload("fixture-31");
+    draft["windowsApp"]["icon"] = json!("forged");
+    catalogue.prepare_fresh(&mut draft).unwrap();
+    assert_eq!(draft["windowsApp"]["icon"], image);
+    assert_eq!(draft["arguments"], json!(["shell:AppsFolder\\fixture-31"]));
+    let cache = catalogue.entries.lock().unwrap();
+    let icons: Vec<_> = cache
+        .as_ref()
+        .unwrap()
+        .iter()
+        .filter(|e| e.icon.is_some())
+        .map(|e| e.app_id.as_str())
+        .collect();
+    assert_eq!(icons, ["fixture-31"]);
+}
+
+#[test]
+fn invalid_target_is_rejected_before_scan_and_missing_target_keeps_original_payload() {
+    let invalid = catalogue(vec![]);
+    let mut draft = json!({"windowsApp":{"appId":123,"icon":"forged"},"executable":"forged"});
+    let original = draft.clone();
+    assert!(invalid
+        .prepare_fresh(&mut draft)
+        .unwrap_err()
+        .contains("invalide"));
+    assert_eq!(draft, original);
+    let missing = catalogue(vec![Ok(vec![entry("other")])]);
+    let mut draft = payload("fixture");
+    let original = draft.clone();
+    assert!(missing.prepare_fresh(&mut draft).is_err());
+    assert_eq!(draft, original);
 }
