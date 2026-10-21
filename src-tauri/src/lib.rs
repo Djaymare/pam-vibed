@@ -116,3 +116,12 @@ pub fn run() {
             }
         });
 }
+
+#[cfg(test)]
+mod pam33_ci_failure {
+    #[test]
+    fn deliberately_red() {
+        let actual = std::hint::black_box(1);
+        assert_eq!(actual, 2);
+    }
+}
