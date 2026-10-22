@@ -13,6 +13,7 @@
     "format": "prettier --write src/App.vue src/composables src/views sidecar/assistant.cjs sidecar/assistant eslint.config.js .prettierrc.json scripts/ci-*.mjs scripts/check-workflows.mjs tests/ci-quality.test.mjs tests/workflow-security.test.mjs .github/workflows/*.yml",
     "format:check": "prettier --check src/App.vue src/composables src/views sidecar/assistant.cjs sidecar/assistant eslint.config.js .prettierrc.json scripts/ci-*.mjs scripts/check-workflows.mjs tests/ci-quality.test.mjs tests/workflow-security.test.mjs .github/workflows/*.yml",
     "check:development": "node scripts/check-development.mjs",
+    "diagnose:environment": "node scripts/diagnose-environment.mjs",
     "check:workflows": "node scripts/check-workflows.mjs",
     "dev": "npm run check:development && vite",
     "dev:desktop": "npm run check:development && npm run prepare:runtime && vite",

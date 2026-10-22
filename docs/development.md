@@ -4,6 +4,10 @@ PAM est une application **Windows x64**. Linux sert à tester le front et le
 sidecar et à vérifier/compiler la cible Windows avec cargo-xwin ; il ne fournit
 pas une version desktop Linux.
 
+Le [catalogue court des commandes](commands.md) relie les besoins aux suites et
+à leurs prérequis. Il décrit aussi le diagnostic informatif en lecture seule
+`npm run diagnose:environment`, indépendant des contrôles bloquants ci-dessous.
+
 ## Versions communes au poste, à Docker et à la CI
 
 | Outil | Version retenue |
