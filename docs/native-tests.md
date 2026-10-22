@@ -25,6 +25,13 @@ Les tests de politiques, contrats et dispatch isolent processus et transport.
 | Permissions | Garde de fenêtre utilisée par la commande Tauri avant décodage ; labels non autorisés sans dispatch, capability limitée à `main`, aucune origine distante. Ce test ne lance pas une WebView2. |
 | Catalogue | `applications/tests.rs` : source simulée, catalogue vide/refusé, noms identiques avec identifiants distincts, sélection exacte, entrée disparue après actualisation et ancien cache inutilisable pour autoriser un effet après échec du scan. |
 
+PAM-40 ajoute le [banc d'autorisation WebView2](tauri-permissions.md) :
+`npm run build`, `npm run test:permissions:build`, puis `npm run test:permissions`.
+Il utilise le vrai handler/ACL Tauri et vérifie main locale, fenêtre non autorisée,
+origine HTTP, navigation de main vers cette origine puis retour local. Les services
+sont jetables et le backend volontairement indisponible ; la réception des
+événements est réelle. Ce banc complète le test unitaire de garde de fenêtre.
+
 Chaque profil est créé par le test, le bridge est arrêté et ses handles joints
 avant suppression. Les commandes externes ne ciblent que les exécutables et PID
 des fixtures. Les scans Shell lisent le catalogue sans lancer ses applications.

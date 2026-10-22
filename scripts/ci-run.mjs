@@ -57,6 +57,10 @@ export function checksFor(phase, npmCli = process.env.npm_execpath) {
       script('test:modals:build'),
       script('test:webview'),
       script('test:webview:cleanup'),
+      // The custom-protocol authorization host embeds the real frontend assets.
+      script('build'),
+      script('test:permissions:build'),
+      script('test:permissions'),
     ],
     integration: [
       script('prepare:runtime'),

@@ -22,6 +22,14 @@ mod supervision;
 mod windows_resources;
 #[cfg(feature = "process-tests")]
 pub use process_tests::run_process_test_host;
+#[cfg(feature = "process-tests")]
+mod permission_tests;
+#[cfg(feature = "process-tests")]
+pub use permission_tests::run_permission_test_host;
+
+fn ipc_handler() -> impl Fn(tauri::ipc::Invoke<tauri::Wry>) -> bool + Send + Sync + 'static {
+    tauri::generate_handler![assistant_request,]
+}
 
 #[tauri::command]
 async fn assistant_request(
@@ -106,7 +114,7 @@ pub fn run() {
                 let _ = window.hide();
             }
         })
-        .invoke_handler(tauri::generate_handler![assistant_request,])
+        .invoke_handler(ipc_handler())
         .build(tauri::generate_context!())
         .expect("error while building tauri application")
         .run(|app, event| {

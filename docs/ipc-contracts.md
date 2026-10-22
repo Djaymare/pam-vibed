@@ -1,5 +1,9 @@
 # Contrat IPC local — version 1
 
+Les [permissions Tauri](tauri-permissions.md) définissent les fenêtres/webviews,
+origines et usages admis. Un contrat de données valide ne donne pas un droit
+d'accès ; la garde main et l'ACL native s'appliquent avant son décodage.
+
 `sidecar/contracts.json` est la source commune. `scripts/generate-contracts.mjs`
 produit les types et unions discriminées TypeScript, les modèles/enums Rust,
 les appels Rust discriminés par méthode et leurs résultats. Le validateur

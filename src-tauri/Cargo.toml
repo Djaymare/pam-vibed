@@ -24,6 +24,10 @@ process-tests = []
 # Requires prepared Whistle/Needle assets; excluded from the model-free suite.
 engine-integration = []
 
+[[example]]
+name = "permission-test-host"
+required-features = ["process-tests", "custom-protocol"]
+
 [dependencies]
 tauri = { version = "2", features = ["tray-icon"] }
 tauri-plugin-dialog = "2"

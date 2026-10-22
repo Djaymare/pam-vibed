@@ -21,6 +21,7 @@
       }
     ],
     "security": {
+      "capabilities": ["default"],
       "csp": "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; connect-src ipc: http://ipc.localhost https://ipc.localhost; img-src 'self' data:; media-src 'self' blob:; worker-src 'self' blob:",
       "devCsp": "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; connect-src ipc: http://ipc.localhost https://ipc.localhost ws://localhost:1420 http://localhost:1420; img-src 'self' data:; media-src 'self' blob:; worker-src 'self' blob:"
     }

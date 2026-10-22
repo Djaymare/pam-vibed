@@ -16,5 +16,9 @@ fn main() {
         ),
     )
     .unwrap();
-    tauri_build::build()
+    tauri_build::try_build(
+        tauri_build::Attributes::new()
+            .app_manifest(tauri_build::AppManifest::new().commands(&["assistant_request"])),
+    )
+    .expect("Tauri permissions and resources must be valid")
 }

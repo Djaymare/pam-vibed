@@ -204,7 +204,9 @@ mod tests {
         authorize_window("main").unwrap();
         let capability: Value =
             serde_json::from_str(include_str!("../capabilities/default.json")).unwrap();
-        assert_eq!(capability["windows"], json!(["main"]));
+        assert_eq!(capability["windows"], json!([]));
+        assert_eq!(capability["webviews"], json!(["main"]));
+        assert_eq!(capability["local"], true);
         assert!(capability.get("remote").is_none());
     }
     #[test]

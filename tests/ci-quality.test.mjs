@@ -27,6 +27,9 @@ test('production jobs gate packaging on quick, Windows and Linux checks', () => 
     'tests/ci-archive.test.mjs',
     'test:webview',
     'test:webview:cleanup',
+    'npm-cli.js run build',
+    'test:permissions:build',
+    'test:permissions',
   ])
     assert.ok(runs('native').includes(command));
   for (const command of [
