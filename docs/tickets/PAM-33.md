@@ -44,14 +44,14 @@ limites : `docs/ci-quality.md`. Les protections de branche ne sont pas activées
 Permissions read-only, SHA des actions, absence de secrets et caches fiables
 de PAM-37 sont conservés. Aucun circuit de signature/publication n'est ajouté.
 
-## État des critères à ce checkpoint
+## Critères — état final après validation distante
 
 | Critère du contrat | Preuve et état |
 | --- | --- |
-| Une PR ne publie aucun artefact de paquet après échec ; format/Rust visibles avant packaging | Implémenté par needs et upload success ; mutations locales vertes. Exécution GitHub non réalisée, critère encore ouvert. |
-| Format erroné, test Rust/UI rouge ou paquet incomplet interdit la livraison | Runner, mutations de politique et tests de packaging locaux. Scénarios GitHub à exécuter, critère encore ouvert. |
+| Une PR ne publie aucun artefact de paquet après échec ; format/Rust visibles avant packaging | Satisfait : dépendances et upload conditionnel vérifiés, quatre sondes rouges hébergées sans paquet ; run valide 39694953175 réussi, ZIP téléchargé complet et vérifié. |
+| Format erroné, test Rust/UI rouge ou paquet incomplet interdit la livraison | Satisfait : format 39689327514, Rust 39658866997, UI 39658873392, paquet incomplet 39691598300 ; contrôles conservés par comparaison structurelle avant la sonde finale. |
 | Tests réels distingués des simulations, sans applications personnelles | Satisfait : trois tests Node avec moteurs réels, Rust engine-integration, suites Needle et smoke de paquet exécutés ; WebView2 utilise IPC simulé et micro synthétique, Needle utilise profils/sessions de test. Aucun programme personnel commandé. |
-| Exécution neuve réussie avec artefact lié au commit et résultats | Provenance et garde de commit codées ; CI distante pas encore exécutée, critère ouvert. |
+| Exécution neuve réussie avec artefact lié au commit et résultats | Satisfait : run 39694953175, tentative 2, quatre jobs verts ; artefact 12391163979 et ses 2112 fichiers conformes au manifeste, provenance commit/build/installeur/rapports vérifiée après téléchargement. |
 
 ## Contrôles locaux déjà exécutés
 
@@ -480,3 +480,70 @@ d'intégration reste à 8c57384f0bc4f80be4290d8c179ba0c612798a9f.
 Traces : pam33-r3-runs-latest.json et pam33-r3-*-cleanup.json.
 Le ticket demeure ouvert : un run neuf sur la correction d'archivage et le
 contrôle de son ZIP téléchargé sont encore requis. Aucun successeur créé.
+
+## Sonde finale : archive téléchargée intégralement vérifiée
+
+Le message humain 01a160d6-3b0d-7980-a145-e94af98d8b16 autorise le plan R4
+exact (empreinte 5f46ab588f936da6b3c7ef9f8d762b858ea7f5dea1834ea93e5e528f034b3a83),
+un push de bba4fe56a1fd7b0081c1ca044938ab3862e32c54, une PR brouillon et
+leur nettoyage. [PR 13](https://github.com/Djaymare/pam-vibed/pull/13),
+[run 39694953175](https://github.com/Djaymare/pam-vibed/actions/runs/39694953175).
+Le commit de fusion testé 34a3d5fc9e42a501f946e5401b2dada24c9d6bf7 possède
+exactement l'arbre edc2c109d0d20d5a6a17e25101e67cc119ad2aed du SHA approuvé.
+
+La première tentative passe quick/Linux, les trois tests d'archive, rustfmt,
+Clippy et 57 tests Rust. WebView2 échoue avant son premier contrôle, avec un
+DOM initial vide et aucune exception JavaScript. Le rapport confirme processus,
+serveur et profil nettoyés ; build est skipped, seuls les diagnostics existent.
+La cause initiale n'est pas établie. L'unique relance de jobs échoués prévue
+par le plan utilise le même SHA, sans modification de source ou de validation.
+
+Tentative 2 : quatre jobs success, quick/Linux conservés de la première
+tentative. Native-tests passe ses dix commandes, dont trois régressions
+d'archive, 57 tests Rust, contrôles historiques, 162 assertions WebView2 et
+nettoyage avec échec volontaire. Quick exécute 459 tests Node et cinq skips
+Windows, 99 composants, format/lint/TypeScript/build ; Linux exécute les
+mêmes 459 tests et cinq skips, build/runtime et compilation croisée verrouillée.
+Le build Windows neuf passe 58 tests Rust moteur, trois tests Node réels,
+runtime, 36 contrôles confiance (0,315 vers 0,7248), 48 Deezer et 65 média.
+Les cinq commandes de packaging passent : NSIS, portable, verify:bundle,
+provenance et archive. Aucun contrôle n'est neutralisé.
+
+Artefact 12391163979 : 388671368 octets, SHA-256
+7da8bbdf97a46a8ffbbcc306709c7e8999a53bf7b98b06de2ac88051357a7c4c.
+Après téléchargement, les 2112 fichiers du manifeste ont chacun leur bon
+SHA-256, les quatre fichiers cachés sont présents, aucun fichier ne manque
+ou n'est ajouté. L'archive portable compte 2114 entrées, pointeur et manifeste
+compris ; son SHA-256 est
+4d713c9d31bc5dc671be2cc542ac18295342878266feae092ab61f0e60086a3f.
+BuildId : faa65645-3715-4538-9cfb-8fa45465d1d3 ; manifeste :
+b8df460c4aba5c92952b738314405f58bbd97df8d9bd0812199360266f1b4de6 ;
+NSIS : 03aee9bd44eb2465a370c5cb2117ce260b11af582744cac4ed7ab8e2a78efdbd ;
+rapport d'intégration :
+547a862e3d79d6e38e585d4aa02eddc0596fecb25664ce057ef8488e4836723c.
+Commit, run/tentative, buildId, sept contrôles d'intégration et cinq contrôles
+de packaging concordent. Aucun exécutable de l'archive téléchargée n'est lancé.
+
+Traces locales : pam33-r4-valid-artifacts-final.json,
+pam33-r4-artifact-verification.json, pam33-r4-valid-{quick,linux,native,build}.log,
+pam33-r4-valid-native-attempt1.log et pam33-r4-native-diagnostics.zip.
+Le DAG, les conditions, permissions et épinglages restent identiques ; les
+anciens contrôles sont conservés avec tests/contrôle d'archive supplémentaires
+(pam33-r4-gate-comparison.json). Les preuves rouges précédentes restent donc
+applicables. Les quatre critères de ce ticket sont désormais prouvés.
+
+Nettoyage confirmé : PR 13 closed, merged false ; branche
+codex/pam33-r4-valid-g42 absente ; deux runs terminés. Tous les effets des
+onze pushes PAM-33 autorisés sont nettoyés. La branche distante d'intégration
+reste à 8c57384f0bc4f80be4290d8c179ba0c612798a9f. Aucun push d'intégration,
+fusion, signature, publication ou permission modifiée. Le fichier de plan
+avait été réécrit à son contenu exact préapprobation, sans changement de SHA
+ou d'action ; les métadonnées d'accord ont été réconciliées depuis le message
+humain et l'état durable (pam33-r4-plan-reconciliation.json), sans nouvel effet.
+
+Le scan sécurité indépendant reste needsReview true et échoué ; il n'est
+pas présenté comme réussi. Sa revue reste requise avant diffusion/signature,
+comme documenté dans docs/ci-quality.md. Les protections de branche ne sont
+pas activées et les mécanismes propres aux forks ne sont pas testés.
+Vérification par le worker implémenteur. La dernière modification après le
+SHA hébergé porte seulement sur la présente preuve documentaire.
