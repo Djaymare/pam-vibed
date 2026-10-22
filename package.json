@@ -53,7 +53,10 @@
     "ci:quick": "node scripts/ci-run.mjs quick",
     "ci:native": "node scripts/ci-run.mjs native",
     "ci:integration": "node scripts/ci-run.mjs integration",
-    "ci:package": "node scripts/ci-run.mjs package"
+    "ci:package": "node scripts/ci-run.mjs package",
+    "signing:config": "node scripts/windows-signing.mjs config",
+    "signing:verify": "node scripts/windows-signing.mjs verify",
+    "test:signing:native": "node --test tests/integration/windows-signing-native.cjs"
   },
   "dependencies": {
     "@tauri-apps/api": "^2",

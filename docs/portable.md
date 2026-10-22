@@ -14,6 +14,11 @@ puis appelle Tauri pour la cible x64 avec Cargo `--locked` et `custom-protocol`.
 `package:windows` utilise le même parcours avec NSIS ; `package:docker` utilise
 cargo-xwin. Un build Cargo direct ne produit pas de reçu de distribution.
 
+La préparation de la signature, du canal privé et des essais d'installation,
+upgrade/rollback et désinstallation est décrite dans
+[windows-release.md](windows-release.md). Ce parcours de build reste non signé ;
+la configuration de signature préparée est distincte et n'est pas chargée ici.
+
 Le reçu `artifacts/build/windows-x64.json` nomme explicitement le binaire produit,
 son SHA-256, la version, le commit, un identifiant unique et les empreintes des
 sources, du front, du sidecar et du runtime. Le binaire embarque cette identité
